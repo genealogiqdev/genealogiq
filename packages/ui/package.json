@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "radix-ui": "^1.6.7",
-    "lucide-react": "^1.33.0",
+    "lucide-react": "^1.44.0",
     "class-variance-authority": "^0.7.1",
     "@tanstack/react-table": "^8.21.3",
     "sonner": "^2.0.8",
@@ -21,13 +21,13 @@
   },
   "peerDependencies": {
     "next": "^16",
-    "next-intl": "^4.13.7",
+    "next-intl": "^4.14.3",
     "react": "^19",
     "react-dom": "^19"
   },
   "devDependencies": {
-    "next": "16.3.1",
-    "next-intl": "^4.13.7",
+    "next": "16.3.4",
+    "next-intl": "^4.14.3",
     "typescript": "^5",
     "@types/react": "^19",
     "@types/react-dom": "^19"
