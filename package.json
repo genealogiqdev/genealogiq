@@ -8,6 +8,11 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "db:up": "docker compose up -d --wait postgres",
+    "db:down": "docker compose down",
+    "db:push": "pnpm --filter @genealogiq/db db:push",
+    "seed:local": "tsx scripts/seed-local.ts",
+    "setup:local": "pnpm db:up && pnpm db:push && pnpm seed:local",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "db:generate": "turbo run db:generate",
