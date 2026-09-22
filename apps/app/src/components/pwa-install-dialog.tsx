@@ -31,7 +31,7 @@ export function PwaInstallDialog() {
   // /install is a dedicated, always-on install page (no cooldown/opt-out),
   // and /home has its own InstallBanner (same eligibility/cooldown) — this
   // auto-popup would be redundant with either.
-  if (pathname === "/install" || pathname === "/home" || mode === null) return null
+  if (pathname === "/" || pathname === "/install" || pathname === "/home" || mode === null) return null
 
   return (
     <AlertDialog

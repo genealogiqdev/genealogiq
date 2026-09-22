@@ -11,6 +11,7 @@ import type { ReactNode } from "react"
 // for every other route (children can't opt out of an ancestor layout on
 // their own), so this client-side pathname check is the escape hatch.
 const HIDDEN_ON = [
+  /^\/$/,
   /^\/profile\/[^/]+\/tree$/,
   /^\/profile\/[^/]+\/places\/map$/,
   /^\/sign-in$/,

@@ -418,3 +418,409 @@
   60%  { opacity: 0; }
   100% { top: 8%; opacity: 0; }
 }
+
+/* Public marketing experience */
+html {
+  scroll-behavior: smooth;
+}
+
+.marketing-shell {
+  color-scheme: dark;
+  background: #070812;
+  font-feature-settings: "ss01", "cv11";
+}
+
+.marketing-nav .glass {
+  color: rgb(255 255 255 / 0.76);
+  background: rgb(255 255 255 / 0.06);
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.marketing-nav .glass:hover {
+  color: white;
+  background: rgb(255 255 255 / 0.12);
+}
+
+.marketing-hero {
+  isolation: isolate;
+  background:
+    radial-gradient(80% 70% at 75% 20%, rgb(87 70 190 / 0.18), transparent 68%),
+    linear-gradient(180deg, #070812 0%, #090a16 100%);
+}
+
+.marketing-hero-grid {
+  z-index: -1;
+  opacity: 0.42;
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.045) 1px, transparent 1px);
+  background-position: center top;
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(70% 68% at 66% 34%, black 0%, rgb(0 0 0 / 0.55) 58%, transparent 100%);
+  mask-image: radial-gradient(70% 68% at 66% 34%, black 0%, rgb(0 0 0 / 0.55) 58%, transparent 100%);
+}
+
+.marketing-orb {
+  position: absolute;
+  z-index: -1;
+  border-radius: 9999px;
+  filter: blur(80px);
+  will-change: transform;
+}
+
+.marketing-orb-a {
+  top: -12rem;
+  right: -8rem;
+  width: 36rem;
+  height: 36rem;
+  background: rgb(113 88 224 / 0.2);
+  animation: marketing-orb-a 16s ease-in-out infinite;
+}
+
+.marketing-orb-b {
+  bottom: -18rem;
+  left: 8%;
+  width: 34rem;
+  height: 34rem;
+  background: rgb(64 103 178 / 0.12);
+  animation: marketing-orb-b 20s ease-in-out infinite;
+}
+
+.marketing-gradient-text {
+  color: transparent;
+  background: linear-gradient(100deg, #ffffff 0%, #c4b8ff 38%, #897ae7 80%);
+  background-clip: text;
+  -webkit-background-clip: text;
+}
+
+.marketing-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.09);
+  border-radius: 2rem;
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 0.055), rgb(255 255 255 / 0.02)),
+    #0a0b16;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.055),
+    0 30px 90px rgb(0 0 0 / 0.18);
+}
+
+.marketing-panel::before {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background: radial-gradient(500px circle at var(--pointer-x, 50%) var(--pointer-y, 0%), rgb(146 129 238 / 0.07), transparent 45%);
+}
+
+.marketing-product-window {
+  animation: marketing-float 8s ease-in-out infinite;
+  transform-style: preserve-3d;
+}
+
+.marketing-draw-line {
+  stroke-dasharray: 480;
+  stroke-dashoffset: 480;
+  animation: marketing-draw 1.5s 0.65s var(--ease-out-expo) forwards;
+}
+
+.marketing-preview-node {
+  opacity: 0;
+  animation: marketing-node-in 0.7s var(--ease-out-expo) forwards;
+}
+
+.marketing-hero-item {
+  opacity: 0;
+  animation: marketing-hero-in 0.9s 0.12s var(--ease-out-expo) forwards;
+}
+
+.marketing-hero-delay-1 { animation-delay: 0.23s; }
+.marketing-hero-delay-2 { animation-delay: 0.36s; }
+.marketing-hero-delay-3 { animation-delay: 0.49s; }
+.marketing-hero-delay-4 { animation-delay: 0.62s; }
+
+.marketing-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.85s var(--ease-out-expo) var(--reveal-delay, 0ms),
+    transform 0.85s var(--ease-out-expo) var(--reveal-delay, 0ms);
+}
+
+.marketing-reveal[data-visible="true"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.marketing-tree-lines {
+  color: rgb(167 151 245 / 0.3);
+}
+
+.marketing-tree-lines path {
+  stroke-dasharray: 800;
+  stroke-dashoffset: 800;
+  animation: marketing-draw 1.8s 0.15s var(--ease-out-expo) forwards;
+}
+
+.marketing-tree-node {
+  opacity: 0;
+  animation: marketing-node-in 0.65s var(--ease-out-expo) forwards;
+}
+
+.marketing-person-card {
+  animation: marketing-card-in 0.55s var(--ease-out-expo) both;
+}
+
+.marketing-gencode-stage::before {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  opacity: 0.22;
+  background-image: radial-gradient(rgb(255 255 255 / 0.18) 0.7px, transparent 0.7px);
+  background-size: 18px 18px;
+  -webkit-mask-image: radial-gradient(circle at center, black, transparent 72%);
+  mask-image: radial-gradient(circle at center, black, transparent 72%);
+}
+
+.marketing-orbit {
+  position: absolute;
+  border: 1px solid rgb(186 172 255 / 0.13);
+  border-radius: 9999px;
+}
+
+.marketing-orbit::before {
+  position: absolute;
+  top: 50%;
+  left: -4px;
+  width: 8px;
+  height: 8px;
+  content: "";
+  border-radius: 9999px;
+  background: #c4b5fd;
+  box-shadow: 0 0 20px rgb(196 181 253 / 0.75);
+}
+
+.marketing-orbit-one {
+  width: 410px;
+  height: 410px;
+  animation: marketing-spin 18s linear infinite;
+}
+
+.marketing-orbit-two {
+  width: 510px;
+  height: 510px;
+  opacity: 0.55;
+  animation: marketing-spin 25s linear infinite reverse;
+}
+
+.marketing-gencode-card {
+  animation: marketing-float 7s ease-in-out infinite;
+}
+
+.marketing-scan-line {
+  top: 8%;
+  animation: marketing-scan 5.8s ease-in-out infinite;
+}
+
+.marketing-plan-card::before,
+.marketing-feature-card::before {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  opacity: 0;
+  background: linear-gradient(115deg, transparent 20%, rgb(255 255 255 / 0.07) 48%, transparent 72%);
+  transform: translateX(-60%);
+  transition: opacity 0.45s ease, transform 0.8s var(--ease-out-expo);
+}
+
+.marketing-plan-card:hover::before,
+.marketing-feature-card:hover::before {
+  opacity: 1;
+  transform: translateX(60%);
+}
+
+.marketing-final-cta {
+  background: #0a0b17;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 45px 120px rgb(0 0 0 / 0.24);
+}
+
+.marketing-final-rings::before,
+.marketing-final-rings::after {
+  position: absolute;
+  border: 1px solid rgb(255 255 255 / 0.05);
+  border-radius: inherit;
+  content: "";
+}
+
+.marketing-final-rings::before { inset: 58px; }
+.marketing-final-rings::after { inset: 116px; }
+
+html:not(.dark) .marketing-shell {
+  color-scheme: light;
+  background: #e9ecf4;
+}
+
+html:not(.dark) .marketing-shell > main,
+html:not(.dark) .marketing-shell footer {
+  color: #171927;
+  background-color: #e9ecf4;
+}
+
+html:not(.dark) .marketing-shell .marketing-nav {
+  border-color: rgb(55 58 92 / 0.11);
+  background: rgb(245 247 252 / 0.78);
+  box-shadow: 0 18px 50px rgb(40 43 75 / 0.1);
+}
+
+html:not(.dark) .marketing-nav .glass {
+  color: rgb(26 29 47 / 0.72);
+  background: rgb(45 48 80 / 0.06);
+}
+
+html:not(.dark) .marketing-shell .marketing-hero {
+  background:
+    radial-gradient(80% 70% at 75% 20%, rgb(112 96 202 / 0.17), transparent 68%),
+    linear-gradient(180deg, #eef0f7 0%, #e5e8f2 100%);
+}
+
+html:not(.dark) .marketing-shell .marketing-hero-grid {
+  opacity: 0.38;
+  background-image:
+    linear-gradient(to right, rgb(36 39 68 / 0.075) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(36 39 68 / 0.075) 1px, transparent 1px);
+}
+
+html:not(.dark) .marketing-shell .marketing-gradient-text {
+  background-image: linear-gradient(100deg, #272941 0%, #6557bd 48%, #8772dc 100%);
+}
+
+html:not(.dark) .marketing-shell .marketing-panel,
+html:not(.dark) .marketing-shell .marketing-final-cta,
+html:not(.dark) .marketing-shell .marketing-product-window,
+html:not(.dark) .marketing-shell .marketing-product-canvas,
+html:not(.dark) .marketing-shell .marketing-gencode-stage,
+html:not(.dark) .marketing-shell .marketing-gencode-card,
+html:not(.dark) .marketing-shell .marketing-plan-card,
+html:not(.dark) .marketing-shell .marketing-feature-card,
+html:not(.dark) .marketing-shell .marketing-benefit,
+html:not(.dark) .marketing-shell .marketing-metric {
+  border-color: rgb(45 48 82 / 0.11);
+  background-color: rgb(248 249 253 / 0.72);
+  background-image: linear-gradient(145deg, rgb(255 255 255 / 0.7), rgb(231 234 244 / 0.5));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.72),
+    0 24px 70px rgb(44 47 82 / 0.09);
+}
+
+html:not(.dark) .marketing-shell .text-white {
+  color: rgb(23 25 39);
+}
+
+html:not(.dark) .marketing-shell [class*="text-white/"] {
+  color: rgb(31 34 53 / 0.59);
+}
+
+html:not(.dark) .marketing-shell [class*="border-white/"] {
+  border-color: rgb(45 48 82 / 0.12);
+}
+
+html:not(.dark) .marketing-shell [class*="bg-white/"] {
+  background-color: rgb(54 58 94 / 0.06);
+}
+
+html:not(.dark) .marketing-shell button[aria-pressed="true"] {
+  color: white;
+}
+
+html:not(.dark) .marketing-shell footer > img[aria-hidden="true"] {
+  filter: invert(1);
+}
+
+@keyframes marketing-hero-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes marketing-node-in {
+  from { opacity: 0; transform: translate(-50%, 12px) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+@keyframes marketing-card-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes marketing-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes marketing-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -9px, 0); }
+}
+
+@keyframes marketing-orb-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-50px, 40px, 0) scale(1.12); }
+}
+
+@keyframes marketing-orb-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(45px, -35px, 0) scale(1.08); }
+}
+
+@keyframes marketing-scan {
+  0%, 12% { top: 8%; opacity: 0; }
+  20% { opacity: 1; }
+  62% { top: 89%; opacity: 1; }
+  72%, 100% { top: 89%; opacity: 0; }
+}
+
+@keyframes marketing-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 640px) {
+  .marketing-orb-a,
+  .marketing-orb-b {
+    width: 22rem;
+    height: 22rem;
+    filter: blur(64px);
+  }
+
+  .marketing-orbit-one { width: 330px; height: 330px; }
+  .marketing-orbit-two { width: 410px; height: 410px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .marketing-shell *,
+  .marketing-shell *::before,
+  .marketing-shell *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .marketing-hero-item,
+  .marketing-reveal {
+    opacity: 1;
+    transform: none;
+  }
+
+  .marketing-preview-node,
+  .marketing-tree-node {
+    opacity: 1;
+    transform: translateX(-50%);
+  }
+}

@@ -864,6 +864,266 @@
       "tree": "Family tree limit reached"
     }
   },
+  "Marketing": {
+    "closing": {
+      "description": "Start with one name, one photograph, one memory. The rest of the family can grow from there.",
+      "eyebrow": "Your story starts here",
+      "primaryCta": "Create my family tree",
+      "secondaryCta": "Compare plans",
+      "title": "A life deserves more than two dates on a headstone."
+    },
+    "families": {
+      "description": "Genealogiq gives every generation a thoughtful place to contribute, revisit and pass stories forward—without turning family history into a feed.",
+      "eyebrow": "Made for real families",
+      "imageAlt": "Five relatives gathered beside a family memorial",
+      "photoCaption": "The moments between the milestones are often the ones worth keeping.",
+      "photoTitle": "Every family already has a remarkable archive.",
+      "points": {
+        "lasting": "A durable archive designed to outlive changing devices and scattered accounts.",
+        "shared": "Invite relatives to add the details and perspectives only they remember.",
+        "simple": "Clear, guided tools make preserving a story feel natural at any age."
+      },
+      "title": "The most meaningful network in your life."
+    },
+    "features": {
+      "description": "Bring names, voices, places and keepsakes together in a living archive that feels as human as the people inside it.",
+      "eyebrow": "Everything in one place",
+      "items": {
+        "biography": {
+          "description": "Tell a life in chapters, from everyday moments to the turns that changed everything.",
+          "title": "Living biographies"
+        },
+        "documents": {
+          "description": "Keep letters, certificates and records alongside the people they belong to.",
+          "title": "Documents"
+        },
+        "gallery": {
+          "description": "Gather photographs and videos into a shared visual history.",
+          "title": "Photos and videos"
+        },
+        "pets": {
+          "description": "Remember the companions who became part of the family story.",
+          "title": "Beloved pets"
+        },
+        "places": {
+          "description": "Pin the homes, journeys and meaningful places that shaped a life.",
+          "title": "Places that matter"
+        },
+        "tree": {
+          "description": "Connect generations in an interactive tree where every person opens into a full story.",
+          "title": "One connected family tree"
+        },
+        "tributes": {
+          "description": "Leave words, memories and affection that can be revisited for years to come.",
+          "title": "Tributes"
+        }
+      },
+      "title": "Everything a family can create, beautifully connected."
+    },
+    "footer": {
+      "account": "Account",
+      "copyright": "© {year} Genealogiq Global. All rights reserved.",
+      "cta": "Start your family tree",
+      "links": {
+        "activate": "Activate a GenCode",
+        "create": "What you can create",
+        "gencode": "GenCode",
+        "install": "Install the app",
+        "plans": "Plans",
+        "signIn": "Sign in",
+        "signUp": "Create account",
+        "terms": "Terms & Privacy"
+      },
+      "product": "Product",
+      "signature": "Connect · Record · Preserve",
+      "tagline": "A private, shared home for the people, places and memories that make your family yours."
+    },
+    "gencode": {
+      "cta": "Activate my GenCode",
+      "description": "A discreet QR code becomes a doorway to someone’s story—ready to place on a memorial, frame, keepsake or gift.",
+      "eyebrow": "From the physical world to every memory",
+      "imageAlt": "Genealogiq GenCode memorial card",
+      "scanLabel": "Scan to open a life story",
+      "title": "One scan. A lasting connection.",
+      "uses": {
+        "frame": "Frames and family albums",
+        "gift": "Meaningful family gifts",
+        "jewelry": "Jewelry and keepsakes",
+        "memorial": "Memorials and headstones"
+      }
+    },
+    "hero": {
+      "badge": "Free to begin",
+      "description": "Genealogiq connects families, preserves memories and turns scattered stories into a legacy everyone can revisit.",
+      "previewEyebrow": "Family tree",
+      "previewLabel": "Live family archive",
+      "previewMembers": "7 connected people",
+      "previewPeople": {
+        "aunt": "Lucia",
+        "father": "Marcos",
+        "grandfather": "Antonio",
+        "grandmother": "Helena",
+        "mother": "Thaís",
+        "you": "You"
+      },
+      "previewStatus": "Family memories synced",
+      "previewTitle": "The Pereira family",
+      "primaryCta": "Start free",
+      "secondaryCta": "Explore what you can create",
+      "strip": {
+        "enduring": "Built as a lasting archive",
+        "intuitive": "Simple for every generation",
+        "private": "Privacy controls",
+        "scannable": "Stories connected by GenCode"
+      },
+      "titleAccent": "than you imagine.",
+      "titleLead": "Your story is bigger",
+      "trust": {
+        "anywhere": "Available on every device",
+        "free": "No card required",
+        "private": "You control what is shared"
+      }
+    },
+    "legacy": {
+      "description": "Preserving a family history is not about looking backward. It gives the next generation a clearer place to begin.",
+      "eyebrow": "A legacy that stays alive",
+      "items": {
+        "family": {
+          "description": "Give relatives one shared point of reference for names, memories and relationships.",
+          "title": "Stronger family ties"
+        },
+        "future": {
+          "description": "Make today’s voices and ordinary moments available to people who have not met you yet.",
+          "title": "A gift to the future"
+        },
+        "identity": {
+          "description": "Preserve the traditions, places and decisions that made your family distinct.",
+          "title": "Roots and identity"
+        },
+        "privacy": {
+          "description": "Choose what remains private and what can be shared, profile by profile.",
+          "title": "Thoughtful privacy"
+        }
+      },
+      "title": "The future of your legacy begins with this generation."
+    },
+    "meta": {
+      "description": "Build your family tree, preserve biographies, photos and memories, and connect every story with Genealogiq.",
+      "title": "Genealogiq — Turn family stories into legacy"
+    },
+    "metrics": {
+      "formats": "ways to preserve a life",
+      "generations": "generations in one shared story",
+      "people": "people connected in this demo"
+    },
+    "nav": {
+      "closeMenu": "Close menu",
+      "create": "What you can create",
+      "families": "Families",
+      "gencode": "GenCode",
+      "label": "Main navigation",
+      "openMenu": "Open menu",
+      "plans": "Plans",
+      "signIn": "Sign in",
+      "signUp": "Create account",
+      "toggleTheme": "Toggle theme"
+    },
+    "plans": {
+      "annual": "Annual",
+      "cadenceLabel": "Billing frequency",
+      "description": "Begin for free, then expand your archive when your family is ready. Prices and limits always come from the current plan catalog.",
+      "eyebrow": "Simple plans",
+      "free": "Free",
+      "freeCta": "Create free account",
+      "grow": "Grow your archive",
+      "monthly": "Monthly",
+      "perMonth": "/ month",
+      "perYear": "/ year",
+      "premiumCta": "Create account and upgrade",
+      "recommended": "Recommended",
+      "save": "Save {percent}% with annual billing",
+      "start": "Start your story",
+      "title": "The right space for every chapter."
+    },
+    "problem": {
+      "cards": {
+        "place": {
+          "description": "Create one thoughtful place where memories stay organized, connected and easy to revisit.",
+          "title": "A home for the whole story"
+        },
+        "time": {
+          "description": "Names fade, albums scatter and the small details disappear first when no one records them.",
+          "title": "Three generations can pass in fifty years"
+        },
+        "voice": {
+          "description": "A familiar expression, a recipe told by heart, the way someone laughed—memory needs more than a date.",
+          "title": "The voice no one recorded"
+        }
+      },
+      "description": "Family history rarely vanishes all at once. It disappears in details nobody thought to save.",
+      "eyebrow": "Why now",
+      "title": "Every day, another story becomes harder to recover."
+    },
+    "tree": {
+      "description": "Select anyone in the tree. A relationship becomes a biography, a place, a date and every memory the family chose to preserve.",
+      "diagramLabel": "Interactive family tree",
+      "eyebrow": "A tree made of people, not boxes",
+      "memoryCount": "Stories, photographs and tributes",
+      "people": {
+        "antonio": {
+          "name": "Antonio Costa",
+          "place": "Belo Horizonte, Brazil",
+          "relation": "Grandfather",
+          "story": "A patient carpenter who taught the family to build things meant to last.",
+          "years": "1938–2011"
+        },
+        "clara": {
+          "name": "Clara Pereira",
+          "place": "Lisbon, Portugal",
+          "relation": "Daughter",
+          "story": "The family’s newest storyteller, collecting recipes and voice notes from every visit.",
+          "years": "Born 2012"
+        },
+        "helena": {
+          "name": "Helena Costa",
+          "place": "Ouro Preto, Brazil",
+          "relation": "Grandmother",
+          "story": "Her handwritten recipes still gather everyone around the same table.",
+          "years": "1942–2018"
+        },
+        "lucia": {
+          "name": "Lucia Pereira",
+          "place": "Curitiba, Brazil",
+          "relation": "Aunt",
+          "story": "The keeper of old albums and the person who remembers every family nickname.",
+          "years": "Born 1966"
+        },
+        "marcos": {
+          "name": "Marcos Pereira",
+          "place": "São Paulo, Brazil",
+          "relation": "Father",
+          "story": "A teacher, weekend musician and careful recorder of the stories his parents told.",
+          "years": "Born 1968"
+        },
+        "rafael": {
+          "name": "Rafael Pereira",
+          "place": "Porto, Portugal",
+          "relation": "Son",
+          "story": "He maps every place the family lived and pairs it with photographs from each era.",
+          "years": "Born 2008"
+        },
+        "thais": {
+          "name": "Thaís Pereira",
+          "place": "Campinas, Brazil",
+          "relation": "Mother",
+          "story": "She brought scattered albums, documents and memories into one family archive.",
+          "years": "Born 1972"
+        }
+      },
+      "profileBadge": "Story preserved",
+      "title": "Choose a person. Watch their story unfold."
+    }
+  },
   "Memorialized": {
     "actions": {
       "createProfile": "Create profile",
