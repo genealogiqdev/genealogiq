@@ -83,6 +83,20 @@
       "updated": "Price updated successfully.",
       "updatedStripeCleared": "Price updated — Stripe references cleared. Sync with Stripe again to provision fresh prices."
     },
+    "gencodePackage": {
+      "invalidData": "Review the purchase details.",
+      "invalidQuantity": "Enter a whole quantity of at least 20 units.",
+      "linkFailed": "Could not generate the payment link: {message}",
+      "linkSent": "Payment link sent to {email}.",
+      "noCheckoutUrl": "Stripe did not return a payment link.",
+      "packageNotFound": "GenCode package not found or inactive.",
+      "packageNotSynced": "Sync the GenCode package with Stripe before selling it.",
+      "stripeSyncFailed": "Stripe sync failed: {message}",
+      "synced": "Package synced with Stripe.",
+      "tenantNotEligible": "The customer must be active and have a B2B plan with a current cycle.",
+      "tenantNotFound": "Customer not found.",
+      "unknownError": "Unknown error"
+    },
     "package": {
       "created": "Product created successfully.",
       "hasSales": "This product has associated sales and cannot be deleted.",
@@ -572,6 +586,7 @@
     "maxChars": "Must be at most {count} characters",
     "maxQuantity": "Must be at most {count}",
     "minChars": "Must be at least {count} characters",
+    "minQuantity": "Must be at least {count}",
     "monthlyNeedsAnnual": "Set this currency’s annual price before the monthly one",
     "mustBePositive": "Must be greater than zero",
     "mustBeWholeNumber": "Must be a whole number",
@@ -605,6 +620,68 @@
       "PREMIUM": "Premium"
     },
     "title": "Extra Unit Prices"
+  },
+  "GenCodePackages": {
+    "description": "Sell virtual GenCodes on demand to customers with an active B2B plan.",
+    "form": {
+      "cancel": "Cancel",
+      "customer": "Customer",
+      "minimumHint": "Minimum quantity: {count} units.",
+      "noCustomers": "No customer with an active B2B plan was found.",
+      "paymentNote": "The customer will receive a payment link valid for 23 hours. GenCodes are released automatically after confirmation.",
+      "pickCustomer": "Select a customer",
+      "quantity": "Quantity",
+      "searchCustomer": "Search by name or tax ID…",
+      "send": "Send payment link",
+      "sending": "Sending…",
+      "sent": "Payment link sent.",
+      "title": "New GenCode purchase",
+      "total": "Total",
+      "unitPrice": "Unit price"
+    },
+    "newOrder": "New purchase",
+    "ordersDescription": "Track sent links and purchases that have already been released.",
+    "ordersTitle": "Purchase history",
+    "payment": {
+      "cancelDescription": "The payment was not completed and no GenCodes were released. Ask the Genealogiq team for a new link if you still want to purchase.",
+      "cancelTitle": "Payment not completed",
+      "close": "You can close this page.",
+      "successDescription": "We received the confirmation. Your GenCodes will be made available automatically in Sequoia as soon as processing finishes.",
+      "successTitle": "Payment received"
+    },
+    "product": {
+      "active": "Active",
+      "description": "One-time purchase of virtual GenCodes. Each purchase grants credits valid for 12 months and does not participate in annual rollover.",
+      "inactive": "Inactive",
+      "minimum": "Minimum purchase",
+      "notSynced": "Not synced",
+      "stripe": "Stripe",
+      "sync": "Sync with Stripe",
+      "synced": "Synced",
+      "syncing": "Syncing…",
+      "unitPrice": "Unit price",
+      "units": "{count} units",
+      "validity": "Validity",
+      "validityValue": "12 months"
+    },
+    "status": {
+      "EXPIRED": "Link expired",
+      "FAILED": "Failed",
+      "PAID": "Paid",
+      "PENDING": "Awaiting payment"
+    },
+    "table": {
+      "createdAt": "Created",
+      "customer": "Customer",
+      "empty": "No GenCode purchase has been recorded.",
+      "quantity": "Quantity",
+      "search": "Search customer…",
+      "status": "Status",
+      "total": "Total",
+      "unitPrice": "Unit price",
+      "validUntil": "Credits valid until"
+    },
+    "title": "GenCode Package"
   },
   "Feedback": {
     "dialog": {
@@ -847,6 +924,7 @@
       "dashboard": "Dashboard",
       "discountCoupons": "Discount Coupons",
       "extraUnits": "B2C Extras",
+      "gencodePackages": "GenCode Package",
       "partnerPlans": "B2B plans",
       "subscriptions": "B2C subscriptions",
       "systemUsers": "System Users"

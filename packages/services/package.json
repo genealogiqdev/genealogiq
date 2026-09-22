@@ -5,6 +5,7 @@
   "exports": {
     "./activation-trial": "./src/activation-trial.ts",
     "./credits": "./src/credits.ts",
+    "./gencode-package": "./src/gencode-package.ts",
     "./partner-billing": "./src/partner-billing.ts",
     "./partner-checkout": "./src/partner-checkout.ts",
     "./partner-lifecycle": "./src/partner-lifecycle.ts",

@@ -10,6 +10,7 @@ const { prismaMock, PrismaKnownError } = vi.hoisted(() => {
   }
   const prismaMock = {
     partnerSubscription: { count: vi.fn() },
+    genCodeOrder: { count: vi.fn() },
     appUser: { count: vi.fn() },
     appSale: { count: vi.fn() },
     tenant:  { delete: vi.fn() },
@@ -39,6 +40,7 @@ import { deleteCustomer } from "./customer.actions"
 beforeEach(() => {
   vi.clearAllMocks()
   prismaMock.partnerSubscription.count.mockResolvedValue(0)
+  prismaMock.genCodeOrder.count.mockResolvedValue(0)
   prismaMock.appUser.count.mockResolvedValue(0)
   prismaMock.appSale.count.mockResolvedValue(0)
 })
@@ -68,6 +70,15 @@ describe("deleteCustomer — cross-app cascade guard", () => {
 
   it("still refuses on existing partner contracts (original guard preserved)", async () => {
     prismaMock.partnerSubscription.count.mockResolvedValue(2)
+
+    const res = await deleteCustomer("t1")
+
+    expect(res).toEqual({ ok: false, message: "customer.hasSales" })
+    expect(prismaMock.tenant.delete).not.toHaveBeenCalled()
+  })
+
+  it("refuses when the tenant has GenCode package orders", async () => {
+    prismaMock.genCodeOrder.count.mockResolvedValue(1)
 
     const res = await deleteCustomer("t1")
 

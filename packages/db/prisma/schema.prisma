@@ -142,69 +142,76 @@ enum SubscriptionCycleStatus {
   EXPIRED
 }
 
+enum GenCodeOrderStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+}
+
 // ─── Subscriptions, Packages & Sales ─────────────────────────────────────────
 
 model Subscription {
-  id                    String    @id @default(cuid())
-  name                  String
-  description           String?
-  isActive              Boolean   @default(true) @map("is_active")
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
+  id             String      @id @default(cuid())
+  name           String
+  description    String?
+  isActive       Boolean     @default(true) @map("is_active")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
   // How many months one term covers. Feeds every cash Price's interval_count,
   // and 0 means a non-recurring ("lifetime") plan that cannot be synced.
-  termLength            Int       @map("term_length")
-  code                  String    @unique
+  termLength     Int         @map("term_length")
+  code           String      @unique
   // Prices moved to PlanPrice — the same versioned book the partner plans use.
   // They lived here as mutable per-currency columns, which meant editing an
   // amount rewrote what every past sale had been charged. See `prices` below.
   // Quota numbers previously hardcoded in the APP's plan-quotas.ts — moved
   // here so BMS can edit every plan attribute manually, without a code
   // deploy. Defaults mirror the FREE plan's current numbers.
-  treeMaxMembers        Int       @default(32)   @map("tree_max_members")
-  bioMaxChars           Int       @default(2048) @map("bio_max_chars")
+  treeMaxMembers Int         @default(32) @map("tree_max_members")
+  bioMaxChars    Int         @default(2048) @map("bio_max_chars")
   // Combined pool: Bio images + Gallery images + GeoPlace photos.
-  mediaMaxImages        Int       @default(32)   @map("media_max_images")
-  mediaMaxVideos        Int       @default(8)    @map("media_max_videos")
-  documentsMax          Int       @default(16)   @map("documents_max")
+  mediaMaxImages Int         @default(32) @map("media_max_images")
+  mediaMaxVideos Int         @default(8) @map("media_max_videos")
+  documentsMax   Int         @default(16) @map("documents_max")
   // Row count of GeoPlace — independent of mediaMaxImages.
-  geoPlacesMax          Int       @default(3)    @map("geo_places_max")
+  geoPlacesMax   Int         @default(3) @map("geo_places_max")
   // How many memorial profiles a guardian may create in total. The only
   // memorial cap since the per-sale bulk-slot binding was removed.
-  memorialsMax          Int       @default(1)    @map("memorials_max")
-  petsMax               Int       @default(0)    @map("pets_max")
+  memorialsMax   Int         @default(1) @map("memorials_max")
+  petsMax        Int         @default(0) @map("pets_max")
   // Free QR codes (own profile + guarded memorials, combined).
-  qrCodeMax             Int       @default(1)    @map("qr_code_max")
-  appSales              AppSale[]
+  qrCodeMax      Int         @default(1) @map("qr_code_max")
+  appSales       AppSale[]
   // Versioned price book (see PlanPrice). Coexists with the price_* columns
   // above during the cutover: the columns are still the ones the APP reads.
-  prices                PlanPrice[]
+  prices         PlanPrice[]
 
   @@map("subscriptions")
 }
 
 model DiscountCoupon {
-  id                    String    @id @default(cuid())
-  code                  String    @unique
+  id                    String        @id @default(cuid())
+  code                  String        @unique
   description           String?
-  discountType          String    @map("discount_type")
+  discountType          String        @map("discount_type")
   /// Exactly one of these two shapes is populated, per discountType.
   /// A percentage has no currency and stays a single number; a fixed amount is
   /// money, so it needs one slot per currency like every other price here.
-  percentOff            Decimal?  @map("percent_off") @db.Decimal(10, 2)
-  amountOffUsd          Decimal?  @map("amount_off_usd") @db.Decimal(10, 2)
-  amountOffBrl          Decimal?  @map("amount_off_brl") @db.Decimal(10, 2)
-  amountOffMxn          Decimal?  @map("amount_off_mxn") @db.Decimal(10, 2)
+  percentOff            Decimal?      @map("percent_off") @db.Decimal(10, 2)
+  amountOffUsd          Decimal?      @map("amount_off_usd") @db.Decimal(10, 2)
+  amountOffBrl          Decimal?      @map("amount_off_brl") @db.Decimal(10, 2)
+  amountOffMxn          Decimal?      @map("amount_off_mxn") @db.Decimal(10, 2)
   duration              String
-  durationInMonths      Int?      @map("duration_in_months")
-  maxRedemptions        Int?      @map("max_redemptions")
-  redeemBy              DateTime? @map("redeem_by")
-  stripeCouponId        String?   @unique @map("stripe_coupon_id")
-  stripePromotionCodeId String?   @unique @map("stripe_promotion_code_id")
-  createdById           String    @map("created_by_id")
-  isActive              Boolean   @default(true) @map("is_active")
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
+  durationInMonths      Int?          @map("duration_in_months")
+  maxRedemptions        Int?          @map("max_redemptions")
+  redeemBy              DateTime?     @map("redeem_by")
+  stripeCouponId        String?       @unique @map("stripe_coupon_id")
+  stripePromotionCodeId String?       @unique @map("stripe_promotion_code_id")
+  createdById           String        @map("created_by_id")
+  isActive              Boolean       @default(true) @map("is_active")
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
   appliesTo             PartnerPlan[] @relation("CouponPlans")
 
   @@map("discount_coupons")
@@ -259,9 +266,9 @@ model ExtraUnitPrice {
   id               String   @id @default(cuid())
   resource         String
   tier             String
-  priceUsd         Decimal? @db.Decimal(10, 2) @map("price_usd")
-  priceBrl         Decimal? @db.Decimal(10, 2) @map("price_brl")
-  priceMxn         Decimal? @db.Decimal(10, 2) @map("price_mxn")
+  priceUsd         Decimal? @map("price_usd") @db.Decimal(10, 2)
+  priceBrl         Decimal? @map("price_brl") @db.Decimal(10, 2)
+  priceMxn         Decimal? @map("price_mxn") @db.Decimal(10, 2)
   stripeProductId  String?  @unique @map("stripe_product_id")
   stripePriceIdUsd String?  @unique @map("stripe_price_id_usd")
   stripePriceIdBrl String?  @unique @map("stripe_price_id_brl")
@@ -279,7 +286,7 @@ model ExtraUnitPurchase {
   // Buyer's tier at purchase time — audit only, not read back for quota math.
   tier            String
   currency        String
-  amountPaid      Decimal  @db.Decimal(10, 2) @map("amount_paid")
+  amountPaid      Decimal  @map("amount_paid") @db.Decimal(10, 2)
   stripeSessionId String?  @unique @map("stripe_session_id")
   createdAt       DateTime @default(now()) @map("created_at")
   buyer           AppUser  @relation(fields: [buyerId], references: [id])
@@ -373,49 +380,50 @@ model Company {
 // ─── User (BMS/SEQ operators only) ───────────────────────────────────────────
 
 model User {
-  id                  String               @id @default(cuid())
-  firstName           String               @map("first_name")
-  lastName            String               @map("last_name")
-  email               String               @unique
-  password            String?
-  role                Role                 @default(USER)
-  isActive            Boolean              @default(true) @map("is_active")
-  emailVerified       DateTime?            @map("email_verified")
-  failedLoginAttempts Int                  @default(0) @map("failed_login_attempts")
-  lockedUntil         DateTime?            @map("locked_until")
+  id                   String               @id @default(cuid())
+  firstName            String               @map("first_name")
+  lastName             String               @map("last_name")
+  email                String               @unique
+  password             String?
+  role                 Role                 @default(USER)
+  isActive             Boolean              @default(true) @map("is_active")
+  emailVerified        DateTime?            @map("email_verified")
+  failedLoginAttempts  Int                  @default(0) @map("failed_login_attempts")
+  lockedUntil          DateTime?            @map("locked_until")
   // Bookkeeping only — never the sign-in lookup key. Google sign-in resolves
   // the row by verified email, matching Credentials' identity model.
-  googleId            String?              @unique(map: "users_google_id_unique", where: raw("(google_id IS NOT NULL)")) @map("google_id")
-  createdAt           DateTime             @default(now()) @map("created_at")
-  updatedAt           DateTime             @updatedAt @map("updated_at")
-  nationalId          String?              @map("national_id")
-  birthDate           DateTime?            @map("birth_date")
-  phoneCountryCode    String               @default("55") @map("phone_country_code")
-  phone               String?
-  addressId           String?              @unique @map("address_id")
-  tenantId            String?              @map("tenant_id")
-  birth_place         String?
-  birth_country       String?
-  death_date          DateTime?
-  death_place         String?
-  death_country       String?
-  avatarUrl           String?              @map("avatar_url")
-  cover_url           String?
-  gender              String?              @map("gender") @db.VarChar(10)
-  appSales            AppSale[]
-  createdAppUserCats  AppUserCategory[]    @relation("app_user_categories_created_by_idTousers")
-  updatedAppUserCats  AppUserCategory[]    @relation("app_user_categories_updated_by_idTousers")
-  createdAppUsers     AppUser[]            @relation("app_users_created_by_idTousers")
-  updatedAppUsers     AppUser[]            @relation("app_users_updated_by_idTousers")
-  emailTokens         EmailToken[]
-  passwordResetTokens PasswordResetToken[]
-  genCodesSold        GenCode[]
-  createdSupplierCats SupplierCategory[]   @relation("supplier_categories_created_by_idTousers")
-  updatedSupplierCats SupplierCategory[]   @relation("supplier_categories_updated_by_idTousers")
-  createdSuppliers    Supplier[]           @relation("suppliers_created_by_idTousers")
-  updatedSuppliers    Supplier[]           @relation("suppliers_updated_by_idTousers")
-  address             Address?             @relation(fields: [addressId], references: [id])
-  tenant              Tenant?              @relation(fields: [tenantId], references: [id], map: "users_customer_id_fkey")
+  googleId             String?              @unique(map: "users_google_id_unique", where: raw("(google_id IS NOT NULL)")) @map("google_id")
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
+  nationalId           String?              @map("national_id")
+  birthDate            DateTime?            @map("birth_date")
+  phoneCountryCode     String               @default("55") @map("phone_country_code")
+  phone                String?
+  addressId            String?              @unique @map("address_id")
+  tenantId             String?              @map("tenant_id")
+  birth_place          String?
+  birth_country        String?
+  death_date           DateTime?
+  death_place          String?
+  death_country        String?
+  avatarUrl            String?              @map("avatar_url")
+  cover_url            String?
+  gender               String?              @map("gender") @db.VarChar(10)
+  appSales             AppSale[]
+  createdAppUserCats   AppUserCategory[]    @relation("app_user_categories_created_by_idTousers")
+  updatedAppUserCats   AppUserCategory[]    @relation("app_user_categories_updated_by_idTousers")
+  createdAppUsers      AppUser[]            @relation("app_users_created_by_idTousers")
+  updatedAppUsers      AppUser[]            @relation("app_users_updated_by_idTousers")
+  emailTokens          EmailToken[]
+  passwordResetTokens  PasswordResetToken[]
+  genCodesSold         GenCode[]
+  genCodeOrdersCreated GenCodeOrder[]
+  createdSupplierCats  SupplierCategory[]   @relation("supplier_categories_created_by_idTousers")
+  updatedSupplierCats  SupplierCategory[]   @relation("supplier_categories_updated_by_idTousers")
+  createdSuppliers     Supplier[]           @relation("suppliers_created_by_idTousers")
+  updatedSuppliers     Supplier[]           @relation("suppliers_updated_by_idTousers")
+  address              Address?             @relation(fields: [addressId], references: [id])
+  tenant               Tenant?              @relation(fields: [tenantId], references: [id], map: "users_customer_id_fkey")
 
   @@index([tenantId])
   @@map("users")
@@ -424,96 +432,96 @@ model User {
 // ─── AppUser (deceased memorials + APP login users) ──────────────────────────
 
 model AppUser {
-  id                  String               @id @default(cuid())
-  firstName           String               @map("first_name")
-  lastName            String               @map("last_name")
-  gender              Gender?
-  birthDate           DateTime?            @map("birth_date")
-  birthCity           String?              @map("birth_city")
-  birthState          String?              @map("birth_state")
-  birthCountry        String?              @map("birth_country")
-  email               String?              @unique(map: "app_users_email_unique", where: raw("(email IS NOT NULL)"))
-  phoneCountryCode    String               @default("55") @map("phone_country_code")
-  phone               String?
-  notes               String?
-  isActive            Boolean              @default(true) @map("is_active")
+  id                        String               @id @default(cuid())
+  firstName                 String               @map("first_name")
+  lastName                  String               @map("last_name")
+  gender                    Gender?
+  birthDate                 DateTime?            @map("birth_date")
+  birthCity                 String?              @map("birth_city")
+  birthState                String?              @map("birth_state")
+  birthCountry              String?              @map("birth_country")
+  email                     String?              @unique(map: "app_users_email_unique", where: raw("(email IS NOT NULL)"))
+  phoneCountryCode          String               @default("55") @map("phone_country_code")
+  phone                     String?
+  notes                     String?
+  isActive                  Boolean              @default(true) @map("is_active")
   // Opt-OUT public-visibility toggle for living users (role=APP_USER). Ignored
   // for APP_MEMO (already public via role alone) and APP_GHOST (never publicly
   // reachable regardless of this value — see assertPublicMemorialAccess).
-  isPublicProfile     Boolean              @default(true) @map("is_public_profile")
-  fb                  String?
-  instagram           String?
-  linkedin            String?
-  tiktok              String?
-  x                   String?
-  youtube             String?
-  website             String?
-  tenantId            String?              @map("tenant_id")
-  categoryId          String?              @map("category_id")
-  addressId           String?              @unique @map("address_id")
-  createdAt           DateTime             @default(now()) @map("created_at")
-  updatedAt           DateTime             @updatedAt @map("updated_at")
-  createdById         String?              @map("created_by_id")
-  otherSocial         String?              @map("other_social")
-  updatedById         String?              @map("updated_by_id")
-  role                AppRole              @default(APP_USER)
-  birthPlace          String?              @map("birth_place") @db.VarChar
-  avatarUrl           String?              @map("avatar_url") @db.VarChar
-  nationalId          String?              @map("national_id") @db.VarChar
-  deathDate           DateTime?            @map("death_date")
-  deathPlace          String?              @map("death_place") @db.VarChar
-  deathCountry        String?              @map("death_country") @db.VarChar
-  password            String?              @db.VarChar
-  emailVerified       DateTime?            @map("email_verified")
-  failedLoginAttempts Int                  @default(0) @map("failed_login_attempts")
-  lockedUntil         DateTime?            @map("locked_until")
+  isPublicProfile           Boolean              @default(true) @map("is_public_profile")
+  fb                        String?
+  instagram                 String?
+  linkedin                  String?
+  tiktok                    String?
+  x                         String?
+  youtube                   String?
+  website                   String?
+  tenantId                  String?              @map("tenant_id")
+  categoryId                String?              @map("category_id")
+  addressId                 String?              @unique @map("address_id")
+  createdAt                 DateTime             @default(now()) @map("created_at")
+  updatedAt                 DateTime             @updatedAt @map("updated_at")
+  createdById               String?              @map("created_by_id")
+  otherSocial               String?              @map("other_social")
+  updatedById               String?              @map("updated_by_id")
+  role                      AppRole              @default(APP_USER)
+  birthPlace                String?              @map("birth_place") @db.VarChar
+  avatarUrl                 String?              @map("avatar_url") @db.VarChar
+  nationalId                String?              @map("national_id") @db.VarChar
+  deathDate                 DateTime?            @map("death_date")
+  deathPlace                String?              @map("death_place") @db.VarChar
+  deathCountry              String?              @map("death_country") @db.VarChar
+  password                  String?              @db.VarChar
+  emailVerified             DateTime?            @map("email_verified")
+  failedLoginAttempts       Int                  @default(0) @map("failed_login_attempts")
+  lockedUntil               DateTime?            @map("locked_until")
   // Bookkeeping only — never the sign-in lookup key. Google sign-in resolves
   // the row by verified email, matching Credentials' identity model.
-  googleId            String?              @unique(map: "app_users_google_id_unique", where: raw("(google_id IS NOT NULL)")) @map("google_id")
-  deathCause          String?              @map("death_cause") @db.VarChar
-  deathState          String?              @map("death_state") @db.VarChar
-  maidenName          String?              @map("maiden_name")
-  nickname            String?
-  stripeCustomerId    String?              @unique @map("stripe_customer_id")
-  preferredLocale     String?              @map("preferred_locale")
+  googleId                  String?              @unique(map: "app_users_google_id_unique", where: raw("(google_id IS NOT NULL)")) @map("google_id")
+  deathCause                String?              @map("death_cause") @db.VarChar
+  deathState                String?              @map("death_state") @db.VarChar
+  maidenName                String?              @map("maiden_name")
+  nickname                  String?
+  stripeCustomerId          String?              @unique @map("stripe_customer_id")
+  preferredLocale           String?              @map("preferred_locale")
   // Only meaningful for role=APP_PET — same nullable-role-specific-field
   // pattern already used above for death*/auth-only columns.
-  petSpecies          String?              @map("pet_species")
-  petBreed            String?              @map("pet_breed")
-  bio                 Bio?
-  familyFrom          FamilyRelation[]     @relation("FamilyFrom")
-  familyTo            FamilyRelation[]     @relation("FamilyTo")
-  petOwnerships       PetOwnership[]       @relation("PetProfile")
-  petsOwned           PetOwnership[]       @relation("PetOwner")
-  favoritesReceived   Favorite[]           @relation("FavoriteTarget")
-  favoritesGiven      Favorite[]           @relation("FavoriteUser")
-  galleryItems        GalleryItem[]
-  geolocation         Geolocation?
-  geoPlaces           GeoPlace[]
-  documents           Document[]
-  actorNotifications  Notification[]       @relation("ActorNotifications")
-  notifications       Notification[]       @relation("UserNotifications")
-  appSales            AppSale[]            @relation("AppSaleBuyer")
-  tributesAuthored    Tribute[]            @relation("TributeAuthor")
-  tributesReceived    Tribute[]            @relation("TributeProfile")
-  guardianRequestsMade AppUserGuardian[]   @relation("GuardianRequestedBy")
-  guardedBy           AppUserGuardian[]    @relation("GuardedBy")
-  guardiansOf         AppUserGuardian[]    @relation("GuardianOf")
-  address             Address?             @relation(fields: [addressId], references: [id])
-  category            AppUserCategory?     @relation(fields: [categoryId], references: [id])
-  createdBy           User?                @relation("app_users_created_by_idTousers", fields: [createdById], references: [id])
-  tenant              Tenant?              @relation("AppUserTenant", fields: [tenantId], references: [id], onDelete: Cascade)
-  updatedBy           User?                @relation("app_users_updated_by_idTousers", fields: [updatedById], references: [id])
-  emailTokens         EmailToken[]
-  passwordResetTokens PasswordResetToken[]
-  genCode             GenCode?             @relation("GenCodeMemorial")
-  genCodesBought      GenCode[]            @relation("GenCodeBuyer")
-  pushSubscriptions   PushSubscription[]
-  qrCode              QrCode?
-  treeNodePositionsAsRoot   TreeNodePosition[] @relation("TreeNodePositionRoot")
-  treeNodePositionsAsPerson TreeNodePosition[] @relation("TreeNodePositionPerson")
-  extraUnitPurchases  ExtraUnitPurchase[]
-  committedCredits    CreditGrant[]
+  petSpecies                String?              @map("pet_species")
+  petBreed                  String?              @map("pet_breed")
+  bio                       Bio?
+  familyFrom                FamilyRelation[]     @relation("FamilyFrom")
+  familyTo                  FamilyRelation[]     @relation("FamilyTo")
+  petOwnerships             PetOwnership[]       @relation("PetProfile")
+  petsOwned                 PetOwnership[]       @relation("PetOwner")
+  favoritesReceived         Favorite[]           @relation("FavoriteTarget")
+  favoritesGiven            Favorite[]           @relation("FavoriteUser")
+  galleryItems              GalleryItem[]
+  geolocation               Geolocation?
+  geoPlaces                 GeoPlace[]
+  documents                 Document[]
+  actorNotifications        Notification[]       @relation("ActorNotifications")
+  notifications             Notification[]       @relation("UserNotifications")
+  appSales                  AppSale[]            @relation("AppSaleBuyer")
+  tributesAuthored          Tribute[]            @relation("TributeAuthor")
+  tributesReceived          Tribute[]            @relation("TributeProfile")
+  guardianRequestsMade      AppUserGuardian[]    @relation("GuardianRequestedBy")
+  guardedBy                 AppUserGuardian[]    @relation("GuardedBy")
+  guardiansOf               AppUserGuardian[]    @relation("GuardianOf")
+  address                   Address?             @relation(fields: [addressId], references: [id])
+  category                  AppUserCategory?     @relation(fields: [categoryId], references: [id])
+  createdBy                 User?                @relation("app_users_created_by_idTousers", fields: [createdById], references: [id])
+  tenant                    Tenant?              @relation("AppUserTenant", fields: [tenantId], references: [id], onDelete: Cascade)
+  updatedBy                 User?                @relation("app_users_updated_by_idTousers", fields: [updatedById], references: [id])
+  emailTokens               EmailToken[]
+  passwordResetTokens       PasswordResetToken[]
+  genCode                   GenCode?             @relation("GenCodeMemorial")
+  genCodesBought            GenCode[]            @relation("GenCodeBuyer")
+  pushSubscriptions         PushSubscription[]
+  qrCode                    QrCode?
+  treeNodePositionsAsRoot   TreeNodePosition[]   @relation("TreeNodePositionRoot")
+  treeNodePositionsAsPerson TreeNodePosition[]   @relation("TreeNodePositionPerson")
+  extraUnitPurchases        ExtraUnitPurchase[]
+  committedCredits          CreditGrant[]
 
   @@index([tenantId])
   @@index([categoryId])
@@ -638,18 +646,18 @@ model GeoPlace {
 }
 
 model Document {
-  id          String    @id(map: "documents_pkey") @default(cuid())
-  title       String    @db.VarChar(120)
-  description String?   @db.VarChar(2000)
-  category    String    @db.VarChar(50)
-  fileUrl     String    @map("file_url") @db.VarChar
-  fileName    String?   @map("file_name") @db.VarChar(255)
-  isPublic    Boolean   @default(true) @map("is_public")
-  order       Int       @default(0)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  userId      String    @map("app_user_id") @db.VarChar
-  user        AppUser   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "documents_app_user_id_fkey")
+  id          String   @id(map: "documents_pkey") @default(cuid())
+  title       String   @db.VarChar(120)
+  description String?  @db.VarChar(2000)
+  category    String   @db.VarChar(50)
+  fileUrl     String   @map("file_url") @db.VarChar
+  fileName    String?  @map("file_name") @db.VarChar(255)
+  isPublic    Boolean  @default(true) @map("is_public")
+  order       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  userId      String   @map("app_user_id") @db.VarChar
+  user        AppUser  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "documents_app_user_id_fkey")
 
   @@index([userId], map: "documents_app_user_id_idx")
   @@map("app_documents")
@@ -851,38 +859,39 @@ model Supplier {
 // ─── Tenants (funeral homes) ─────────────────────────────────────────────────
 
 model Tenant {
-  id                        String              @id(map: "customers_pkey") @default(cuid())
+  id                        String                @id(map: "customers_pkey") @default(cuid())
   email                     String
-  isActive                  Boolean             @default(true) @map("is_active")
-  createdAt                 DateTime            @default(now()) @map("created_at")
-  updatedAt                 DateTime            @updatedAt @map("updated_at")
-  entityType                EntityType          @map("entity_type")
+  isActive                  Boolean               @default(true) @map("is_active")
+  createdAt                 DateTime              @default(now()) @map("created_at")
+  updatedAt                 DateTime              @updatedAt @map("updated_at")
+  entityType                EntityType            @map("entity_type")
   name                      String
-  tradeName                 String              @map("trade_name")
-  taxId                     String              @unique(map: "customers_tax_id_key") @map("tax_id")
-  stateRegistration         String?             @map("state_registration")
-  municipalRegistration     String?             @map("municipal_registration")
-  phoneCountryCode          String              @default("55") @map("phone_country_code")
+  tradeName                 String                @map("trade_name")
+  taxId                     String                @unique(map: "customers_tax_id_key") @map("tax_id")
+  stateRegistration         String?               @map("state_registration")
+  municipalRegistration     String?               @map("municipal_registration")
+  phoneCountryCode          String                @default("55") @map("phone_country_code")
   phone                     String
   notes                     String?
-  addressId                 String?             @unique(map: "customers_address_id_key") @map("address_id")
-  birthDate                 DateTime?           @map("birth_date")
-  tenantId                  String?             @map("tenant_id")
-  moduleRecordsSuppliers    Boolean             @default(false) @map("module_records_suppliers")
-  moduleCategoriesSuppliers Boolean             @default(false) @map("module_categories_suppliers")
-  stripeCustomerId          String?             @unique @map("stripe_customer_id")
+  addressId                 String?               @unique(map: "customers_address_id_key") @map("address_id")
+  birthDate                 DateTime?             @map("birth_date")
+  tenantId                  String?               @map("tenant_id")
+  moduleRecordsSuppliers    Boolean               @default(false) @map("module_records_suppliers")
+  moduleCategoriesSuppliers Boolean               @default(false) @map("module_categories_suppliers")
+  stripeCustomerId          String?               @unique @map("stripe_customer_id")
   appSales                  AppSale[]
   appUserCats               AppUserCategory[]
-  appUsers                  AppUser[]           @relation("AppUserTenant")
+  appUsers                  AppUser[]             @relation("AppUserTenant")
   genCodes                  GenCode[]
-  supplierCats              SupplierCategory[]  @relation("SupplierCategoryTenant")
-  suppliers                 Supplier[]          @relation("SupplierTenant")
-  address                   Address?            @relation(fields: [addressId], references: [id], map: "customers_address_id_fkey")
-  tenant                    Tenant?             @relation("TenantParent", fields: [tenantId], references: [id], onDelete: Cascade, map: "customers_tenant_id_fkey")
-  subTenants                Tenant[]            @relation("TenantParent")
+  supplierCats              SupplierCategory[]    @relation("SupplierCategoryTenant")
+  suppliers                 Supplier[]            @relation("SupplierTenant")
+  address                   Address?              @relation(fields: [addressId], references: [id], map: "customers_address_id_fkey")
+  tenant                    Tenant?               @relation("TenantParent", fields: [tenantId], references: [id], onDelete: Cascade, map: "customers_tenant_id_fkey")
+  subTenants                Tenant[]              @relation("TenantParent")
   users                     User[]
   partnerSubscriptions      PartnerSubscription[]
   creditGrants              CreditGrant[]
+  genCodeOrders             GenCodeOrder[]
 
   @@map("tenants")
 }
@@ -941,48 +950,112 @@ model QrScan {
 }
 
 model GenCode {
-  id              String                 @id @default(cuid())
-  genCode         String                 @unique @map("gen_code")
-  status          GenCodeStatus          @default(AVAILABLE)
-  tenantId        String                 @map("tenant_id")
+  id                  String              @id @default(cuid())
+  genCode             String              @unique @map("gen_code")
+  status              GenCodeStatus       @default(AVAILABLE)
+  tenantId            String              @map("tenant_id")
   /// Which cycle minted this code. Provenance only — it is NEVER the gate.
   /// The old model gated activation on the originating Sale's window, which is
   /// precisely what made rollover impossible: a code minted in cycle 1 died
   /// with cycle 1. Authorisation now comes from the credit ledger.
-  mintedInCycleId String?                @map("minted_in_cycle_id")
+  mintedInCycleId     String?             @map("minted_in_cycle_id")
+  /// Which one-time package order minted this virtual code.
+  mintedInOrderId     String?             @map("minted_in_order_id")
   /// The CONSUME that paid for this activation. Set with activatedAt, never before.
-  creditTransactionId String?            @unique @map("credit_transaction_id")
-  appUserId       String?                @unique @map("app_user_id")
-  activatedAt     DateTime?              @map("activated_at")
-  printedAt       DateTime?              @map("printed_at")
+  creditTransactionId String?             @unique @map("credit_transaction_id")
+  appUserId           String?             @unique @map("app_user_id")
+  activatedAt         DateTime?           @map("activated_at")
+  printedAt           DateTime?           @map("printed_at")
   // Write-off ("baixa"): a code is SOLD before it is ACTIVATED by the consumer.
-  soldAt          DateTime?              @map("sold_at")
-  soldVia         GenCodeSaleChannel?    @map("sold_via")
-  soldById        String?                @map("sold_by_id")
-  soldToAppUserId String?                @map("sold_to_app_user_id")
-  soldToName      String?                @map("sold_to_name")
-  soldValue       Decimal?               @map("sold_value") @db.Decimal(10, 2)
-  createdAt       DateTime               @default(now()) @map("created_at")
-  updatedAt       DateTime               @default(now()) @updatedAt @map("updated_at")
-  appUser         AppUser?               @relation("GenCodeMemorial", fields: [appUserId], references: [id])
-  soldToAppUser   AppUser?               @relation("GenCodeBuyer", fields: [soldToAppUserId], references: [id])
-  soldBy          User?                  @relation(fields: [soldById], references: [id])
-  tenant          Tenant                 @relation(fields: [tenantId], references: [id])
-  mintedInCycle   SubscriptionCycle?     @relation(fields: [mintedInCycleId], references: [id])
-  creditTransaction CreditTransaction?   @relation("ConsumedBy", fields: [creditTransactionId], references: [id])
-  reservation     CreditReservation?
-  committedGrant  CreditGrant?           @relation("CommittedFor")
+  soldAt              DateTime?           @map("sold_at")
+  soldVia             GenCodeSaleChannel? @map("sold_via")
+  soldById            String?             @map("sold_by_id")
+  soldToAppUserId     String?             @map("sold_to_app_user_id")
+  soldToName          String?             @map("sold_to_name")
+  soldValue           Decimal?            @map("sold_value") @db.Decimal(10, 2)
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @default(now()) @updatedAt @map("updated_at")
+  appUser             AppUser?            @relation("GenCodeMemorial", fields: [appUserId], references: [id])
+  soldToAppUser       AppUser?            @relation("GenCodeBuyer", fields: [soldToAppUserId], references: [id])
+  soldBy              User?               @relation(fields: [soldById], references: [id])
+  tenant              Tenant              @relation(fields: [tenantId], references: [id])
+  mintedInCycle       SubscriptionCycle?  @relation(fields: [mintedInCycleId], references: [id])
+  mintedInOrder       GenCodeOrder?       @relation("OrderGenCodes", fields: [mintedInOrderId], references: [id], onDelete: SetNull)
+  creditTransaction   CreditTransaction?  @relation("ConsumedBy", fields: [creditTransactionId], references: [id])
+  reservation         CreditReservation?
+  committedGrant      CreditGrant?        @relation("CommittedFor")
 
   @@index([tenantId, status])
+  @@index([mintedInOrderId])
   @@map("gencodes")
+}
+
+// ─── One-time virtual GenCode packages ───────────────────────────────────────
+
+/// The BMS catalogue entry for demand-based virtual GenCode purchases.
+///
+/// It is deliberately separate from PartnerPlan: this is a one-time BRL price,
+/// while a PartnerPlan is a recurring annual contract with rollover rules.
+model GenCodePackage {
+  id              String         @id @default(cuid())
+  code            String         @unique
+  name            String
+  unitPrice       Decimal        @map("unit_price") @db.Decimal(10, 2)
+  currency        String         @default("BRL") @db.VarChar(3)
+  minimumQuantity Int            @default(20) @map("minimum_quantity")
+  isActive        Boolean        @default(true) @map("is_active")
+  stripeProductId String?        @unique @map("stripe_product_id")
+  stripePriceId   String?        @unique @map("stripe_price_id")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  orders          GenCodeOrder[]
+
+  @@map("gencode_packages")
+}
+
+/// One operator-created, one-time package checkout.
+///
+/// Price fields are snapshots: changing the catalogue later must never rewrite
+/// what this customer was charged. Fulfilment is linked to both the ledger grant
+/// and every virtual code it minted, so a paid order is fully auditable.
+model GenCodeOrder {
+  id                      String              @id @default(cuid())
+  packageId               String              @map("package_id")
+  tenantId                String              @map("tenant_id")
+  partnerSubscriptionId   String              @map("partner_subscription_id")
+  createdById             String?             @map("created_by_id")
+  creditGrantId           String?             @unique @map("credit_grant_id")
+  status                  GenCodeOrderStatus  @default(PENDING)
+  quantity                Int
+  currency                String              @db.VarChar(3)
+  unitPrice               Decimal             @map("unit_price") @db.Decimal(10, 2)
+  totalAmount             Decimal             @map("total_amount") @db.Decimal(12, 2)
+  stripeCheckoutSessionId String?             @unique @map("stripe_checkout_session_id")
+  stripePaymentIntentId   String?             @unique @map("stripe_payment_intent_id")
+  checkoutExpiresAt       DateTime?           @map("checkout_expires_at")
+  paidAt                  DateTime?           @map("paid_at")
+  creditExpiresAt         DateTime?           @map("credit_expires_at")
+  failedAt                DateTime?           @map("failed_at")
+  createdAt               DateTime            @default(now()) @map("created_at")
+  updatedAt               DateTime            @updatedAt @map("updated_at")
+  package                 GenCodePackage      @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  tenant                  Tenant              @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  partnerSubscription     PartnerSubscription @relation(fields: [partnerSubscriptionId], references: [id], onDelete: Restrict)
+  createdBy               User?               @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  creditGrant             CreditGrant?        @relation("OrderGrant", fields: [creditGrantId], references: [id], onDelete: SetNull)
+  genCodes                GenCode[]           @relation("OrderGenCodes")
+
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([partnerSubscriptionId])
+  @@index([status, createdAt(sort: Desc)])
+  @@map("gencode_orders")
 }
 
 // ─── Partner plans, cycles & versioned price book ────────────────────────────
 //
-// The B2B product stops being a batch of codes you buy and becomes a yearly
-// contract that grants the RIGHT to activate a number of them. Package/Sale
-// still exist alongside these while the cutover runs; they are retired once
-// checkout and fulfilment point here instead.
+// The recurring B2B product is a yearly contract that grants the RIGHT to
+// activate a number of codes. Demand-based top-ups stay separate above so they
+// do not inherit cycle opening, renewal or rollover behaviour.
 
 /// A commercial plan a partner subscribes to — Semente, Raízes, Árvore, Floresta.
 ///
@@ -991,32 +1064,32 @@ model GenCode {
 /// without rewriting the contracts already signed under the old ones: a cycle
 /// snapshots the terms it opened with (see SubscriptionCycle.planSnapshot).
 model PartnerPlan {
-  id                         String   @id @default(cuid())
+  id                         String                @id @default(cuid())
   name                       String
-  code                       String   @unique
+  code                       String                @unique
   description                String?
   /// Activations included in one annual cycle.
-  annualAllowance            Int      @map("annual_allowance")
+  annualAllowance            Int                   @map("annual_allowance")
   /// Share of the RENEWED plan's allowance that unused credits may carry over.
   /// Floored to whole units at renewal — see the rollover algorithm.
-  rolloverRate               Decimal  @default(0.30) @map("rollover_rate") @db.Decimal(4, 3)
-  rolloverValidityMonths     Int      @default(6)  @map("rollover_validity_months")
+  rolloverRate               Decimal               @default(0.30) @map("rollover_rate") @db.Decimal(4, 3)
+  rolloverValidityMonths     Int                   @default(6) @map("rollover_validity_months")
   /// Days after a cycle ends in which paying still renews AND preserves rollover.
-  graceDays                  Int      @default(30) @map("grace_days")
+  graceDays                  Int                   @default(30) @map("grace_days")
   /// How long a credit committed to an identified buyer outlives its cycle.
   /// This is what keeps a family who already paid the funeral home from losing
   /// the plaque when the partner walks away. 12 months is a starting guess —
   /// nobody has measured the sale-to-activation lag yet.
-  committedReservationMonths Int      @default(12) @map("committed_reservation_months")
+  committedReservationMonths Int                   @default(12) @map("committed_reservation_months")
   /// The B2C trial an activation hands the guardian. 0 = no trial.
-  activationTrialMonths      Int      @default(12) @map("activation_trial_months")
+  activationTrialMonths      Int                   @default(12) @map("activation_trial_months")
   /// Which Subscription.code that trial grants. Null = no trial regardless of
   /// the months above.
-  activationTrialPlanCode    String?  @map("activation_trial_plan_code")
-  isActive                   Boolean  @default(true) @map("is_active")
-  version                    Int      @default(1)
-  createdAt                  DateTime @default(now()) @map("created_at")
-  updatedAt                  DateTime @updatedAt @map("updated_at")
+  activationTrialPlanCode    String?               @map("activation_trial_plan_code")
+  isActive                   Boolean               @default(true) @map("is_active")
+  version                    Int                   @default(1)
+  createdAt                  DateTime              @default(now()) @map("created_at")
+  updatedAt                  DateTime              @updatedAt @map("updated_at")
   prices                     PlanPrice[]
   subscriptions              PartnerSubscription[]
   cycles                     SubscriptionCycle[]
@@ -1038,36 +1111,36 @@ model PartnerPlan {
 /// scar. Here a change closes the current row and opens a new one, so a contract
 /// can always resolve the price that was in force when it was signed.
 model PlanPrice {
-  id                       String    @id @default(cuid())
-  partnerPlanId            String?   @map("partner_plan_id")
-  subscriptionId           String?   @map("subscription_id")
-  currency                 String    @db.VarChar(3)
+  id                       String        @id @default(cuid())
+  partnerPlanId            String?       @map("partner_plan_id")
+  subscriptionId           String?       @map("subscription_id")
+  currency                 String        @db.VarChar(3)
   /// ISO-3166-1 alpha-2, or null for "wherever this currency is the fallback".
   /// Country picks the catalogue a buyer sees; currency picks what Stripe
   /// charges. Not the same question: MXN is priced for Mexico, while USD is the
   /// fallback everywhere we have no local book.
-  countryScope             String?   @map("country_scope") @db.VarChar(2)
+  countryScope             String?       @map("country_scope") @db.VarChar(2)
   /// The whole annual cycle, paid at once.
-  annualCashAmount         Decimal   @map("annual_cash_amount") @db.Decimal(10, 2)
+  annualCashAmount         Decimal       @map("annual_cash_amount") @db.Decimal(10, 2)
   /// Instalments for that same cycle. Both null = cash only. Deliberately NOT
   /// derived from annualCashAmount: the 12x carries a 20% surcharge, and
   /// deriving it would erase a commercial decision.
-  installmentCount         Int?      @map("installment_count")
-  installmentAmount        Decimal?  @map("installment_amount") @db.Decimal(10, 2)
+  installmentCount         Int?          @map("installment_count")
+  installmentAmount        Decimal?      @map("installment_amount") @db.Decimal(10, 2)
   /// Published "cost per activation" reference. Stored rather than computed,
   /// because the rounding in it is a commercial choice, not arithmetic.
-  unitReferenceAmount      Decimal?  @map("unit_reference_amount") @db.Decimal(10, 2)
-  effectiveFrom            DateTime  @map("effective_from")
+  unitReferenceAmount      Decimal?      @map("unit_reference_amount") @db.Decimal(10, 2)
+  effectiveFrom            DateTime      @map("effective_from")
   /// Null = still in force. Set when a newer version supersedes this row.
-  effectiveTo              DateTime? @map("effective_to")
-  version                  Int       @default(1)
-  isActive                 Boolean   @default(true) @map("is_active")
-  stripeProductId          String?   @map("stripe_product_id")
-  stripeCashPriceId        String?   @unique @map("stripe_cash_price_id")
-  stripeInstallmentPriceId String?   @unique @map("stripe_installment_price_id")
-  createdAt                DateTime  @default(now()) @map("created_at")
-  updatedAt                DateTime  @updatedAt @map("updated_at")
-  partnerPlan              PartnerPlan?  @relation(fields: [partnerPlanId],  references: [id], onDelete: Cascade)
+  effectiveTo              DateTime?     @map("effective_to")
+  version                  Int           @default(1)
+  isActive                 Boolean       @default(true) @map("is_active")
+  stripeProductId          String?       @map("stripe_product_id")
+  stripeCashPriceId        String?       @unique @map("stripe_cash_price_id")
+  stripeInstallmentPriceId String?       @unique @map("stripe_installment_price_id")
+  createdAt                DateTime      @default(now()) @map("created_at")
+  updatedAt                DateTime      @updatedAt @map("updated_at")
+  partnerPlan              PartnerPlan?  @relation(fields: [partnerPlanId], references: [id], onDelete: Cascade)
   subscription             Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   @@index([partnerPlanId, currency, effectiveFrom])
@@ -1093,10 +1166,11 @@ model PartnerSubscription {
   createdAt               DateTime                  @default(now()) @map("created_at")
   updatedAt               DateTime                  @updatedAt @map("updated_at")
   tenant                  Tenant                    @relation(fields: [tenantId], references: [id])
-  plan                    PartnerPlan               @relation(fields: [planId],  references: [id])
+  plan                    PartnerPlan               @relation(fields: [planId], references: [id])
   currentCycle            SubscriptionCycle?        @relation("CurrentCycle", fields: [currentCycleId], references: [id])
   cycles                  SubscriptionCycle[]       @relation("SubscriptionCycles")
   grants                  CreditGrant[]
+  genCodeOrders           GenCodeOrder[]
 
   @@index([tenantId])
   @@index([status])
@@ -1158,33 +1232,33 @@ model SubscriptionCycle {
 /// allowance in twelve, so "which credit did this activation spend" has to have
 /// an answer.
 model CreditGrant {
-  id                 String            @id @default(cuid())
-  tenantId           String            @map("tenant_id")
-  subscriptionId     String?           @map("subscription_id")
+  id                 String               @id @default(cuid())
+  tenantId           String               @map("tenant_id")
+  subscriptionId     String?              @map("subscription_id")
   /// The cycle that opened this grant. Null for COMMITTED grants, which
   /// deliberately outlive whichever cycle funded them.
-  cycleId            String?           @map("cycle_id")
+  cycleId            String?              @map("cycle_id")
   source             CreditSource
-  grantedQty         Int               @map("granted_qty")
+  grantedQty         Int                  @map("granted_qty")
   /// Materialised balance — see the note above. Never read without a lock in a
   /// path that also writes.
-  remainingQty       Int               @map("remaining_qty")
+  remainingQty       Int                  @map("remaining_qty")
   /// Null = no expiry. Only ever true for grants that predate the model.
-  expiresAt          DateTime?         @map("expires_at")
+  expiresAt          DateTime?            @map("expires_at")
   /// 0 for a fresh allowance, 1 for credits that have already rolled once.
   /// A grant with generation > 0 can never roll again — that is the rule that
   /// stops credits living forever by rolling repeatedly.
-  rolloverGeneration Int               @default(0) @map("rollover_generation")
-  status             CreditGrantStatus @default(ACTIVE)
+  rolloverGeneration Int                  @default(0) @map("rollover_generation")
+  status             CreditGrantStatus    @default(ACTIVE)
   /// Set only on COMMITTED grants: the code and the buyer this unit belongs to.
   /// A committed unit is out of the general pool and cannot be spent on anything
   /// else, which is the whole point — the family already paid for it.
-  genCodeId          String?           @unique @map("gen_code_id")
-  buyerId            String?           @map("buyer_id")
-  createdById        String?           @map("created_by_id")
+  genCodeId          String?              @unique @map("gen_code_id")
+  buyerId            String?              @map("buyer_id")
+  createdById        String?              @map("created_by_id")
   reason             String?
-  createdAt          DateTime          @default(now()) @map("created_at")
-  updatedAt          DateTime          @updatedAt @map("updated_at")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
   tenant             Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   subscription       PartnerSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   cycle              SubscriptionCycle?   @relation(fields: [cycleId], references: [id], onDelete: SetNull)
@@ -1192,6 +1266,7 @@ model CreditGrant {
   buyer              AppUser?             @relation(fields: [buyerId], references: [id])
   transactions       CreditTransaction[]
   reservations       CreditReservation[]
+  genCodeOrder       GenCodeOrder?        @relation("OrderGrant")
 
   // The FEFO index: live grants for one tenant, soonest to expire first.
   @@index([tenantId, status, expiresAt])
@@ -1205,23 +1280,23 @@ model CreditGrant {
 /// submits: the caller names the operation, and a repeat loses to the unique
 /// index instead of moving the balance twice.
 model CreditTransaction {
-  id             String                @id @default(cuid())
-  grantId        String                @map("grant_id")
-  tenantId       String                @map("tenant_id")
-  type           CreditTransactionType
+  id              String                @id @default(cuid())
+  grantId         String                @map("grant_id")
+  tenantId        String                @map("tenant_id")
+  type            CreditTransactionType
   /// Always positive. The type says which direction it moves.
-  quantity       Int
+  quantity        Int
   /// The grant's remaining balance immediately after this row was written —
   /// what makes the ledger auditable without replaying it from the beginning.
-  balanceAfter   Int                   @map("balance_after")
-  genCodeId      String?               @map("gen_code_id")
-  reservationId  String?               @map("reservation_id")
-  idempotencyKey String                @unique @map("idempotency_key")
-  occurredAt     DateTime              @default(now()) @map("occurred_at")
-  actorId        String?               @map("actor_id")
-  reason         String?
-  grant          CreditGrant           @relation(fields: [grantId], references: [id], onDelete: Cascade)
-  consumedGenCode GenCode?             @relation("ConsumedBy")
+  balanceAfter    Int                   @map("balance_after")
+  genCodeId       String?               @map("gen_code_id")
+  reservationId   String?               @map("reservation_id")
+  idempotencyKey  String                @unique @map("idempotency_key")
+  occurredAt      DateTime              @default(now()) @map("occurred_at")
+  actorId         String?               @map("actor_id")
+  reason          String?
+  grant           CreditGrant           @relation(fields: [grantId], references: [id], onDelete: Cascade)
+  consumedGenCode GenCode?              @relation("ConsumedBy")
 
   @@index([tenantId, occurredAt(sort: Desc)])
   @@index([grantId])

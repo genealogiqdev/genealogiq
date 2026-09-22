@@ -8,6 +8,11 @@ import {
   linkPartnerSubscription,
   syncPartnerSubscriptionStatus,
 } from '@genealogiq/services/partner-billing'
+import {
+  closeGenCodePackageCheckout,
+  fulfillGenCodePackageCheckout,
+  isGenCodePackageCheckout,
+} from '@genealogiq/services/gencode-package'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -27,6 +32,10 @@ const RELEVANT_EVENTS = new Set<Stripe.Event['type']>([
   'customer.subscription.created',
   'customer.subscription.updated',
   'customer.subscription.deleted',
+  'checkout.session.completed',
+  'checkout.session.async_payment_succeeded',
+  'checkout.session.async_payment_failed',
+  'checkout.session.expired',
 ])
 
 function subscriptionIdOf(invoice: Stripe.Invoice): string | null {
@@ -56,6 +65,30 @@ export async function POST(req: NextRequest) {
 
   if (!RELEVANT_EVENTS.has(event.type)) {
     return NextResponse.json({ received: true })
+  }
+
+  if (event.type.startsWith('checkout.session.')) {
+    const checkout = event.data.object as Stripe.Checkout.Session
+    if (!isGenCodePackageCheckout(checkout)) {
+      return NextResponse.json({ received: true, ignored: 'not a GenCode package checkout' })
+    }
+
+    try {
+      if (event.type === 'checkout.session.async_payment_failed') {
+        const changed = await closeGenCodePackageCheckout(checkout, 'FAILED')
+        return NextResponse.json({ received: true, outcome: changed ? 'failed' : 'ignored' })
+      }
+      if (event.type === 'checkout.session.expired') {
+        const changed = await closeGenCodePackageCheckout(checkout, 'EXPIRED')
+        return NextResponse.json({ received: true, outcome: changed ? 'expired' : 'ignored' })
+      }
+
+      const outcome = await fulfillGenCodePackageCheckout(checkout)
+      return NextResponse.json({ received: true, outcome })
+    } catch (err) {
+      console.error('[bms-stripe-webhook] GenCode package checkout failed', err)
+      return NextResponse.json({ error: 'internal' }, { status: 500 })
+    }
   }
 
   if (event.type === 'invoice.paid') {

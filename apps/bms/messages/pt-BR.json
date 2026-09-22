@@ -83,6 +83,20 @@
       "updated": "Preço atualizado com sucesso.",
       "updatedStripeCleared": "Preço atualizado — referências do Stripe zeradas. Sincronize com o Stripe de novo pra provisionar preços novos."
     },
+    "gencodePackage": {
+      "invalidData": "Revise os dados da compra.",
+      "invalidQuantity": "Informe uma quantidade inteira de pelo menos 20 unidades.",
+      "linkFailed": "Não foi possível gerar o link de pagamento: {message}",
+      "linkSent": "Link de pagamento enviado para {email}.",
+      "noCheckoutUrl": "O Stripe não retornou um link de pagamento.",
+      "packageNotFound": "Pacote de Gencodes não encontrado ou inativo.",
+      "packageNotSynced": "Sincronize o Pacote de Gencodes com o Stripe antes de vender.",
+      "stripeSyncFailed": "Falha na sincronização com o Stripe: {message}",
+      "synced": "Pacote sincronizado com o Stripe.",
+      "tenantNotEligible": "O cliente precisa estar ativo e possuir um plano B2B com ciclo vigente.",
+      "tenantNotFound": "Cliente não encontrado.",
+      "unknownError": "Erro desconhecido"
+    },
     "package": {
       "created": "Produto criado com sucesso.",
       "hasSales": "Este produto possui vendas associadas e não pode ser excluído.",
@@ -572,6 +586,7 @@
     "maxChars": "Deve ter no máximo {count} caracteres",
     "maxQuantity": "Deve ser no máximo {count}",
     "minChars": "Deve ter pelo menos {count} caracteres",
+    "minQuantity": "Deve ser no mínimo {count}",
     "monthlyNeedsAnnual": "Informe o preço anual desta moeda antes do mensal",
     "mustBePositive": "Deve ser maior que zero",
     "mustBeWholeNumber": "Deve ser um número inteiro",
@@ -605,6 +620,68 @@
       "PREMIUM": "Premium"
     },
     "title": "Preços de Extras"
+  },
+  "GenCodePackages": {
+    "description": "Venda Gencodes virtuais sob demanda para clientes com plano B2B ativo.",
+    "form": {
+      "cancel": "Cancelar",
+      "customer": "Cliente",
+      "minimumHint": "Quantidade mínima: {count} unidades.",
+      "noCustomers": "Nenhum cliente com plano B2B ativo encontrado.",
+      "paymentNote": "O cliente receberá um link de pagamento válido por 23 horas. Os Gencodes serão liberados automaticamente após a confirmação.",
+      "pickCustomer": "Selecione um cliente",
+      "quantity": "Quantidade",
+      "searchCustomer": "Buscar por nome ou CNPJ/CPF…",
+      "send": "Enviar link de pagamento",
+      "sending": "Enviando…",
+      "sent": "Link de pagamento enviado.",
+      "title": "Nova compra de Gencodes",
+      "total": "Total",
+      "unitPrice": "Preço unitário"
+    },
+    "newOrder": "Nova compra",
+    "ordersDescription": "Acompanhe os links enviados e as compras já liberadas.",
+    "ordersTitle": "Histórico de compras",
+    "payment": {
+      "cancelDescription": "O pagamento não foi concluído e nenhum Gencode foi liberado. Se ainda quiser realizar a compra, solicite um novo link à equipe Genealogiq.",
+      "cancelTitle": "Pagamento não concluído",
+      "close": "Você já pode fechar esta página.",
+      "successDescription": "Recebemos a confirmação. Seus Gencodes serão disponibilizados automaticamente no Sequoia assim que o processamento terminar.",
+      "successTitle": "Pagamento recebido"
+    },
+    "product": {
+      "active": "Ativo",
+      "description": "Compra única de Gencodes virtuais. Cada compra gera créditos válidos por 12 meses e não participa do rollover anual.",
+      "inactive": "Inativo",
+      "minimum": "Compra mínima",
+      "notSynced": "Não sincronizado",
+      "stripe": "Stripe",
+      "sync": "Sincronizar com Stripe",
+      "synced": "Sincronizado",
+      "syncing": "Sincronizando…",
+      "unitPrice": "Preço por unidade",
+      "units": "{count} unidades",
+      "validity": "Validade",
+      "validityValue": "12 meses"
+    },
+    "status": {
+      "EXPIRED": "Link expirado",
+      "FAILED": "Falhou",
+      "PAID": "Pago",
+      "PENDING": "Aguardando pagamento"
+    },
+    "table": {
+      "createdAt": "Criado em",
+      "customer": "Cliente",
+      "empty": "Nenhuma compra de Gencodes registrada.",
+      "quantity": "Quantidade",
+      "search": "Buscar cliente…",
+      "status": "Status",
+      "total": "Total",
+      "unitPrice": "Preço unitário",
+      "validUntil": "Créditos válidos até"
+    },
+    "title": "Pacote de Gencodes"
   },
   "Feedback": {
     "dialog": {
@@ -847,6 +924,7 @@
       "dashboard": "Painel",
       "discountCoupons": "Cupons de Desconto",
       "extraUnits": "Extras B2C",
+      "gencodePackages": "Pacote de Gencodes",
       "partnerPlans": "Planos B2B",
       "subscriptions": "Assinaturas B2C",
       "systemUsers": "Usuários do Sistema"

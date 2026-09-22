@@ -123,12 +123,13 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
   // silently destroy paid, end-user-facing memorials provisioned by SEQ. Guard
   // every dependent explicitly — a Cascade FK doesn't raise P2003, so the catch
   // below would never stop it.
-  const [salesCount, appUserCount, appSaleCount] = await Promise.all([
+  const [salesCount, genCodeOrderCount, appUserCount, appSaleCount] = await Promise.all([
     prisma.partnerSubscription.count({ where: { tenantId: id } }),
+    prisma.genCodeOrder.count({ where: { tenantId: id } }),
     prisma.appUser.count({ where: { tenantId: id } }),
     prisma.appSale.count({ where: { tenantId: id } }),
   ])
-  if (salesCount > 0) {
+  if (salesCount > 0 || genCodeOrderCount > 0) {
     return fail(t('customer.hasSales'))
   }
   const appDataCount = appUserCount + appSaleCount

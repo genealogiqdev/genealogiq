@@ -6,6 +6,7 @@ import {
   IdCardIcon,
   Layers,
   LayoutDashboard,
+  PackageOpen,
   SquarePlus,
   TicketPercent,
   type LucideIcon,
@@ -30,7 +31,8 @@ export const system: MenuItem[] = [
 ]
 
 export const products: MenuItem[] = [
-  { labelKey: 'items.partnerPlans',  url: '/plans',             icon: Fingerprint, separatorAfter: true },
+  { labelKey: 'items.partnerPlans',  url: '/plans',             icon: Fingerprint },
+  { labelKey: 'items.gencodePackages', url: '/gencodes',        icon: PackageOpen, separatorAfter: true },
   { labelKey: 'items.subscriptions', url: '/subscriptions',     icon: Layers      },
   { labelKey: 'items.extraUnits',    url: '/extra-unit-prices', icon: SquarePlus  },
 ]
