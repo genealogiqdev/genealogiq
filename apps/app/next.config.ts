@@ -1,10 +1,13 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 import { withSentryConfig } from "@sentry/nextjs";
+import path from "node:path";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  output: "standalone",
+  outputFileTracingRoot: path.join(__dirname, "../.."),
   transpilePackages: ["@genealogiq/auth", "@genealogiq/core", "@genealogiq/i18n", "@genealogiq/email", "@genealogiq/db", "@genealogiq/services"],
   images: {
     // 75 is next/image's default; 90 is used for the wordmark logo, whose text

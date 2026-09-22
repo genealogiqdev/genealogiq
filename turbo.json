@@ -2,6 +2,7 @@
   "$schema": "https://turbo.build/schema.json",
   "globalEnv": [
     "DATABASE_URL",
+    "DATABASE_POOL_MAX",
     "AUTH_SECRET",
     "AUTH_URL",
     "AUTH_TRUST_HOST",
@@ -12,8 +13,19 @@
     "STRIPE_SECRET_KEY",
     "STRIPE_WEBHOOK_SECRET",
     "BLOB_READ_WRITE_TOKEN",
+    "CRON_SECRET",
     "VAPID_PRIVATE_KEY",
-    "VAPID_SUBJECT"
+    "VAPID_SUBJECT",
+    "TURNSTILE_SECRET_KEY",
+    "ENABLE_WIKITREE_SEARCH",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "NEXT_PUBLIC_SENTRY_DSN",
+    "NEXT_PUBLIC_VAPID_PUBLIC_KEY",
+    "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
+    "SENTRY_ORG",
+    "SENTRY_PROJECT",
+    "SENTRY_AUTH_TOKEN"
   ],
   "tasks": {
     "build": {

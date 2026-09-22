@@ -4,14 +4,15 @@ import { headers } from 'next/headers'
 import { prisma } from '@genealogiq/db'
 
 export async function getClientIp(): Promise<string> {
-  // NOTE: trusts the first hop of x-forwarded-for. On Vercel this header is set
-  // by the platform edge and is reliable. If these apps are ever fronted by a
-  // different proxy (or none), an attacker could spoof XFF to dodge the per-IP
-  // buckets — revisit trusted-proxy depth before deploying off Vercel. Per-user
-  // lockout (failedLoginAttempts/lockedUntil) remains as defense in depth.
   const h   = await headers()
   const xff = h.get('x-forwarded-for')
-  if (xff) return xff.split(',')[0].trim()
+  // Azure Container Apps appends its ingress value to X-Forwarded-For. Only
+  // the rightmost value is guaranteed by the platform; client-supplied values
+  // to its left are untrusted.
+  if (xff) {
+    const addresses = xff.split(',').map((value) => value.trim()).filter(Boolean)
+    if (addresses.length > 0) return addresses[addresses.length - 1]
+  }
   return h.get('x-real-ip') ?? 'unknown'
 }
 

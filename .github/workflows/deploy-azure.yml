@@ -1,0 +1,160 @@
+name: Deploy Azure
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-azure-production
+  cancel-in-progress: false
+
+env:
+  AZURE_CLIENT_ID: 3a3cc663-19dc-47f6-908e-4ce9b3a57195
+  AZURE_TENANT_ID: 14b55441-6057-45a1-b710-23b0616796ae
+  AZURE_SUBSCRIPTION_ID: c710b26f-e3c7-4a45-9477-eaaf3bdcc329
+  RESOURCE_GROUP: rg-genealogiq-prod
+  REGISTRY_NAME: acrgenohqluyie
+  REGISTRY_SERVER: acrgenohqluyie.azurecr.io
+
+jobs:
+  build:
+    name: build ${{ matrix.repository }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - repository: genealogiq-app
+            target: app-runtime
+            app: app
+          - repository: genealogiq-bms
+            target: app-runtime
+            app: bms
+          - repository: genealogiq-seq
+            target: app-runtime
+            app: seq
+          - repository: genealogiq-migration
+            target: migration
+            app: ""
+          - repository: genealogiq-scheduler
+            target: scheduler
+            app: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install Container Apps CLI extension
+        run: az extension add --name containerapp --upgrade --allow-preview true
+
+      - name: Sign in to ACR
+        run: az acr login --name "$REGISTRY_NAME"
+
+      - name: Build and push image
+        env:
+          APP_SENTRY_DSN: ${{ vars.APP_SENTRY_DSN }}
+          BMS_SENTRY_DSN: ${{ vars.BMS_SENTRY_DSN }}
+          SEQ_SENTRY_DSN: ${{ vars.SEQ_SENTRY_DSN }}
+          VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
+          TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
+        run: |
+          args=(
+            --target "${{ matrix.target }}"
+            --tag "$REGISTRY_SERVER/${{ matrix.repository }}:$GITHUB_SHA"
+          )
+          if [ -n "${{ matrix.app }}" ]; then
+            case "${{ matrix.app }}" in
+              app) sentry_dsn="$APP_SENTRY_DSN" ;;
+              bms) sentry_dsn="$BMS_SENTRY_DSN" ;;
+              seq) sentry_dsn="$SEQ_SENTRY_DSN" ;;
+            esac
+            args+=(
+              --build-arg "APP=${{ matrix.app }}"
+              --build-arg "NEXT_PUBLIC_SENTRY_DSN=$sentry_dsn"
+            )
+          fi
+          if [ "${{ matrix.app }}" = "app" ]; then
+            args+=(
+              --build-arg "NEXT_PUBLIC_VAPID_PUBLIC_KEY=$VAPID_PUBLIC_KEY"
+              --build-arg "NEXT_PUBLIC_TURNSTILE_SITE_KEY=$TURNSTILE_SITE_KEY"
+            )
+          fi
+          docker build "${args[@]}" .
+          docker push "$REGISTRY_SERVER/${{ matrix.repository }}:$GITHUB_SHA"
+
+  deploy:
+    name: migrate and deploy
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install Container Apps CLI extension
+        run: az extension add --name containerapp --upgrade --allow-preview true
+
+      - name: Apply database migrations
+        run: |
+          az containerapp job update \
+            --name job-genealogiq-migrate-prod \
+            --resource-group "$RESOURCE_GROUP" \
+            --image "$REGISTRY_SERVER/genealogiq-migration:$GITHUB_SHA" \
+            --output none
+          execution="$(az containerapp job start \
+            --name job-genealogiq-migrate-prod \
+            --resource-group "$RESOURCE_GROUP" \
+            --query name --output tsv)"
+          for attempt in {1..60}; do
+            status="$(az containerapp job execution show \
+              --name job-genealogiq-migrate-prod \
+              --resource-group "$RESOURCE_GROUP" \
+              --job-execution-name "$execution" \
+              --query properties.status --output tsv)"
+            case "$status" in
+              Succeeded) exit 0 ;;
+              Failed|Stopped) exit 1 ;;
+            esac
+            sleep 10
+          done
+          echo "Migration job timed out." >&2
+          exit 1
+
+      - name: Deploy immutable revisions
+        run: |
+          az containerapp update --name ca-genealogiq-app-prod \
+            --resource-group "$RESOURCE_GROUP" \
+            --image "$REGISTRY_SERVER/genealogiq-app:$GITHUB_SHA" --output none
+          az containerapp update --name ca-genealogiq-bms-prod \
+            --resource-group "$RESOURCE_GROUP" \
+            --image "$REGISTRY_SERVER/genealogiq-bms:$GITHUB_SHA" --output none
+          az containerapp update --name ca-genealogiq-seq-prod \
+            --resource-group "$RESOURCE_GROUP" \
+            --image "$REGISTRY_SERVER/genealogiq-seq:$GITHUB_SHA" --output none
+          az containerapp job update --name job-genealogiq-daily-prod \
+            --resource-group "$RESOURCE_GROUP" \
+            --image "$REGISTRY_SERVER/genealogiq-scheduler:$GITHUB_SHA" --output none
+
+      - name: Verify revisions
+        run: |
+          for app in app bms seq; do
+            fqdn="$(az containerapp show \
+              --name "ca-genealogiq-$app-prod" \
+              --resource-group "$RESOURCE_GROUP" \
+              --query properties.configuration.ingress.fqdn --output tsv)"
+            curl --fail --retry 20 --retry-all-errors --retry-delay 5 \
+              "https://$fqdn/api/health/live"
+            curl --fail --retry 20 --retry-all-errors --retry-delay 5 \
+              "https://$fqdn/api/health/ready"
+          done

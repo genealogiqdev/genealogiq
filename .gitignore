@@ -21,6 +21,8 @@ dist/
 *.log
 .DS_Store
 .vercel
+.azure/
+infra/*.json
 
 # TypeScript incremental build info (per-machine artifact)
 *.tsbuildinfo

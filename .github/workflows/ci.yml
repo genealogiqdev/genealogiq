@@ -60,3 +60,34 @@ jobs:
       # baseline is clean.
       - name: Dependency audit (informational)
         run: pnpm audit --audit-level high || true
+
+  containers:
+    name: container (${{ matrix.app }})
+    needs: verify
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [app, bms, seq]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build production image
+        run: |
+          docker build \
+            --target app-runtime \
+            --build-arg APP=${{ matrix.app }} \
+            --tag genealogiq-${{ matrix.app }}:ci \
+            .
+
+      - name: Smoke-test liveness
+        run: |
+          docker run --detach --rm \
+            --name smoke-${{ matrix.app }} \
+            --publish 3000:3000 \
+            --env DATABASE_URL=postgresql://user:pass@localhost:5432/db \
+            --env AUTH_SECRET=ci-container-smoke-secret \
+            genealogiq-${{ matrix.app }}:ci
+          trap 'docker stop smoke-${{ matrix.app }} || true' EXIT
+          curl --fail --retry 20 --retry-connrefused --retry-delay 2 \
+            http://127.0.0.1:3000/api/health/live

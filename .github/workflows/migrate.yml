@@ -1,104 +1,60 @@
 name: Migrate
 
-# Applies pending Prisma migrations to production, once, on merge to main.
-#
-# Why here and not in the Vercel build: the three apps (app, bms, seq) are three
-# Vercel projects that build in PARALLEL from this repo against ONE database. A
-# `migrate deploy` in each build command would run three concurrent migrations
-# on every deploy — Prisma's advisory lock would serialise them, but two of the
-# three would be pure waste and a lock timeout would fail a deploy for no
-# reason. Preview builds would also migrate production. One job, one run.
-#
-# Path filter: this only fires when a migration is actually added, so ordinary
-# merges do not touch the database at all.
-
 on:
-  push:
-    branches: [main]
-    paths:
-      - "packages/db/prisma/migrations/**"
-      - ".github/workflows/migrate.yml"
-  # Lets a failed or skipped run be replayed without an empty commit, and covers
-  # the case where a migration is applied out of band.
   workflow_dispatch:
 
-# Never run two migrations at once, and never cancel one midway: an interrupted
-# `migrate deploy` leaves the _prisma_migrations table claiming a migration is
-# in progress, which blocks every later run until someone resolves it by hand.
+permissions:
+  contents: read
+  id-token: write
+
 concurrency:
   group: migrate-production
   cancel-in-progress: false
+
+env:
+  AZURE_CLIENT_ID: 3a3cc663-19dc-47f6-908e-4ce9b3a57195
+  AZURE_TENANT_ID: 14b55441-6057-45a1-b710-23b0616796ae
+  AZURE_SUBSCRIPTION_ID: c710b26f-e3c7-4a45-9477-eaaf3bdcc329
+  RESOURCE_GROUP: rg-genealogiq-prod
 
 jobs:
   deploy:
     name: prisma migrate deploy
     runs-on: ubuntu-latest
-    # No `environment:` here on purpose. Environment secrets and deployment
-    # protection rules need GitHub Pro/Team/Enterprise on a PRIVATE repo, and
-    # this one is private on a free account — the reviewer gate simply is not
-    # available. A repository-level Actions secret is, and works on every plan.
-    #
-    # What stands in for the gate: the path filter (this only fires when a
-    # migration is actually added), the pooler guard below, and a `concurrency`
-    # group that never cancels mid-flight.
-    env:
-      # Migrations need a DIRECT connection. The app's usual DATABASE_URL points
-      # at Neon's pooler (-pooler in the host), and DDL over PgBouncer in
-      # transaction mode fails or hangs. prisma.config.ts reads DATABASE_URL, so
-      # the direct URL is supplied under that name here.
-      DATABASE_URL: ${{ secrets.DATABASE_URL_DIRECT }}
     steps:
-      - uses: actions/checkout@v4
-
-      # pnpm version comes from the root package.json "packageManager" field —
-      # do NOT also set "version" here, or action-setup errors on the mismatch.
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
+      - uses: azure/login@v2
         with:
-          node-version: "22"
-          cache: pnpm
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Fail fast if the direct URL is missing or pooled
-        run: |
-          if [ -z "$DATABASE_URL" ]; then
-            echo "::error::Repository secret DATABASE_URL_DIRECT is not set."
-            echo "Settings → Secrets and variables → Actions → New repository secret."
-            echo "Value: the NON-POOLED Neon string (host without '-pooler')."
-            exit 1
-          fi
-          case "$DATABASE_URL" in
-            *-pooler.*)
-              echo "::error::DATABASE_URL_DIRECT points at the Neon pooler."
-              echo "Migrations need a direct connection — use the host without '-pooler'."
-              exit 1
-              ;;
-          esac
-
-      # `migrate status` exits non-zero precisely WHEN there is something to
-      # apply, which is the normal case here — so this is a log, not a gate.
-      - name: Show what is pending
-        run: pnpm db:migrate:status || true
+      - name: Install Container Apps CLI extension
+        run: az extension add --name containerapp --upgrade --allow-preview true
 
       - name: Apply migrations
-        run: pnpm db:migrate:deploy
-
-      # Deliberately NOT a bare `migrate status`. The database's
-      # _prisma_migrations table still lists seven pre-consolidation migrations
-      # (20260324…–20260415…) that were squashed into `0_init` when the three
-      # repos merged. `migrate status` reports those as a difference and exits
-      # non-zero forever, which would fail this job after a perfectly good
-      # deploy. What actually matters here is the other direction: nothing local
-      # left unapplied.
-      - name: Confirm nothing is left pending
         run: |
-          out="$(pnpm db:migrate:status 2>&1 || true)"
-          echo "$out"
-          if echo "$out" | grep -q "have not yet been applied"; then
-            echo "::error::A migration is still pending after deploy."
-            exit 1
-          fi
-          echo "No local migration is pending."
+          execution="$(az containerapp job start \
+            --name job-genealogiq-migrate-prod \
+            --resource-group "$RESOURCE_GROUP" \
+            --query name --output tsv)"
+          for attempt in {1..60}; do
+            status="$(az containerapp job execution show \
+              --name job-genealogiq-migrate-prod \
+              --resource-group "$RESOURCE_GROUP" \
+              --job-execution-name "$execution" \
+              --query properties.status --output tsv)"
+            case "$status" in
+              Succeeded) exit 0 ;;
+              Failed|Stopped)
+                az containerapp job logs show \
+                  --name job-genealogiq-migrate-prod \
+                  --resource-group "$RESOURCE_GROUP" \
+                  --execution "$execution" \
+                  --tail 100 || true
+                exit 1
+                ;;
+            esac
+            sleep 10
+          done
+          echo "Migration job timed out." >&2
+          exit 1

@@ -48,9 +48,9 @@ describe("checkRateLimit", () => {
 })
 
 describe("getClientIp", () => {
-  it("uses the first IP from x-forwarded-for", async () => {
+  it("uses the Azure-appended rightmost IP from x-forwarded-for", async () => {
     headersMock.mockResolvedValue(headerBag({ "x-forwarded-for": "1.1.1.1, 2.2.2.2" }))
-    expect(await getClientIp()).toBe("1.1.1.1")
+    expect(await getClientIp()).toBe("2.2.2.2")
   })
 
   it("falls back to x-real-ip when x-forwarded-for is absent", async () => {
