@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 const { prismaMock } = vi.hoisted(() => ({
   prismaMock: {
     familyRelation: { findMany: vi.fn() },
+    petOwnership: { findMany: vi.fn() },
     appUser: { findMany: vi.fn() },
   },
 }))
@@ -12,22 +13,26 @@ vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }))
 
 import { getTreeMemberIds, getFamilyTree } from "./family-tree"
 
-type Rel = { id: string; fromId: string; toId: string; status: string }
+type Rel = { id: string; fromId: string; toId: string; status: string; type?: string }
 
 // Drives prismaMock.familyRelation.findMany to honour the real query shape:
 // where.status is "ACCEPTED" (traversal) or { not: "REJECTED" } (render fetch),
 // and where.OR = [{ fromId: { in: frontier } }, { toId: { in: frontier } }].
 function mockRelations(all: Rel[]) {
   prismaMock.familyRelation.findMany.mockImplementation(
-    ({ where }: { where: { status: unknown; OR: Array<{ fromId?: { in: string[] }; toId?: { in: string[] } }> } }) => {
+    ({ where }: { where: { type?: { in: string[] }; status: unknown; OR: Array<{ fromId?: { in: string[] }; toId?: { in: string[] } }> } }) => {
       const frontier = where.OR[0].fromId!.in
       const statusOk = (r: Rel) =>
         where.status === "ACCEPTED" ? r.status === "ACCEPTED" : r.status !== "REJECTED"
       return Promise.resolve(
         all
-          .filter((r) => statusOk(r) && (frontier.includes(r.fromId) || frontier.includes(r.toId)))
+          .filter((r) =>
+            statusOk(r) &&
+            (!where.type || where.type.in.includes(r.type ?? "SIBLING")) &&
+            (frontier.includes(r.fromId) || frontier.includes(r.toId)),
+          )
           .map((r) => ({
-            id: r.id, type: "SIBLING", subtype: null,
+            id: r.id, type: r.type ?? "SIBLING", subtype: null,
             fromId: r.fromId, toId: r.toId,
             startDate: null, endDate: null,
             status: r.status, requestedById: null,
@@ -39,6 +44,7 @@ function mockRelations(all: Rel[]) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  prismaMock.petOwnership.findMany.mockResolvedValue([])
   prismaMock.appUser.findMany.mockImplementation(({ where }: { where: { id: { in: string[] } } }) =>
     Promise.resolve(
       where.id.in.map((id) => ({
@@ -65,6 +71,17 @@ describe("getTreeMemberIds — ACCEPTED-only membership", () => {
 
     expect(ids).toEqual(new Set(["ROOT", "G"])) // S (pending) and SP (S's subtree) are NOT members
   })
+
+  it("never traverses a legacy PET_OF edge", async () => {
+    mockRelations([
+      { id: "pet-link", fromId: "PET", toId: "ROOT", status: "ACCEPTED", type: "PET_OF" },
+      { id: "other-family", fromId: "PET", toId: "OTHER_OWNER", status: "ACCEPTED", type: "PET_OF" },
+    ])
+
+    const ids = await getTreeMemberIds("ROOT")
+
+    expect(ids).toEqual(new Set(["ROOT"]))
+  })
 })
 
 describe("getFamilyTree — pending invite is a boundary, not a window into the invitee's tree", () => {
@@ -81,6 +98,24 @@ describe("getFamilyTree — pending invite is a boundary, not a window into the 
     expect(tree.persons.S.pending).toBe(true)
     // The accepted edge + the boundary pending invite show; S's internal edge does not.
     expect(tree.relations.map((r) => r.id).sort()).toEqual(["r1", "r2"])
+  })
+
+  it("loads pet attachments without traversing through a co-owner", async () => {
+    mockRelations([])
+    prismaMock.petOwnership.findMany.mockResolvedValue([
+      { id: "own-1", petId: "PET", ownerId: "ROOT", createdAt: new Date(0) },
+    ])
+
+    const tree = await getFamilyTree("ROOT", { id: "ROOT", canManage: true })
+
+    expect(Object.keys(tree.persons).sort()).toEqual(["PET", "ROOT"])
+    expect(tree.persons.OTHER_OWNER).toBeUndefined()
+    expect(tree.petOwnerships).toEqual([
+      { id: "own-1", petId: "PET", ownerId: "ROOT", createdAt: new Date(0) },
+    ])
+    expect(prismaMock.petOwnership.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { ownerId: { in: ["ROOT"] } },
+    }))
   })
 })
 

@@ -6,8 +6,10 @@ import { AuroraBackdrop } from "@/components/aurora-backdrop"
 import { BackButton } from "@/components/back-button"
 import { PetCreateForm } from "@/components/pet-create-form"
 import { verifySession } from "@/lib/dal"
+import { canManageProfile } from "@/lib/profile"
 import { getPetCreationStatus } from "@/lib/pet-quota"
 import { getFamilyTree } from "@/queries/family-tree"
+import { getProfileById } from "@/queries/profile"
 
 interface Props {
   params: Promise<{ id: string }>
@@ -19,9 +21,12 @@ export default async function PetNewPage({ params }: Props) {
   const t = await getTranslations("Pets")
   const tc = await getTranslations("Common")
 
-  if (id !== session.user.id) redirect(`/profile/${id}/pets`)
+  const profile = await getProfileById(id)
+  if (!profile || !canManageProfile(profile, session.user.id) || profile.role === "APP_PET") {
+    redirect(`/profile/${id}/pets`)
+  }
 
-  const creationStatus = await getPetCreationStatus(id)
+  const creationStatus = await getPetCreationStatus(session.user.id)
   if (!creationStatus.allowed) redirect(`/profile/${id}/pets`)
 
   // Existing tree members this pet can be attached to as owner(s) — pets

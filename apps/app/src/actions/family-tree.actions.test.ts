@@ -75,6 +75,7 @@ const MEMBER = "cmemberaaaaaa"
 const STRANGER1 = "cstrangeronea"
 const STRANGER2 = "cstrangertwoa"
 const FOREIGN_MEMO = "cforeignmemoa"
+const PET = "cpetaaaaaaaaa"
 
 function mockUsers(byId: Record<string, { id: string; role: string }>) {
   prismaMock.appUser.findUnique.mockImplementation(
@@ -154,6 +155,19 @@ describe("addRelation — IDOR guard", () => {
     vi.mocked(getTreeMemberIds).mockResolvedValue(new Set([ROOT])) // memo not reachable from root
 
     const res = await addRelation(ROOT, { fromId: ROOT, toId: FOREIGN_MEMO, type: "PARENT_OF" })
+
+    expect(res).toEqual({ ok: false, message: "familyTree.notAuthorized" })
+    expect(prismaMock.familyRelation.create).not.toHaveBeenCalled()
+  })
+
+  it("rejects every human relationship type when one endpoint is a pet", async () => {
+    mockUsers({
+      [ROOT]: { id: ROOT, role: "APP_USER" },
+      [PET]: { id: PET, role: "APP_PET" },
+    })
+    vi.mocked(getTreeMemberIds).mockResolvedValue(new Set([ROOT, PET]))
+
+    const res = await addRelation(ROOT, { fromId: ROOT, toId: PET, type: "SIBLING" })
 
     expect(res).toEqual({ ok: false, message: "familyTree.notAuthorized" })
     expect(prismaMock.familyRelation.create).not.toHaveBeenCalled()

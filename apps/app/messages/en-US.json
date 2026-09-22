@@ -105,6 +105,7 @@
       "limitReached": "You reached the limit of {max} pets on your plan.",
       "notAuthorized": "You are not authorized to manage this profile.",
       "notFound": "Profile not found.",
+      "ownerRequired": "A pet must remain linked to at least one owner.",
       "ownerNotInTree": "The selected owner must already be a member of your family tree."
     },
     "places": {
@@ -334,20 +335,31 @@
   },
   "FamilyTree": {
     "addRelative": {
+      "addNewPet": "Create a new pet",
       "addNewPersonAction": "Add them manually.",
       "addNewPersonQuestion": "Didn't find the profile you were looking for?",
+      "addPetToTree": "Add pet to tree",
       "addToTree": "Add to tree",
       "backToSearch": "Back to search",
       "divorced": "Divorced",
       "ghostHint": "This person stays in the family tree without a profile. You can promote them to a memorial profile later.",
-      "kindLabel": "Kind:",
+      "kindLabel": "Member type:",
       "married": "Married",
       "marriedTo": "Married to <strong>{name}</strong>?",
+      "newPetTitle": "Add a new pet",
       "newPersonTitle": "Add a new person",
       "noResults": "No results found.",
+      "petFields": {
+        "breed": "Breed",
+        "name": "Pet name",
+        "species": "Species"
+      },
+      "petHint": "You can add a photo, dates and more details from the pet profile afterward.",
+      "petQuota": "{count} of {limit} pet profiles used",
+      "petSearchPlaceholder": "Search your pets",
       "searchPlaceholder": "Search profile on Genealogiq",
       "searchWikiTree": "Search WikiTree",
-      "title": "Add relative",
+      "title": "Add family member",
       "togetherSince": "Together since",
       "typeLabel": "Type:",
       "widowed": "Widowed",
@@ -415,7 +427,7 @@
       "other": "Other"
     },
     "header": {
-      "addRelative": "Add relative",
+      "addRelative": "Add family member",
       "backToProfile": "Back to profile",
       "title": "{name}'s Tree",
       "upgradePlan": "Upgrade plan"
@@ -424,7 +436,8 @@
       "addChild": "+ Child",
       "addParent": "+ Parent",
       "addPartner": "+ Partner",
-      "addRelative": "Add relative",
+      "addPet": "+ Pet",
+      "addRelative": "Add family member",
       "addSibling": "+ Sibling",
       "coManage": "Co-manage",
       "coManageHint": "Ask the current guardian to let you co-manage this profile.",
@@ -432,6 +445,7 @@
       "editDisabledHint": "You can only edit your own profile, your memorials, or people you added to the tree.",
       "editHint": "Update name, dates and details.",
       "pending": "Pending",
+      "owners": "Owners",
       "relationships": "Relationships",
       "seeProfile": "See profile",
       "thisIsYou": "This is you",
@@ -440,6 +454,7 @@
     "kinds": {
       "child": "Child",
       "parent": "Parent",
+      "pet": "Pet",
       "sibling": "Sibling",
       "spouse": "Partner"
     },
@@ -520,6 +535,7 @@
       "motherInLaw": "Your mother-in-law",
       "nephew": "Your nephew",
       "niece": "Your niece",
+      "pet": "Your pet",
       "relative": "Your relative",
       "sister": "Your sister",
       "sisterInLaw": "Your sister-in-law",
@@ -533,6 +549,7 @@
     },
     "removeDialog": {
       "ghostDescription": "{name} will be deleted permanently from the tree and from the system along with their relations to others in the tree. This cannot be undone.",
+      "petDescription": "{name} will be detached from the owners shown in this tree. The pet profile will not be deleted.",
       "personDescription": "{name} will be removed from your tree. The profile stays untouched and remains in the system. People who are only connected to your tree through this profile will also disappear from this view.",
       "title": "Remove from tree?"
     },
@@ -551,6 +568,7 @@
         "twelve": "twelve",
         "two": "two"
       },
+      "petCount": "{count, plural, one {# pet} other {# pets}}",
       "summary": "Tree with {count, plural, one {# person} other {# people}} spread across {word} {gens, plural, one {generation} other {generations}}"
     },
     "subtypes": {
@@ -574,6 +592,8 @@
     "toasts": {
       "coManageRequestSent": "Request sent. The current guardian will be notified.",
       "nameRequired": "First and last name are required.",
+      "petAdded": "Pet added to the tree.",
+      "petNameRequired": "Enter the pet's name.",
       "personAdded": "Person added to the tree.",
       "personUpdated": "Person updated.",
       "relationRemoved": "Relation removed.",
@@ -907,6 +927,9 @@
     "list": {
       "emptyGuarded": "No memorial profiles guarded yet.",
       "emptyOwn": "No memorial profiles yet.",
+      "new": "New",
+      "newPerson": "Person memorial",
+      "newPet": "Pet",
       "newProfile": "New memorial",
       "sortAria": "Sort profiles",
       "sortAsc": "A → Z",
@@ -1163,8 +1186,9 @@
     "mapAlt": "Map",
     "memorialized": "Memorial",
     "petBadge": "Pet",
-    "petsComingSoon": "Coming soon",
     "petsDescription": "The companions who shared the journey",
+    "petsEmptyMetric": "No pets yet",
+    "petsMetric": "{count, plural, one {# pet} other {# pets}}",
     "petsTitle": "Pets",
     "placesDescription": "The meaningful places of a life, on the map",
     "placesEmptyMetric": "No places yet",

@@ -2,8 +2,7 @@
 
 import { useState } from "react"
 import { useTranslations } from "next-intl"
-import Link from "next/link"
-import { Plus, Sprout } from "lucide-react"
+import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { BackButton } from "@/components/back-button"
 import { AddRelativeDialog } from "../dialogs/add-relative-dialog"
@@ -20,11 +19,28 @@ interface Props {
   memberLimit:   number
   currentTier:   PlanTier
   canManage:     boolean
-  atLimit:       boolean
+  petCount:      number
+  managedPetCount: number
+  petLimit:      number
+  petAtLimit:    boolean
   rootParents:   Array<{ id: string; name: string }>
 }
 
-export function TreeHeader({ rootFirstName, rootId, persons, generations, memberCount, memberLimit, currentTier, canManage, atLimit, rootParents }: Props) {
+export function TreeHeader({
+  rootFirstName,
+  rootId,
+  persons,
+  generations,
+  memberCount,
+  memberLimit,
+  currentTier,
+  canManage,
+  petCount,
+  managedPetCount,
+  petLimit,
+  petAtLimit,
+  rootParents,
+}: Props) {
   const t = useTranslations("FamilyTree")
   const [open, setOpen] = useState(false)
   return (
@@ -53,44 +69,45 @@ export function TreeHeader({ rootFirstName, rootId, persons, generations, member
           </div>
 
           {canManage && (
-            atLimit ? (
-              <Button size="sm" asChild className="gap-1.5 shrink-0">
-                <Link href="/subscriptions">
-                  <Sprout className="h-3.5 w-3.5" />
-                  <span className="hidden md:inline">{t("header.upgradePlan")}</span>
-                </Link>
+            <>
+              <Button
+                size="sm"
+                className="gap-1.5 shrink-0"
+                onClick={() => setOpen(true)}
+                aria-label={t("header.addRelative")}
+                title={t("header.addRelative")}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span className="hidden md:inline">{t("header.addRelative")}</span>
               </Button>
-            ) : (
-              <>
-                <Button
-                  size="sm"
-                  className="gap-1.5 shrink-0"
-                  onClick={() => setOpen(true)}
-                  aria-label={t("header.addRelative")}
-                  title={t("header.addRelative")}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span className="hidden md:inline">{t("header.addRelative")}</span>
-                </Button>
-                {open && (
-                  <AddRelativeDialog
-                    open={true}
-                    onClose={() => setOpen(false)}
-                    anchorId={rootId}
-                    rootId={rootId}
-                    initialKind="parent"
-                    anchorParents={rootParents}
-                    memberCount={memberCount}
-                    memberLimit={memberLimit}
-                    tier={currentTier}
-                    onSuccess={() => { setOpen(false); window.location.reload() }}
-                  />
-                )}
-              </>
-            )
+              {open && (
+                <AddRelativeDialog
+                  open={true}
+                  onClose={() => setOpen(false)}
+                  anchorId={rootId}
+                  rootId={rootId}
+                  initialKind="parent"
+                  anchorParents={rootParents}
+                  memberCount={memberCount}
+                  memberLimit={memberLimit}
+                  petCount={managedPetCount}
+                  petLimit={petLimit}
+                  petAtLimit={petAtLimit}
+                  tier={currentTier}
+                  onSuccess={() => { setOpen(false); window.location.reload() }}
+                />
+              )}
+            </>
           )}
         </div>
-        <TreeSubtitle persons={persons} generations={generations} memberLimit={memberLimit} currentTier={currentTier} />
+        <TreeSubtitle
+          persons={persons}
+          generations={generations}
+          memberCount={memberCount}
+          petCount={petCount}
+          memberLimit={memberLimit}
+          currentTier={currentTier}
+        />
       </div>
     </div>
   )

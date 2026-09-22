@@ -34,6 +34,8 @@ export async function getFavoritesByUserId(userId: string, viewerId: string | un
           deathState: true,
           deathCountry: true,
           deathCause: true,
+          petSpecies: true,
+          petBreed: true,
         },
       },
     },

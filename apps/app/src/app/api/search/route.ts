@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import type { Prisma } from "@genealogiq/db"
 import { checkRateLimit } from "@genealogiq/services/rate-limit"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
@@ -17,17 +18,27 @@ export async function GET(request: Request): Promise<NextResponse> {
   const limit = await checkRateLimit({ key: `search:${session.user.id}`, maxAttempts: 120, windowSeconds: 3600 })
   if (!limit.allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 })
 
-  const q = new URL(request.url).searchParams.get("q")?.trim() ?? ""
-  if (q.length < 3) return NextResponse.json([])
+  const searchParams = new URL(request.url).searchParams
+  const q = searchParams.get("q")?.trim() ?? ""
+  const mode = searchParams.get("mode")
+  if (q.length < (mode === "pet" ? 1 : 3)) return NextResponse.json([])
 
   const terms = q.split(/\s+/).filter(Boolean)
+  const roleFilter: Prisma.AppUserWhereInput = mode === "pet"
+    ? { role: "APP_PET", guardedBy: { some: { guardianId: session.user.id, status: "ACCEPTED" } } }
+    : mode === "relative"
+      ? { role: { in: ["APP_USER", "APP_MEMO"] } }
+      : { role: { in: ["APP_USER", "APP_MEMO", "APP_PET"] } }
 
   const results = await prisma.appUser.findMany({
     where: {
+      ...roleFilter,
       AND: terms.map((term) => ({
         OR: [
           { firstName: { contains: term, mode: "insensitive" } },
           { lastName: { contains: term, mode: "insensitive" } },
+          { petSpecies: { contains: term, mode: "insensitive" } },
+          { petBreed: { contains: term, mode: "insensitive" } },
         ],
       })),
     },
@@ -38,7 +49,11 @@ export async function GET(request: Request): Promise<NextResponse> {
       avatarUrl: true,
       gender: true,
       role: true,
+      birthPlace: true,
+      birthCountry: true,
       deathDate: true,
+      petSpecies: true,
+      petBreed: true,
     },
     orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     take: 8,

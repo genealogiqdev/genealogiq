@@ -329,15 +329,30 @@ export async function deleteAccount(
     where: { role: "APP_MEMO", guardedBy: { some: { guardianId: userId, status: "ACCEPTED" } } },
     select: { id: true, avatarUrl: true },
   })
-  const memorialIds = memorials.map((m) => m.id)
-  const [memBios, memGallery, memTributes, memGeos] = memorialIds.length > 0
+  // A pet with another accepted guardian must survive account deletion. Pets
+  // managed only by this account follow the same lifecycle as its memorials.
+  const pets = await prisma.appUser.findMany({
+    where: {
+      role: "APP_PET",
+      guardedBy: {
+        some: { guardianId: userId, status: "ACCEPTED" },
+        none: { guardianId: { not: userId }, status: "ACCEPTED" },
+      },
+    },
+    select: { id: true, avatarUrl: true },
+  })
+  const managedProfiles = [...memorials, ...pets]
+  const managedProfileIds = managedProfiles.map((profile) => profile.id)
+  const [managedBios, managedGallery, managedTributes, managedGeos, managedDocuments, managedPlaces] = managedProfileIds.length > 0
     ? await Promise.all([
-        prisma.bio.findMany({ where: { userId: { in: memorialIds } }, select: { images: { select: { url: true } } } }),
-        prisma.galleryItem.findMany({ where: { userId: { in: memorialIds } }, select: { url: true } }),
-        prisma.tribute.findMany({ where: { profileId: { in: memorialIds } }, select: { imageUrl: true } }),
-        prisma.geolocation.findMany({ where: { userId: { in: memorialIds } }, select: { photo1: true, photo2: true, photo3: true } }),
+        prisma.bio.findMany({ where: { userId: { in: managedProfileIds } }, select: { images: { select: { url: true } } } }),
+        prisma.galleryItem.findMany({ where: { userId: { in: managedProfileIds } }, select: { url: true } }),
+        prisma.tribute.findMany({ where: { profileId: { in: managedProfileIds } }, select: { imageUrl: true } }),
+        prisma.geolocation.findMany({ where: { userId: { in: managedProfileIds } }, select: { photo1: true, photo2: true, photo3: true } }),
+        prisma.document.findMany({ where: { userId: { in: managedProfileIds } }, select: { fileUrl: true } }),
+        prisma.geoPlace.findMany({ where: { userId: { in: managedProfileIds } }, select: { photos: true } }),
       ])
-    : [[], [], [], []]
+    : [[], [], [], [], [], []]
 
   await deleteBlobs([
     ownProfile?.avatarUrl,
@@ -346,15 +361,17 @@ export async function deleteAccount(
     ownGeo?.photo1, ownGeo?.photo2, ownGeo?.photo3,
     ...ownTributesAuthored.map((t) => t.imageUrl),
     ...ownTributesReceived.map((t) => t.imageUrl),
-    ...memorials.map((m) => m.avatarUrl),
-    ...memBios.flatMap((b) => b.images.map((i) => i.url)),
-    ...memGallery.map((i) => i.url),
-    ...memTributes.map((t) => t.imageUrl),
-    ...memGeos.flatMap((g) => [g.photo1, g.photo2, g.photo3]),
+    ...managedProfiles.map((profile) => profile.avatarUrl),
+    ...managedBios.flatMap((bio) => bio.images.map((image) => image.url)),
+    ...managedGallery.map((item) => item.url),
+    ...managedTributes.map((tribute) => tribute.imageUrl),
+    ...managedGeos.flatMap((geo) => [geo.photo1, geo.photo2, geo.photo3]),
+    ...managedDocuments.map((document) => document.fileUrl),
+    ...managedPlaces.flatMap((place) => place.photos),
   ])
 
-  if (memorialIds.length > 0) {
-    await prisma.appUser.deleteMany({ where: { id: { in: memorialIds } } })
+  if (managedProfileIds.length > 0) {
+    await prisma.appUser.deleteMany({ where: { id: { in: managedProfileIds } } })
   }
 
   await sendAccountDeletionEmail(user.email!)

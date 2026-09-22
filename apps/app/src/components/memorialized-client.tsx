@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, type ReactNode } from "react"
-import { ArrowDownUp, Plus } from "lucide-react"
+import Link from "next/link"
+import { ArrowDownUp, PawPrint, Plus, UserRound } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ProfileMiniCard, type MiniProfile } from "@/components/profile-mini-card"
-import { QuotaGatedLink } from "@/components/quota-gated-link"
+import { LimitReachedDialog, type LimitReachedContext } from "@/components/limit-reached-dialog"
 import type { PlanTier } from "@/lib/plan-quotas"
 
 type SortDir = "az" | "za"
@@ -24,14 +25,30 @@ interface Props {
   showCreate:   boolean
   atLimit:      boolean
   memorialsMax: number
+  petAtLimit:   boolean
+  petsMax:      number
   tier:         PlanTier
   newHref:      string
+  newPetHref:   string
   upgradeHint?: ReactNode
 }
 
-export function MemorializedClient({ profiles, isOwn, showCreate, atLimit, memorialsMax, tier, newHref, upgradeHint }: Props) {
+export function MemorializedClient({
+  profiles,
+  isOwn,
+  showCreate,
+  atLimit,
+  memorialsMax,
+  petAtLimit,
+  petsMax,
+  tier,
+  newHref,
+  newPetHref,
+  upgradeHint,
+}: Props) {
   const t = useTranslations("Memorialized")
   const [sort, setSort] = useState<SortDir>("az")
+  const [limitContext, setLimitContext] = useState<LimitReachedContext | null>(null)
   const isEmpty = profiles.length === 0
 
   const sorted = [...profiles].sort((a, b) => {
@@ -62,17 +79,42 @@ export function MemorializedClient({ profiles, isOwn, showCreate, atLimit, memor
             </DropdownMenu>
           )}
           {showCreate && (
-            <QuotaGatedLink
-              href={newHref}
-              atLimit={atLimit}
-              limitContext="memorials"
-              limit={memorialsMax}
-              tier={tier}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              {t("list.newProfile")}
-            </QuotaGatedLink>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  {t("list.new")}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {atLimit ? (
+                  <DropdownMenuItem onSelect={() => setLimitContext("memorials")}>
+                    <UserRound className="h-4 w-4" />
+                    {t("list.newPerson")}
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem asChild>
+                    <Link href={newHref}>
+                      <UserRound className="h-4 w-4" />
+                      {t("list.newPerson")}
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                {petAtLimit ? (
+                  <DropdownMenuItem onSelect={() => setLimitContext("pets")}>
+                    <PawPrint className="h-4 w-4" />
+                    {t("list.newPet")}
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem asChild>
+                    <Link href={newPetHref}>
+                      <PawPrint className="h-4 w-4" />
+                      {t("list.newPet")}
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </section>
@@ -90,6 +132,14 @@ export function MemorializedClient({ profiles, isOwn, showCreate, atLimit, memor
           ))}
         </div>
       )}
+
+      <LimitReachedDialog
+        open={limitContext !== null}
+        onOpenChange={(open) => { if (!open) setLimitContext(null) }}
+        context={limitContext ?? "memorials"}
+        limit={limitContext === "pets" ? petsMax : memorialsMax}
+        tier={tier}
+      />
     </>
   )
 }

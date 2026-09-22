@@ -10,6 +10,7 @@ import { getProfileById } from "@/queries/profile"
 import { getMemorialsByCreatorId } from "@/queries/memorial"
 import { getMemorialFeatures } from "@/lib/subscription"
 import { getMemorialCreationStatus } from "@/lib/memorial-quota"
+import { getPetCreationStatus } from "@/lib/pet-quota"
 import { UpgradeHint } from "@/components/upgrade-hint"
 import { formatDateShort, formatMonthYear } from "@/lib/format-date"
 import type { MemorialRow } from "@/queries/memorial"
@@ -53,10 +54,11 @@ export default async function MemorializedPage({ params }: Props) {
 
   const isOwn = id === session.user.id
 
-  const [profile, memorials, creationStatus, features] = await Promise.all([
+  const [profile, memorials, creationStatus, petCreationStatus, features] = await Promise.all([
     getProfileById(id),
     getMemorialsByCreatorId(id),
     isOwn ? getMemorialCreationStatus(id) : Promise.resolve(null),
+    isOwn ? getPetCreationStatus(id) : Promise.resolve(null),
     isOwn ? getMemorialFeatures(id) : Promise.resolve(null),
   ])
   if (!profile) notFound()
@@ -96,8 +98,11 @@ export default async function MemorializedPage({ params }: Props) {
           showCreate={isOwn}
           atLimit={atLimit}
           memorialsMax={creationStatus?.limit ?? 0}
+          petAtLimit={isOwn && !!petCreationStatus && !petCreationStatus.allowed}
+          petsMax={petCreationStatus?.limit ?? 0}
           tier={currentTier}
           newHref={`/profile/${id}/memorialized/new`}
+          newPetHref={`/profile/${id}/pets/new`}
           upgradeHint={atLimit ? <UpgradeHint context="memorialized" currentTier={currentTier} /> : undefined}
         />
       </main>

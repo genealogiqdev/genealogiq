@@ -5,9 +5,11 @@ import { BackButton } from "@/components/back-button"
 import { PetsClient } from "@/components/pets-client"
 import { type MiniProfile } from "@/components/profile-mini-card"
 import { getProfileGradient } from "@/lib/avatar-color"
-import { verifySession } from "@/lib/dal"
+import { auth } from "@/auth"
+import { canManageProfile } from "@/lib/profile"
+import { assertPublicMemorialAccess } from "@/lib/public-profile-access"
 import { getProfileById } from "@/queries/profile"
-import { getPetsByCreatorId } from "@/queries/pet"
+import { getPetsByOwnerId } from "@/queries/pet"
 import { getMemorialFeatures } from "@/lib/subscription"
 import { getPetCreationStatus } from "@/lib/pet-quota"
 import { UpgradeHint } from "@/components/upgrade-hint"
@@ -44,21 +46,23 @@ interface Props {
 
 export default async function PetsPage({ params }: Props) {
   const { id } = await params
-  const session = await verifySession()
+  const session = await auth()
+  const viewerId = session?.user?.id
   const t = await getTranslations("Pets")
   const locale = await getLocale()
 
-  const isOwn = id === session.user.id
+  const profile = await getProfileById(id)
+  assertPublicMemorialAccess(profile, viewerId, id)
+  if (profile.role === "APP_PET" || profile.role === "APP_GHOST") notFound()
+  const canManage = viewerId ? canManageProfile(profile, viewerId) : false
 
-  const [profile, pets, creationStatus, features] = await Promise.all([
-    getProfileById(id),
-    getPetsByCreatorId(id),
-    isOwn ? getPetCreationStatus(id) : Promise.resolve(null),
-    isOwn ? getMemorialFeatures(id) : Promise.resolve(null),
+  const [pets, creationStatus, features] = await Promise.all([
+    getPetsByOwnerId(id),
+    canManage && viewerId ? getPetCreationStatus(viewerId) : Promise.resolve(null),
+    canManage && viewerId ? getMemorialFeatures(viewerId) : Promise.resolve(null),
   ])
-  if (!profile) notFound()
 
-  const atLimit = isOwn && !!creationStatus && !creationStatus.allowed
+  const atLimit = canManage && !!creationStatus && !creationStatus.allowed
   const currentTier = features?.code ?? "FREE"
 
   const miniProfileCtx: MiniProfileContext = {
@@ -88,8 +92,8 @@ export default async function PetsPage({ params }: Props) {
 
         <PetsClient
           profiles={pets.map((p) => toMiniProfile(p, miniProfileCtx))}
-          isOwn={isOwn}
-          showCreate={isOwn}
+          isOwn={canManage}
+          showCreate={canManage}
           atLimit={atLimit}
           petsMax={creationStatus?.limit ?? 0}
           tier={currentTier}

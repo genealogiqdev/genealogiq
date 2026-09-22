@@ -17,15 +17,17 @@ import { EditMemberDialog } from "../dialogs/edit-member-dialog"
 import { PersonInfoSheet } from "../dialogs/person-info-sheet"
 import { saveNodePosition } from "@/actions/tree-position.actions"
 import { findRelationPath, relationFromRoot } from "@/lib/family-relation-label"
-import type { TreePerson, TreeRelation, NodePositionOverride } from "@/queries/family-tree"
+import type { TreePerson, TreePetOwnership, TreeRelation, NodePositionOverride } from "@/queries/family-tree"
 import type { PlanTier } from "@/lib/plan-quotas"
 
-type Kind = "parent" | "child" | "spouse" | "sibling"
+type Kind = "parent" | "child" | "spouse" | "sibling" | "pet"
 
 interface Props {
   persons:          Record<string, TreePerson>
   relations:        TreeRelation[]
+  petOwnerships:    TreePetOwnership[]
   rootId:           string
+  focusId?:         string
   sessionUserId:    string
   canManage:        boolean
   managedIds:       string[]
@@ -33,10 +35,30 @@ interface Props {
   initialPositions: Record<string, NodePositionOverride>
   memberCount:      number
   memberLimit:      number
+  petCount:         number
+  petLimit:         number
+  petAtLimit:       boolean
   currentTier:      PlanTier
 }
 
-export function FamilyTreeCanvas({ persons, relations, rootId, sessionUserId, canManage, managedIds, requestedIds, initialPositions, memberCount, memberLimit, currentTier }: Props) {
+export function FamilyTreeCanvas({
+  persons,
+  relations,
+  petOwnerships,
+  rootId,
+  focusId,
+  sessionUserId,
+  canManage,
+  managedIds,
+  requestedIds,
+  initialPositions,
+  memberCount,
+  memberLimit,
+  petCount,
+  petLimit,
+  petAtLimit,
+  currentTier,
+}: Props) {
   const router = useRouter()
   const t = useTranslations("FamilyTree")
 
@@ -50,10 +72,14 @@ export function FamilyTreeCanvas({ persons, relations, rootId, sessionUserId, ca
   const [collapsedIds,  setCollapsedIds]  = useState<Set<string>>(() => new Set())
   const [compareActive, setCompareActive] = useState(false)
   const [comparePicks,  setComparePicks]  = useState<[string | null, string | null]>([null, null])
+  const comparablePersons = useMemo(
+    () => Object.fromEntries(Object.entries(persons).filter(([, person]) => person.role !== "APP_PET")),
+    [persons],
+  )
 
   const layout = useMemo(
-    () => computeLayout(persons, relations, rootId, collapsedIds),
-    [persons, relations, rootId, collapsedIds],
+    () => computeLayout(persons, relations, rootId, collapsedIds, petOwnerships),
+    [persons, relations, rootId, collapsedIds, petOwnerships],
   )
 
   const activePerson = selectedId ? persons[selectedId] ?? null : null
@@ -76,12 +102,11 @@ export function FamilyTreeCanvas({ persons, relations, rootId, sessionUserId, ca
   }, [positionedNodes])
 
   const rootCenter = useMemo(() => {
-    // rootId is always a primary occurrence (it's where the layout recursion
-    // starts, before any duplicate can exist), so personId === id here.
-    const r = positionedNodes.find((n) => n.personId === rootId && !n.isDuplicate)
+    const targetId = focusId && persons[focusId] ? focusId : rootId
+    const r = positionedNodes.find((n) => n.personId === targetId && !n.isDuplicate)
     if (!r) return null
     return { x: r.x + NODE_W / 2, y: r.y + NODE_H / 2 }
-  }, [positionedNodes, rootId])
+  }, [focusId, persons, positionedNodes, rootId])
 
   const nodePositions = useMemo(
     () => new Map(positionedNodes.map((n) => [n.id, { x: n.x, y: n.y }])),
@@ -158,10 +183,13 @@ export function FamilyTreeCanvas({ persons, relations, rootId, sessionUserId, ca
   const handleClearComparePicks = useCallback(() => setComparePicks([null, null]), [])
 
   const handleNodeActivate = useCallback((id: string) => {
-    if (compareActive) { handleComparePick(id); return }
+    if (compareActive) {
+      if (persons[id]?.role !== "APP_PET") handleComparePick(id)
+      return
+    }
     setSelectedId(id)
     setSheetOpen(true)
-  }, [compareActive, handleComparePick])
+  }, [compareActive, handleComparePick, persons])
 
   const handleToggleCollapse = useCallback((personId: string) => {
     setCollapsedIds((prev) => {
@@ -224,7 +252,7 @@ export function FamilyTreeCanvas({ persons, relations, rootId, sessionUserId, ca
         isSessionUser={n.personId === sessionUserId}
         isSelected={selectedId === n.personId}
         isDuplicate={n.isDuplicate}
-        draggable={canManage && !n.isDuplicate}
+        draggable={canManage && !n.isDuplicate && p.role !== "APP_PET"}
         onReposition={(ddx, ddy) => handleReposition(n.personId, ddx, ddy)}
         hasCollapsible={n.hasCollapsible}
         isCollapsed={n.isCollapsed}
@@ -257,7 +285,7 @@ export function FamilyTreeCanvas({ persons, relations, rootId, sessionUserId, ca
                 active={compareActive}
                 onActivate={() => setCompareActive(true)}
                 onClose={handleCloseCompare}
-                persons={persons}
+                persons={comparablePersons}
                 picks={comparePicks}
                 onClear={handleClearComparePicks}
                 connected={!!comparePath}
@@ -280,6 +308,9 @@ export function FamilyTreeCanvas({ persons, relations, rootId, sessionUserId, ca
           onSuccess={onSuccess}
           memberCount={memberCount}
           memberLimit={memberLimit}
+          petCount={petCount}
+          petLimit={petLimit}
+          petAtLimit={petAtLimit}
           tier={currentTier}
         />
       )}
@@ -301,6 +332,7 @@ export function FamilyTreeCanvas({ persons, relations, rootId, sessionUserId, ca
         rootId={rootId}
         persons={persons}
         relations={relations}
+        petOwnerships={petOwnerships}
         canManage={canManage}
         managedIds={managedIds}
         requestedIds={requestedIds}

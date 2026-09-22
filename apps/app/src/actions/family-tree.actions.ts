@@ -67,7 +67,9 @@ export async function addRelation(rootId: string, data: unknown): Promise<Action
   const session = await verifySession()
 
   const profile = await getProfileById(rootId)
-  if (!profile || !canManageProfile(profile, session.user.id)) return fail(t("familyTree.notAuthorized"))
+  if (!profile || profile.role === "APP_PET" || !canManageProfile(profile, session.user.id)) {
+    return fail(t("familyTree.notAuthorized"))
+  }
 
   const limit = await checkRateLimit({ key: `family-tree:add:${session.user.id}`, maxAttempts: 60, windowSeconds: 3600 })
   if (!limit.allowed) return fail(t("familyTree.tooManyRequests"))
@@ -84,6 +86,9 @@ export async function addRelation(rootId: string, data: unknown): Promise<Action
     prisma.appUser.findUnique({ where: { id: toId },   select: { id: true, role: true } }),
   ])
   if (!from || !to) return fail(t("familyTree.profileNotFound"))
+  if (from.role === "APP_PET" || to.role === "APP_PET") {
+    return fail(t("familyTree.notAuthorized"))
+  }
 
   // IDOR guard (mirrors updateRelation/removeRelation): the relation must be
   // anchored to the caller's tree, and any endpoint outside it may only be a
@@ -237,7 +242,9 @@ export async function addGhostRelative(rootId: string, data: unknown): Promise<A
   const session = await verifySession()
 
   const profile = await getProfileById(rootId)
-  if (!profile || !canManageProfile(profile, session.user.id)) return fail(t("familyTree.notAuthorized"))
+  if (!profile || profile.role === "APP_PET" || !canManageProfile(profile, session.user.id)) {
+    return fail(t("familyTree.notAuthorized"))
+  }
 
   const limit = await checkRateLimit({ key: `family-tree:add:${session.user.id}`, maxAttempts: 60, windowSeconds: 3600 })
   if (!limit.allowed) return fail(t("familyTree.tooManyRequests"))

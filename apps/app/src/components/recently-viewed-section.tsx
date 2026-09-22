@@ -13,13 +13,17 @@ type Translate = (key: string, values?: Record<string, string>) => string
 function toMiniProfile(p: RecentProfile, locale: string, t: Translate): MiniProfile {
   const birthDate = p.birthDate ? new Date(p.birthDate) : null
   const deathDate = p.deathDate ? new Date(p.deathDate) : null
+  const isPet = p.role === "APP_PET"
+  const displayName = p.lastName ? `${p.firstName} ${p.lastName}` : p.firstName
   return {
     id: p.id,
-    name: `${p.firstName} ${p.lastName}`,
-    subtitle: p.birthPlace
+    name: displayName,
+    subtitle: isPet
+      ? [p.petBreed, p.petSpecies].filter(Boolean).join(", ")
+      : p.birthPlace
       ? `${p.birthPlace}${p.birthCountry ? `, ${getCountryName(p.birthCountry, locale)}` : ""}`
       : p.isMemorialized ? t("memorializedProfile") : "",
-    status: p.isMemorialized ? "Memorialized" : "Living",
+    status: isPet ? "Pet" : p.isMemorialized ? "Memorialized" : "Living",
     metric: p.isMemorialized && deathDate
       ? t("deathMetric", { date: formatDateShort(deathDate, locale) })
       : birthDate
@@ -27,7 +31,7 @@ function toMiniProfile(p: RecentProfile, locale: string, t: Translate): MiniProf
         : p.birthYear
           ? t("bornYearMetric", { year: String(p.birthYear) })
           : "",
-    initials: `${p.firstName[0]}${p.lastName[0]}`.toUpperCase(),
+    initials: (p.lastName ? `${p.firstName[0]}${p.lastName[0]}` : p.firstName.slice(0, 2)).toUpperCase(),
     gradient: getProfileGradient(p.id),
     href: `/profile/${p.id}`,
     avatarUrl: p.avatarUrl,
@@ -55,7 +59,7 @@ export function RecentlyViewedSection() {
           key={p.id}
           profile={toMiniProfile(p, locale, t)}
           delay={i * 40}
-          hideLivingBadge={!p.isMemorialized}
+          hideLivingBadge={!p.isMemorialized && p.role !== "APP_PET"}
         />
       ))}
     </div>

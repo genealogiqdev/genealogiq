@@ -25,9 +25,12 @@ function shuffle<T>(arr: T[]): T[] {
 
 function toMiniProfile(fav: FavoriteRow, index: number, locale: string, t: Translate): MiniProfile {
   const target = fav.target
-  const name = `${target.firstName} ${target.lastName}`
+  const name = target.lastName ? `${target.firstName} ${target.lastName}` : target.firstName
   const isMemorialized = target.role === "APP_MEMO"
-  const subtitle = target.birthPlace
+  const isPet = target.role === "APP_PET"
+  const subtitle = isPet
+    ? [target.petBreed, target.petSpecies].filter(Boolean).join(", ")
+    : target.birthPlace
     ? `${target.birthPlace}${target.birthCountry ? `, ${getCountryName(target.birthCountry, locale)}` : ""}`
     : isMemorialized
       ? t("memorializedProfile")
@@ -36,7 +39,7 @@ function toMiniProfile(fav: FavoriteRow, index: number, locale: string, t: Trans
     id: target.id,
     name,
     subtitle,
-    status: isMemorialized ? "Memorialized" : "Living",
+    status: isPet ? "Pet" : isMemorialized ? "Memorialized" : "Living",
     metric: isMemorialized && target.deathDate
       ? t("deathMetric", { date: formatDateShort(target.deathDate, locale) })
       : target.birthDate
@@ -44,7 +47,7 @@ function toMiniProfile(fav: FavoriteRow, index: number, locale: string, t: Trans
         : target.birthYear
           ? t("bornYearMetric", { year: String(target.birthYear) })
           : "",
-    initials: `${target.firstName[0]}${target.lastName[0]}`.toUpperCase(),
+    initials: (target.lastName ? `${target.firstName[0]}${target.lastName[0]}` : target.firstName.slice(0, 2)).toUpperCase(),
     gradient: GRADIENTS[index % GRADIENTS.length],
     href: `/profile/${target.id}`,
     avatarUrl: target.avatarUrl,
@@ -98,12 +101,13 @@ export function FavoritesClient({ items }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in" style={{ animationDelay: "80ms" }}>
         {visible.map((fav, i) => {
           const isMemorialized = fav.target.role === "APP_MEMO"
+          const isPet = fav.target.role === "APP_PET"
           return (
             <ProfileMiniCard
               key={fav.targetId}
               profile={toMiniProfile(fav, i, locale, t)}
               delay={i * 40}
-              hideLivingBadge={!isMemorialized}
+              hideLivingBadge={!isMemorialized && !isPet}
             />
           )
         })}

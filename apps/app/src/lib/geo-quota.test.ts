@@ -34,7 +34,10 @@ describe("getGuardianGeoPlacesStatus", () => {
       where: { userId: { in: ["g1", "m1", "m2"] } },
     })
     expect(prismaMock.appUser.findMany).toHaveBeenCalledWith({
-      where: { role: "APP_MEMO", guardedBy: { some: { guardianId: "g1", status: "ACCEPTED" } } },
+      where: {
+        role: { in: ["APP_MEMO", "APP_PET"] },
+        guardedBy: { some: { guardianId: "g1", status: "ACCEPTED" } },
+      },
       select: { id: true },
     })
   })

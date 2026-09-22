@@ -8,7 +8,7 @@ import { useSyncExternalStore } from "react"
 // v3: adds birthYear/deathYear. The caller now passes an already-redacted profile
 // (see queries/profile.ts's redactLivingProfile) — birthDate/deathDate are null
 // for a redacted living person, so the year fields are the only display fallback.
-const KEY = "giq:recently-viewed:v3"
+const KEY = "giq:recently-viewed:v4"
 const MAX = 6
 
 export interface RecentProfile {
@@ -18,6 +18,9 @@ export interface RecentProfile {
   birthPlace: string | null
   birthCountry: string | null
   isMemorialized: boolean
+  role: string
+  petSpecies: string | null
+  petBreed: string | null
   birthDate: string | null // ISO 8601 — null when redacted (see birthYear)
   deathDate: string | null // ISO 8601 — null when redacted (see deathYear)
   birthYear: number | null

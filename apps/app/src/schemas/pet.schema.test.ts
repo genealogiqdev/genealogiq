@@ -67,15 +67,20 @@ const editableBase = {
 }
 
 describe("getPetEditSchema (update)", () => {
-  it("accepts a valid pet without ownerIds", () => {
-    expect(editSchema.safeParse(editableBase).success).toBe(true)
+  it("accepts a valid pet with at least one owner", () => {
+    expect(editSchema.safeParse({ ...editableBase, ownerIds: base.ownerIds }).success).toBe(true)
   })
 
   it("requires a name", () => {
-    expect(editSchema.safeParse({ ...editableBase, firstName: "" }).success).toBe(false)
+    expect(editSchema.safeParse({ ...editableBase, ownerIds: base.ownerIds, firstName: "" }).success).toBe(false)
   })
 
   it("rejects a death date before the birth date", () => {
-    expect(editSchema.safeParse({ ...editableBase, birthDate: "2020-01-01", deathDate: "2019-01-01" }).success).toBe(false)
+    expect(editSchema.safeParse({
+      ...editableBase,
+      ownerIds: base.ownerIds,
+      birthDate: "2020-01-01",
+      deathDate: "2019-01-01",
+    }).success).toBe(false)
   })
 })

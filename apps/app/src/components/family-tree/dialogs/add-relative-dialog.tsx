@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef } from "react"
 import { useTranslations } from "next-intl"
-import { Search, User, UserPlus, ArrowLeft, Globe, ExternalLink } from "lucide-react"
+import { Search, User, UserPlus, ArrowLeft, Globe, ExternalLink, PawPrint } from "lucide-react"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -24,14 +24,15 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { addRelation, addGhostRelative } from "@/actions/family-tree.actions"
+import { attachPet, createPet } from "@/actions/pet.actions"
 import { SPOUSE_SUBTYPES, type SpouseSubtype } from "@/schemas/family-tree.schema"
 import { LimitReachedDialog } from "@/components/limit-reached-dialog"
 import type { PlanTier } from "@/lib/plan-quotas"
 import type { WikiTreeSearchResult, WikiTreeProfile } from "@/lib/wikitree"
 import { mapWikiTreeProfileToGhostPrefill, wikiTreeSearchResultYears } from "@/lib/wikitree-mapper"
 
-type RelationKind = "parent" | "spouse" | "sibling" | "child"
-type Mode = "search" | "create" | "wikitree"
+type RelationKind = "parent" | "spouse" | "sibling" | "child" | "pet"
+type Mode = "search" | "create" | "createPet" | "wikitree"
 
 interface SearchResult {
   id: string
@@ -41,6 +42,8 @@ interface SearchResult {
   gender: string | null
   role: string
   deathDate: string | null
+  petSpecies: string | null
+  petBreed: string | null
 }
 
 interface ExistingParent {
@@ -59,12 +62,15 @@ interface Props {
   onSuccess?: () => void
   memberCount: number
   memberLimit: number
+  petCount: number
+  petLimit: number
+  petAtLimit: boolean
   tier: PlanTier
 }
 
-const KIND_ORDER: RelationKind[] = ["parent", "spouse", "sibling", "child"]
+const KIND_ORDER: RelationKind[] = ["parent", "spouse", "sibling", "child", "pet"]
 
-const KIND_TO_TYPE: Record<RelationKind, "PARENT_OF" | "SPOUSE" | "SIBLING"> = {
+const KIND_TO_TYPE: Record<Exclude<RelationKind, "pet">, "PARENT_OF" | "SPOUSE" | "SIBLING"> = {
   parent: "PARENT_OF", child: "PARENT_OF", spouse: "SPOUSE", sibling: "SIBLING",
 }
 
@@ -74,11 +80,25 @@ function genderRingClass(gender: string | null) {
   return "ring-border/40"
 }
 
-export function AddRelativeDialog({ open, onClose, anchorId, rootId, initialKind = "parent", anchorParents = [], onSuccess, memberCount, memberLimit, tier }: Props) {
+export function AddRelativeDialog({
+  open,
+  onClose,
+  anchorId,
+  rootId,
+  initialKind = "parent",
+  anchorParents = [],
+  onSuccess,
+  memberCount,
+  memberLimit,
+  petCount,
+  petLimit,
+  petAtLimit,
+  tier,
+}: Props) {
   const t = useTranslations("FamilyTree")
   const tc = useTranslations("Common")
   const [isPending, startTransition] = useTransition()
-  const [limitDialogOpen, setLimitDialogOpen] = useState(false)
+  const [limitContext, setLimitContext] = useState<"tree" | "pets" | null>(null)
   const [mode, setMode]   = useState<Mode>("search")
   const [kind, setKind]   = useState<RelationKind>(initialKind)
   const [spouseSubtype, setSpouseSubtype] = useState<SpouseSubtype>("married")
@@ -102,6 +122,9 @@ export function AddRelativeDialog({ open, onClose, anchorId, rootId, initialKind
   const [birthPlace, setBirthPlace] = useState("")
   const [deathPlace, setDeathPlace] = useState("")
   const [wikiTreeSource, setWikiTreeSource] = useState<string | null>(null)
+  const [petName, setPetName] = useState("")
+  const [petSpecies, setPetSpecies] = useState("")
+  const [petBreed, setPetBreed] = useState("")
 
   // WikiTree search
   const [wikitreeQuery, setWikitreeQuery]     = useState("")
@@ -119,7 +142,8 @@ export function AddRelativeDialog({ open, onClose, anchorId, rootId, initialKind
     debounceRef.current = setTimeout(async () => {
       setLoading(true)
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(value)}`)
+        const mode = kind === "pet" ? "pet" : "relative"
+        const res = await fetch(`/api/search?q=${encodeURIComponent(value)}&mode=${mode}`)
         const data = await res.json() as SearchResult[]
         setResults(data)
       } catch {
@@ -180,6 +204,14 @@ export function AddRelativeDialog({ open, onClose, anchorId, rootId, initialKind
   const handleConfirmExisting = () => {
     if (!selected) return
     startTransition(async () => {
+      if (kind === "pet") {
+        const result = await attachPet(rootId, selected.id, anchorId)
+        if (!result.ok) { toast.error(result.message); return }
+        toast.success(t("toasts.petAdded"))
+        handleClose()
+        onSuccess?.()
+        return
+      }
       let fromId: string, toId: string
       const type = KIND_TO_TYPE[kind]
       if (kind === "parent")      { fromId = selected.id; toId = anchorId }
@@ -209,7 +241,7 @@ export function AddRelativeDialog({ open, onClose, anchorId, rootId, initialKind
     // person (handleConfirmExisting), which may or may not grow the tree
     // depending on server-side involvesNew logic this doesn't try to mirror.
     if (memberCount >= memberLimit) {
-      setLimitDialogOpen(true)
+      setLimitContext("tree")
       return
     }
     startTransition(async () => {
@@ -235,6 +267,33 @@ export function AddRelativeDialog({ open, onClose, anchorId, rootId, initialKind
     })
   }
 
+  const handleConfirmPet = () => {
+    if (!petName.trim()) {
+      toast.error(t("toasts.petNameRequired"))
+      return
+    }
+    if (petAtLimit) {
+      setLimitContext("pets")
+      return
+    }
+    startTransition(async () => {
+      const result = await createPet({
+        firstName: petName,
+        species: petSpecies || null,
+        breed: petBreed || null,
+        gender: null,
+        birthDate: null,
+        deathDate: null,
+        avatarUrl: null,
+        ownerIds: [anchorId],
+      }, rootId)
+      if (!result.ok) { toast.error(result.message); return }
+      toast.success(t("toasts.petAdded"))
+      handleClose()
+      onSuccess?.()
+    })
+  }
+
   const handleClose = () => {
     onClose()
     setMode("search")
@@ -249,6 +308,15 @@ export function AddRelativeDialog({ open, onClose, anchorId, rootId, initialKind
     setGender(""); setBirthDate(""); setDeathDate("")
     setBirthPlace(""); setDeathPlace(""); setWikiTreeSource(null)
     setWikitreeQuery(""); setWikitreeResults([]); setWikitreeError(false)
+    setPetName(""); setPetSpecies(""); setPetBreed("")
+  }
+
+  const handleKindChange = (value: string) => {
+    setKind(value as RelationKind)
+    setMode("search")
+    setQuery("")
+    setResults([])
+    setSelected(null)
   }
 
   const showNoResults = !loading && results.length === 0 && query.length >= 3
@@ -262,11 +330,11 @@ export function AddRelativeDialog({ open, onClose, anchorId, rootId, initialKind
     <>
     {/* Hidden (not unmounted) while the limit dialog shows on top of it, so
         typed ghost-form state survives a dismiss instead of resetting. */}
-    <Dialog open={open && !limitDialogOpen} onOpenChange={(v) => { if (!v && !limitDialogOpen) handleClose() }}>
+    <Dialog open={open && !limitContext} onOpenChange={(v) => { if (!v && !limitContext) handleClose() }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl">
-            {mode === "create" ? (
+            {mode === "create" || mode === "createPet" ? (
               <span className="inline-flex items-center gap-2">
                 <button
                   type="button"
@@ -276,7 +344,7 @@ export function AddRelativeDialog({ open, onClose, anchorId, rootId, initialKind
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </button>
-                {t("addRelative.newPersonTitle")}
+                {mode === "createPet" ? t("addRelative.newPetTitle") : t("addRelative.newPersonTitle")}
               </span>
             ) : mode === "wikitree" ? (
               <span className="inline-flex items-center gap-2">
@@ -298,7 +366,7 @@ export function AddRelativeDialog({ open, onClose, anchorId, rootId, initialKind
           <div className={cn("gap-2 items-end", mode === "search" ? "flex" : "grid grid-cols-2")}>
             <div className="space-y-1.5 shrink-0">
               <FieldLabel>{t("addRelative.kindLabel")}</FieldLabel>
-              <Select value={kind} onValueChange={(v) => setKind(v as RelationKind)}>
+              <Select value={kind} onValueChange={handleKindChange}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {KIND_ORDER.map((k) => (
@@ -310,7 +378,12 @@ export function AddRelativeDialog({ open, onClose, anchorId, rootId, initialKind
             {mode === "search" ? (
               <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input className="pl-9 w-full" placeholder={t("addRelative.searchPlaceholder")} value={query} onChange={(e) => handleSearch(e.target.value)} />
+                <Input
+                  className="pl-9 w-full"
+                  placeholder={kind === "pet" ? t("addRelative.petSearchPlaceholder") : t("addRelative.searchPlaceholder")}
+                  value={query}
+                  onChange={(e) => handleSearch(e.target.value)}
+                />
               </div>
             ) : kind === "spouse" && (
               <div className="space-y-1.5">
@@ -378,7 +451,8 @@ export function AddRelativeDialog({ open, onClose, anchorId, rootId, initialKind
                     </div>
                   ) : (
                     results.map((r) => {
-                      const name = `${r.firstName} ${r.lastName}`
+                      const isPetResult = r.role === "APP_PET"
+                      const name = r.lastName ? `${r.firstName} ${r.lastName}` : r.firstName
                       const isSelected = selected?.id === r.id
                       const isMemorialized = r.role === "APP_MEMO"
                       return (
@@ -393,12 +467,19 @@ export function AddRelativeDialog({ open, onClose, anchorId, rootId, initialKind
                               // eslint-disable-next-line @next/next/no-img-element
                               <img src={r.avatarUrl} alt={name} className={cn("h-full w-full object-cover", isMemorialized && "saturate-50")} />
                             ) : (
-                              <User className="h-4 w-4 text-muted-foreground" />
+                              isPetResult
+                                ? <PawPrint className="h-4 w-4 text-muted-foreground" />
+                                : <User className="h-4 w-4 text-muted-foreground" />
                             )}
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium truncate">{name}</p>
                             {isMemorialized && <p className="text-[10px] text-muted-foreground italic">{t("memorialized")}</p>}
+                            {isPetResult && (
+                              <p className="text-[10px] text-muted-foreground truncate">
+                                {[r.petBreed, r.petSpecies].filter(Boolean).join(" · ")}
+                              </p>
+                            )}
                           </div>
                         </button>
                       )
@@ -409,26 +490,44 @@ export function AddRelativeDialog({ open, onClose, anchorId, rootId, initialKind
 
               {showNoResults && <p className="text-sm text-center text-muted-foreground py-2">{t("addRelative.noResults")}</p>}
 
-              <button
-                type="button"
-                onClick={() => setMode("wikitree")}
-                className="w-full inline-flex items-center justify-start gap-2 text-sm font-medium text-primary hover:underline pt-4"
-              >
-                <Globe className="h-4 w-4 shrink-0" />
-                {t("addRelative.searchWikiTree")}
-              </button>
+              {kind === "pet" ? (
+                <>
+                  <p className="text-xs text-muted-foreground pt-2">
+                    {t("addRelative.petQuota", { count: petCount, limit: petLimit })}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => petAtLimit ? setLimitContext("pets") : setMode("createPet")}
+                    className="w-full inline-flex items-center justify-start gap-2 text-sm font-medium text-primary hover:underline pt-1"
+                  >
+                    <PawPrint className="h-4 w-4 shrink-0" />
+                    {t("addRelative.addNewPet")}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setMode("wikitree")}
+                    className="w-full inline-flex items-center justify-start gap-2 text-sm font-medium text-primary hover:underline pt-4"
+                  >
+                    <Globe className="h-4 w-4 shrink-0" />
+                    {t("addRelative.searchWikiTree")}
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => { setWikiTreeSource(null); setMode("create") }}
-                className="w-full inline-flex items-start justify-start gap-2 text-sm font-medium text-primary hover:underline pt-1"
-              >
-                <UserPlus className="h-4 w-4 shrink-0 mt-0.5" />
-                <span className="text-left">
-                  <span className="block">{t("addRelative.addNewPersonQuestion")}</span>
-                  <span className="block">{t("addRelative.addNewPersonAction")}</span>
-                </span>
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => { setWikiTreeSource(null); setMode("create") }}
+                    className="w-full inline-flex items-start justify-start gap-2 text-sm font-medium text-primary hover:underline pt-1"
+                  >
+                    <UserPlus className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span className="text-left">
+                      <span className="block">{t("addRelative.addNewPersonQuestion")}</span>
+                      <span className="block">{t("addRelative.addNewPersonAction")}</span>
+                    </span>
+                  </button>
+                </>
+              )}
             </div>
           ) : mode === "wikitree" ? (
             <div className="space-y-2">
@@ -499,6 +598,24 @@ export function AddRelativeDialog({ open, onClose, anchorId, rootId, initialKind
               {!wikitreeError && !wikitreeLoading && wikitreeResults.length === 0 && wikitreeQuery.length >= 3 && (
                 <p className="text-sm text-center text-muted-foreground py-2">{t("addRelative.wikitree.noResults")}</p>
               )}
+            </div>
+          ) : mode === "createPet" ? (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <FieldLabel htmlFor="pet-name" required>{t("addRelative.petFields.name")}</FieldLabel>
+                <Input id="pet-name" value={petName} onChange={(e) => setPetName(e.target.value)} maxLength={64} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <FieldLabel htmlFor="pet-species">{t("addRelative.petFields.species")}</FieldLabel>
+                  <Input id="pet-species" value={petSpecies} onChange={(e) => setPetSpecies(e.target.value)} maxLength={40} />
+                </div>
+                <div className="space-y-1.5">
+                  <FieldLabel htmlFor="pet-breed">{t("addRelative.petFields.breed")}</FieldLabel>
+                  <Input id="pet-breed" value={petBreed} onChange={(e) => setPetBreed(e.target.value)} maxLength={60} />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">{t("addRelative.petHint")}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -582,16 +699,20 @@ export function AddRelativeDialog({ open, onClose, anchorId, rootId, initialKind
             <Button onClick={handleConfirmGhost} disabled={isPending}>
               {isPending ? tc("saving") : t("addRelative.addToTree")}
             </Button>
+          ) : mode === "createPet" ? (
+            <Button onClick={handleConfirmPet} disabled={isPending}>
+              {isPending ? tc("saving") : t("addRelative.addPetToTree")}
+            </Button>
           ) : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>
 
     <LimitReachedDialog
-      open={limitDialogOpen}
-      onOpenChange={setLimitDialogOpen}
-      context="tree"
-      limit={memberLimit}
+      open={limitContext !== null}
+      onOpenChange={(isOpen) => { if (!isOpen) setLimitContext(null) }}
+      context={limitContext ?? "tree"}
+      limit={limitContext === "pets" ? petLimit : memberLimit}
       tier={tier}
     />
     </>

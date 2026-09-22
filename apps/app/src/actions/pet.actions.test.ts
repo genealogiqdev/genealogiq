@@ -3,16 +3,23 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 // Prisma mock must be hoisted so it exists when the vi.mock factory runs.
 const { prismaMock, txMock } = vi.hoisted(() => {
   const txMock = {
-    appUser: { create: vi.fn() },
+    appUser: { create: vi.fn(), update: vi.fn() },
     appUserGuardian: { create: vi.fn() },
-    familyRelation: { createMany: vi.fn() },
+    petOwnership: { createMany: vi.fn(), deleteMany: vi.fn() },
   }
   const prismaMock = {
-    appUser: { update: vi.fn(), delete: vi.fn() },
+    appUser: { findMany: vi.fn(), count: vi.fn(), update: vi.fn(), delete: vi.fn() },
+    petOwnership: {
+      findMany: vi.fn(),
+      upsert: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn(),
+    },
     bio: { findUnique: vi.fn() },
     galleryItem: { findMany: vi.fn() },
     document: { findMany: vi.fn() },
     geoPlace: { findMany: vi.fn() },
+    geolocation: { findUnique: vi.fn() },
     $transaction: vi.fn(async (cb: (tx: typeof txMock) => unknown) => cb(txMock)),
   }
   return { prismaMock, txMock }
@@ -28,8 +35,11 @@ vi.mock("@/lib/profile", () => ({ canManageProfile: vi.fn() }))
 vi.mock("@/lib/blob", () => ({ deleteBlobs: vi.fn() }))
 vi.mock("@/lib/pet-quota", () => ({ getPetCreationStatus: vi.fn() }))
 vi.mock("@/queries/family-tree", () => ({ getTreeMemberIds: vi.fn() }))
+vi.mock("@genealogiq/services/rate-limit", () => ({
+  checkRateLimit: vi.fn(async () => ({ allowed: true, retryAfter: 0 })),
+}))
 
-import { createPet, updatePet, deletePet } from "./pet.actions"
+import { attachPet, createPet, deletePet, detachPetFromTree, updatePet } from "./pet.actions"
 import { verifySession } from "@/lib/dal"
 import { getProfileById, getProfileForEdit } from "@/queries/profile"
 import { canManageProfile } from "@/lib/profile"
@@ -59,9 +69,22 @@ beforeEach(() => {
   vi.mocked(canManageProfile).mockReturnValue(true)
   vi.mocked(getPetCreationStatus).mockResolvedValue({ count: 0, limit: 2, allowed: true })
   vi.mocked(getTreeMemberIds).mockResolvedValue(new Set([OWNER_1, OWNER_2]))
+  vi.mocked(getProfileById).mockResolvedValue({ id: OWNER_1, role: "APP_USER", guardedBy: [] } as never)
+  prismaMock.appUser.findMany.mockImplementation(({ where }: { where: { id: { in: string[] } } }) =>
+    Promise.resolve(where.id.in.map((id) => ({ id }))),
+  )
+  prismaMock.appUser.count.mockImplementation(({ where }: { where: { id: { in: string[] } } }) =>
+    Promise.resolve(where.id.in.length),
+  )
+  prismaMock.petOwnership.findMany.mockResolvedValue([])
+  prismaMock.petOwnership.upsert.mockResolvedValue({})
+  prismaMock.petOwnership.deleteMany.mockResolvedValue({ count: 0 })
   txMock.appUser.create.mockResolvedValue({ id: "pet-1" })
+  txMock.appUser.update.mockResolvedValue({})
   txMock.appUserGuardian.create.mockResolvedValue({})
-  txMock.familyRelation.createMany.mockResolvedValue({ count: 1 })
+  txMock.petOwnership.createMany.mockResolvedValue({ count: 1 })
+  txMock.petOwnership.deleteMany.mockResolvedValue({ count: 0 })
+  prismaMock.geolocation.findUnique.mockResolvedValue(null)
 })
 
 describe("createPet — quota guard", () => {
@@ -80,6 +103,15 @@ describe("createPet — owner IDOR guard", () => {
     vi.mocked(getTreeMemberIds).mockResolvedValue(new Set([OWNER_1]))
 
     const res = await createPet({ ...validInput, ownerIds: [OWNER_1, STRANGER] })
+
+    expect(res).toEqual({ ok: false, message: "pet.ownerNotInTree" })
+    expect(txMock.appUser.create).not.toHaveBeenCalled()
+  })
+
+  it("rejects a pet as another pet's owner even when it is in the tree payload", async () => {
+    prismaMock.appUser.findMany.mockResolvedValue([])
+
+    const res = await createPet({ ...validInput, ownerIds: [OWNER_2] })
 
     expect(res).toEqual({ ok: false, message: "pet.ownerNotInTree" })
     expect(txMock.appUser.create).not.toHaveBeenCalled()
@@ -103,7 +135,7 @@ describe("createPet — input validation", () => {
 })
 
 describe("createPet — happy path", () => {
-  it("creates the pet, a guardian row for the caller, and a PET_OF relation per owner", async () => {
+  it("creates the pet, a guardian row for the caller, and an ownership per owner", async () => {
     const res = await createPet({ ...validInput, ownerIds: [OWNER_1, OWNER_2] })
 
     expect(res.ok).toBe(true)
@@ -116,10 +148,10 @@ describe("createPet — happy path", () => {
     expect(txMock.appUserGuardian.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: { appUserId: "pet-1", guardianId: OWNER_1 } }),
     )
-    expect(txMock.familyRelation.createMany).toHaveBeenCalledWith({
+    expect(txMock.petOwnership.createMany).toHaveBeenCalledWith({
       data: [
-        { type: "PET_OF", fromId: "pet-1", toId: OWNER_1, status: "ACCEPTED" },
-        { type: "PET_OF", fromId: "pet-1", toId: OWNER_2, status: "ACCEPTED" },
+        { petId: "pet-1", ownerId: OWNER_1 },
+        { petId: "pet-1", ownerId: OWNER_2 },
       ],
     })
   })
@@ -127,8 +159,8 @@ describe("createPet — happy path", () => {
   it("dedupes repeated owner ids", async () => {
     await createPet({ ...validInput, ownerIds: [OWNER_1, OWNER_1] })
 
-    expect(txMock.familyRelation.createMany).toHaveBeenCalledWith({
-      data: [{ type: "PET_OF", fromId: "pet-1", toId: OWNER_1, status: "ACCEPTED" }],
+    expect(txMock.petOwnership.createMany).toHaveBeenCalledWith({
+      data: [{ petId: "pet-1", ownerId: OWNER_1 }],
     })
   })
 })
@@ -167,12 +199,48 @@ describe("updatePet — guards", () => {
       id: "p", role: "APP_PET", guardedBy: [{ guardianId: "owner-1" }], avatarUrl: null,
     } as never)
 
-    const res = await updatePet("p", { firstName: "Rex", species: "Dog", breed: null, gender: null, birthDate: null, deathDate: null, avatarUrl: null })
+    const res = await updatePet("p", {
+      firstName: "Rex",
+      species: "Dog",
+      breed: null,
+      gender: null,
+      birthDate: null,
+      deathDate: null,
+      avatarUrl: null,
+      ownerIds: [OWNER_1],
+    })
 
     expect(res).toEqual({ ok: true, message: undefined })
-    expect(prismaMock.appUser.update).toHaveBeenCalledWith(
+    expect(txMock.appUser.update).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: "p" }, data: expect.objectContaining({ firstName: "Rex", petSpecies: "Dog" }) }),
     )
+  })
+})
+
+describe("pet ownership actions", () => {
+  it("attaches a managed pet to a human member without consuming creation quota", async () => {
+    vi.mocked(getProfileById)
+      .mockResolvedValueOnce({ id: "pet-1", role: "APP_PET", guardedBy: [{ guardianId: OWNER_1 }] } as never)
+      .mockResolvedValueOnce({ id: OWNER_1, role: "APP_USER", guardedBy: [] } as never)
+
+    const res = await attachPet(OWNER_1, "pet-1", OWNER_2)
+
+    expect(res).toEqual({ ok: true, message: undefined })
+    expect(prismaMock.petOwnership.upsert).toHaveBeenCalledWith({
+      where: { petId_ownerId: { petId: "pet-1", ownerId: OWNER_2 } },
+      create: { petId: "pet-1", ownerId: OWNER_2 },
+      update: {},
+    })
+    expect(getPetCreationStatus).not.toHaveBeenCalled()
+  })
+
+  it("does not detach the final owner from a pet", async () => {
+    prismaMock.petOwnership.findMany.mockResolvedValue([{ id: "own-1", ownerId: OWNER_1 }])
+
+    const res = await detachPetFromTree(OWNER_1, "pet-1")
+
+    expect(res).toEqual({ ok: false, message: "pet.ownerRequired" })
+    expect(prismaMock.petOwnership.deleteMany).not.toHaveBeenCalled()
   })
 })
 
@@ -206,6 +274,8 @@ describe("deletePet — guards + cascade", () => {
     prismaMock.galleryItem.findMany.mockResolvedValue([{ url: "gallery-1.png" }])
     prismaMock.document.findMany.mockResolvedValue([{ fileUrl: "doc-1.pdf" }])
     prismaMock.geoPlace.findMany.mockResolvedValue([{ photos: ["place-1.png"] }])
+    prismaMock.geolocation.findUnique.mockResolvedValue({ photo1: "rest-1.png", photo2: null, photo3: null })
+    prismaMock.petOwnership.findMany.mockResolvedValue([{ ownerId: OWNER_1 }])
     prismaMock.appUser.delete.mockResolvedValue({})
 
     const res = await deletePet("p")
@@ -220,6 +290,7 @@ describe("deletePet — guards + cascade", () => {
         "gallery-1.png",
         "doc-1.pdf",
         "place-1.png",
+        "rest-1.png",
       ]),
     )
   })

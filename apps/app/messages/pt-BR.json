@@ -105,6 +105,7 @@
       "limitReached": "Você atingiu o limite de {max} pets do seu plano.",
       "notAuthorized": "Você não tem permissão para gerenciar este perfil.",
       "notFound": "Perfil não encontrado.",
+      "ownerRequired": "O pet precisa permanecer vinculado a pelo menos um tutor.",
       "ownerNotInTree": "O dono selecionado já precisa fazer parte da sua árvore genealógica."
     },
     "places": {
@@ -334,20 +335,31 @@
   },
   "FamilyTree": {
     "addRelative": {
+      "addNewPet": "Criar um novo pet",
       "addNewPersonAction": "Adicione-o manualmente.",
       "addNewPersonQuestion": "Não encontrou o perfil que procurava?",
+      "addPetToTree": "Adicionar pet à árvore",
       "addToTree": "Adicionar à árvore",
       "backToSearch": "Voltar à busca",
       "divorced": "Divórcio",
       "ghostHint": "Esta pessoa permanece na árvore genealógica sem um perfil. Você pode transformá-la em um perfil memorializado mais tarde.",
-      "kindLabel": "Tipo de parente:",
+      "kindLabel": "Tipo de membro:",
       "married": "Casamento",
       "marriedTo": "Casado(a) com <strong>{name}</strong>?",
+      "newPetTitle": "Adicionar um novo pet",
       "newPersonTitle": "Adicionar uma nova pessoa",
       "noResults": "Nenhum resultado encontrado.",
+      "petFields": {
+        "breed": "Raça",
+        "name": "Nome do pet",
+        "species": "Espécie"
+      },
+      "petHint": "Depois você poderá adicionar foto, datas e mais detalhes no perfil do pet.",
+      "petQuota": "{count} de {limit} perfis de pets utilizados",
+      "petSearchPlaceholder": "Buscar entre seus pets",
       "searchPlaceholder": "Buscar perfil em Genealogiq",
       "searchWikiTree": "Buscar na WikiTree",
-      "title": "Adicionar parente",
+      "title": "Adicionar membro da família",
       "togetherSince": "Juntos desde",
       "typeLabel": "Tipo:",
       "widowed": "Viuvez",
@@ -415,7 +427,7 @@
       "other": "Outro"
     },
     "header": {
-      "addRelative": "Adicionar parente",
+      "addRelative": "Adicionar membro",
       "backToProfile": "Voltar ao perfil",
       "title": "Árvore de {name}",
       "upgradePlan": "Mudar de plano"
@@ -424,13 +436,15 @@
       "addChild": "+ Filho(a)",
       "addParent": "+ Pai/Mãe",
       "addPartner": "+ Parceiro(a)",
-      "addRelative": "Adicionar parente",
+      "addPet": "+ Pet",
+      "addRelative": "Adicionar membro",
       "addSibling": "+ Irmão/Irmã",
       "coManage": "Co-gerenciar",
       "coManageHint": "Peça ao guardião atual para co-gerenciar este perfil.",
       "coManageWaiting": "Aguardando a aprovação do guardião atual.",
       "editDisabledHint": "Você só pode editar o seu próprio perfil, os seus memoriais ou pessoas que você adicionou à árvore.",
       "editHint": "Atualize nome, datas e detalhes.",
+      "owners": "Tutores",
       "pending": "Pendente",
       "relationships": "Relacionamentos",
       "seeProfile": "Ver perfil",
@@ -440,6 +454,7 @@
     "kinds": {
       "child": "Filho(a)",
       "parent": "Pai/Mãe",
+      "pet": "Pet",
       "sibling": "Irmão/Irmã",
       "spouse": "Parceiro(a)"
     },
@@ -520,6 +535,7 @@
       "motherInLaw": "Sua sogra",
       "nephew": "Seu sobrinho",
       "niece": "Sua sobrinha",
+      "pet": "Seu pet",
       "relative": "Seu parente",
       "sister": "Sua irmã",
       "sisterInLaw": "Sua cunhada",
@@ -533,6 +549,7 @@
     },
     "removeDialog": {
       "ghostDescription": "{name} será excluído(a) permanentemente da árvore e do sistema, junto com suas relações com as outras pessoas da árvore. Isso não pode ser desfeito.",
+      "petDescription": "{name} será desvinculado dos tutores exibidos nesta árvore. O perfil do pet não será excluído.",
       "personDescription": "{name} será removido(a) da sua árvore. O perfil permanece intacto e continua no sistema. Pessoas que estão conectadas à sua árvore apenas por meio deste perfil também deixarão de aparecer nesta visualização.",
       "title": "Remover da árvore?"
     },
@@ -551,6 +568,7 @@
         "twelve": "doze",
         "two": "duas"
       },
+      "petCount": "{count, plural, one {# pet} other {# pets}}",
       "summary": "Árvore com {count, plural, one {# pessoa distribuída} other {# pessoas distribuídas}} em {word} {gens, plural, one {geração} other {gerações}}"
     },
     "subtypes": {
@@ -574,6 +592,8 @@
     "toasts": {
       "coManageRequestSent": "Solicitação enviada. O guardião atual será notificado.",
       "nameRequired": "Nome e sobrenome são obrigatórios.",
+      "petAdded": "Pet adicionado à árvore.",
+      "petNameRequired": "Informe o nome do pet.",
       "personAdded": "Pessoa adicionada à árvore.",
       "personUpdated": "Pessoa atualizada.",
       "relationRemoved": "Relação removida.",
@@ -907,6 +927,9 @@
     "list": {
       "emptyGuarded": "Nenhum perfil memorializado sob sua guarda ainda.",
       "emptyOwn": "Nenhum perfil memorializado ainda.",
+      "new": "Novo",
+      "newPerson": "Memorial de pessoa",
+      "newPet": "Pet",
       "newProfile": "Novo memorial",
       "sortAria": "Ordenar perfis",
       "sortAsc": "A → Z",
@@ -1163,8 +1186,9 @@
     "mapAlt": "Mapa",
     "memorialized": "Memorial",
     "petBadge": "Pet",
-    "petsComingSoon": "Em breve",
     "petsDescription": "Os companheiros que dividiram a jornada",
+    "petsEmptyMetric": "Nenhum pet ainda",
+    "petsMetric": "{count, plural, one {# pet} other {# pets}}",
     "petsTitle": "Pets",
     "placesDescription": "Os lugares marcantes de uma vida, no mapa",
     "placesEmptyMetric": "Nenhum lugar ainda",
@@ -1337,7 +1361,7 @@
       "mediaImages": "Upload de até {count} imagens",
       "mediaVideos": "Upload de até {count} vídeos na galeria",
       "memorials": "{count, plural, one {# memorial completo} other {# memoriais completos}}",
-      "petsCount": "{count} perfis de pets (em breve)",
+      "petsCount": "{count} perfis de pets",
       "qrCodeCount": "{count, plural, one {# QR Code gratuito} other {# QR Codes gratuitos}}",
       "qrExtra": "Adquira QR Codes extras",
       "qrExtraCheaper": "Adquira QR Codes extras mais barato",

@@ -483,6 +483,8 @@ model AppUser {
   bio                 Bio?
   familyFrom          FamilyRelation[]     @relation("FamilyFrom")
   familyTo            FamilyRelation[]     @relation("FamilyTo")
+  petOwnerships       PetOwnership[]       @relation("PetProfile")
+  petsOwned           PetOwnership[]       @relation("PetOwner")
   favoritesReceived   Favorite[]           @relation("FavoriteTarget")
   favoritesGiven      Favorite[]           @relation("FavoriteUser")
   galleryItems        GalleryItem[]
@@ -711,6 +713,23 @@ model FamilyRelation {
   @@index([fromId], map: "family_relations_app_from_id_idx")
   @@index([toId], map: "family_relations_app_to_id_idx")
   @@map("app_family_relations")
+}
+
+// A pet's family attachment is deliberately separate from genealogical
+// relations: shared ownership must never merge two human family graphs or
+// grant access to the other owner's relatives.
+model PetOwnership {
+  id        String   @id @default(cuid())
+  petId     String   @map("pet_id") @db.VarChar
+  ownerId   String   @map("owner_id") @db.VarChar
+  createdAt DateTime @default(now()) @map("created_at")
+  pet       AppUser  @relation("PetProfile", fields: [petId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  owner     AppUser  @relation("PetOwner", fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([petId, ownerId], map: "app_pet_ownerships_pet_owner_key")
+  @@index([petId], map: "app_pet_ownerships_pet_id_idx")
+  @@index([ownerId], map: "app_pet_ownerships_owner_id_idx")
+  @@map("app_pet_ownerships")
 }
 
 // Manual drag-to-reposition offset for one person's card within one tree,

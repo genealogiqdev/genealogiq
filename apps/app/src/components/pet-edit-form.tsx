@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { FieldLabel } from "@/components/ui/field"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Calendar } from "@/components/ui/calendar"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Select,
@@ -46,9 +47,10 @@ interface FormState {
   avatarUrl: string
   birthDate: Date | undefined
   deathDate: Date | undefined
+  ownerIds: string[]
 }
 
-function buildDefaults(initial: EditProfileRow): FormState {
+function buildDefaults(initial: EditProfileRow, ownerIds: string[]): FormState {
   return {
     firstName: initial.firstName,
     species: initial.petSpecies ?? "",
@@ -57,6 +59,7 @@ function buildDefaults(initial: EditProfileRow): FormState {
     avatarUrl: initial.avatarUrl ?? "",
     birthDate: initial.birthDate ?? undefined,
     deathDate: initial.deathDate ?? undefined,
+    ownerIds,
   }
 }
 
@@ -107,20 +110,32 @@ const DateField = ({ id, label, value, onChange, disabled, disabledDays, clearLa
 interface Props {
   profileId: string
   initial: EditProfileRow
+  rootId: string
+  ownerIds: string[]
+  ownerOptions: { id: string; name: string }[]
 }
 
-export function PetEditForm({ profileId, initial }: Props) {
+export function PetEditForm({ profileId, initial, rootId, ownerIds, ownerOptions }: Props) {
   const t = useTranslations("Pets")
   const tc = useTranslations("Common")
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [uploading, setUploading] = useState(false)
-  const defaults = buildDefaults(initial)
+  const defaults = buildDefaults(initial, ownerIds)
   const [form, setForm] = useState<FormState>(defaults)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const update = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((p) => ({ ...p, [k]: v }))
+
+  const toggleOwner = (id: string, checked: boolean) => {
+    setForm((current) => ({
+      ...current,
+      ownerIds: checked
+        ? Array.from(new Set([...current.ownerIds, id]))
+        : current.ownerIds.filter((ownerId) => ownerId !== id),
+    }))
+  }
 
   const initials = form.firstName.slice(0, 2).toUpperCase() || "PT"
   const avatarColor = getAvatarColor(initial.id)
@@ -150,6 +165,7 @@ export function PetEditForm({ profileId, initial }: Props) {
 
   const handleSave = () => {
     if (uploading) { toast.warning(t("avatar.waitUploading")); return }
+    if (form.ownerIds.length === 0) { toast.error(t("errors.needOwner")); return }
     startTransition(async () => {
       const result = await updatePet(profileId, {
         firstName: form.firstName,
@@ -159,7 +175,8 @@ export function PetEditForm({ profileId, initial }: Props) {
         birthDate: form.birthDate ?? null,
         deathDate: form.deathDate ?? null,
         avatarUrl: form.avatarUrl || null,
-      })
+        ownerIds: form.ownerIds,
+      }, rootId)
       if (!result.ok) { toast.error(result.message); return }
       toast.success(t("toasts.saved"))
     })
@@ -243,6 +260,23 @@ export function PetEditForm({ profileId, initial }: Props) {
           clearLabel={t("date.clear")}
           pickLabel={t("date.pick")}
         />
+      </div>
+
+      {/* Owners */}
+      <div className="space-y-3">
+        <FieldLabel className="text-base">{t("sections.owners")}</FieldLabel>
+        <p className="text-sm text-muted-foreground">{t("owners.description")}</p>
+        <div className="space-y-2">
+          {ownerOptions.map((owner) => (
+            <label key={owner.id} className="flex items-center gap-2.5 text-sm">
+              <Checkbox
+                checked={form.ownerIds.includes(owner.id)}
+                onCheckedChange={(checked) => toggleOwner(owner.id, checked === true)}
+              />
+              {owner.name}
+            </label>
+          ))}
+        </div>
       </div>
 
       {/* Actions */}

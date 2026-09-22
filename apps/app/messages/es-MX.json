@@ -105,6 +105,7 @@
       "limitReached": "Alcanzaste el límite de {max} mascotas de tu plan.",
       "notAuthorized": "No tienes permiso para gestionar este perfil.",
       "notFound": "Perfil no encontrado.",
+      "ownerRequired": "La mascota debe permanecer vinculada al menos a un dueño.",
       "ownerNotInTree": "El dueño seleccionado ya debe ser miembro de tu árbol genealógico."
     },
     "places": {
@@ -334,20 +335,31 @@
   },
   "FamilyTree": {
     "addRelative": {
+      "addNewPet": "Crear una nueva mascota",
       "addNewPersonAction": "Agrégalo manualmente.",
       "addNewPersonQuestion": "¿No encontraste el perfil que buscabas?",
+      "addPetToTree": "Agregar mascota al árbol",
       "addToTree": "Agregar al árbol",
       "backToSearch": "Volver a la búsqueda",
       "divorced": "Divorcio",
       "ghostHint": "Esta persona permanece en el árbol genealógico sin un perfil. Puedes convertirla en un perfil memorial más adelante.",
-      "kindLabel": "Tipo de familiar:",
+      "kindLabel": "Tipo de miembro:",
       "married": "Matrimonio",
       "marriedTo": "¿Casado(a) con <strong>{name}</strong>?",
+      "newPetTitle": "Agregar una nueva mascota",
       "newPersonTitle": "Agregar una nueva persona",
       "noResults": "No se encontraron resultados.",
+      "petFields": {
+        "breed": "Raza",
+        "name": "Nombre de la mascota",
+        "species": "Especie"
+      },
+      "petHint": "Después podrás agregar foto, fechas y más detalles desde el perfil de la mascota.",
+      "petQuota": "{count} de {limit} perfiles de mascotas utilizados",
+      "petSearchPlaceholder": "Buscar entre tus mascotas",
       "searchPlaceholder": "Buscar perfil en Genealogiq",
       "searchWikiTree": "Buscar en WikiTree",
-      "title": "Agregar familiar",
+      "title": "Agregar miembro de la familia",
       "togetherSince": "Juntos desde",
       "typeLabel": "Tipo:",
       "widowed": "Viudez",
@@ -415,7 +427,7 @@
       "other": "Otro"
     },
     "header": {
-      "addRelative": "Agregar familiar",
+      "addRelative": "Agregar miembro",
       "backToProfile": "Volver al perfil",
       "title": "Árbol de {name}",
       "upgradePlan": "Cambiar de plan"
@@ -424,13 +436,15 @@
       "addChild": "+ Hijo(a)",
       "addParent": "+ Padre/Madre",
       "addPartner": "+ Pareja",
-      "addRelative": "Agregar familiar",
+      "addPet": "+ Mascota",
+      "addRelative": "Agregar miembro",
       "addSibling": "+ Hermano(a)",
       "coManage": "Co-administrar",
       "coManageHint": "Pide al guardián actual que te deje co-administrar este perfil.",
       "coManageWaiting": "Esperando la aprobación del guardián actual.",
       "editDisabledHint": "Solo puedes editar tu propio perfil, tus memoriales o las personas que agregaste al árbol.",
       "editHint": "Actualiza nombre, fechas y detalles.",
+      "owners": "Dueños",
       "pending": "Pendiente",
       "relationships": "Relaciones familiares",
       "seeProfile": "Ver perfil",
@@ -440,6 +454,7 @@
     "kinds": {
       "child": "Hijo(a)",
       "parent": "Padre/Madre",
+      "pet": "Mascota",
       "sibling": "Hermano(a)",
       "spouse": "Pareja"
     },
@@ -520,6 +535,7 @@
       "motherInLaw": "Tu suegra",
       "nephew": "Tu sobrino",
       "niece": "Tu sobrina",
+      "pet": "Tu mascota",
       "relative": "Tu pariente",
       "sister": "Tu hermana",
       "sisterInLaw": "Tu cuñada",
@@ -533,6 +549,7 @@
     },
     "removeDialog": {
       "ghostDescription": "{name} se eliminará permanentemente del árbol y del sistema, junto con sus relaciones con las demás personas del árbol. Esto no se puede deshacer.",
+      "petDescription": "{name} se desvinculará de los dueños mostrados en este árbol. El perfil de la mascota no se eliminará.",
       "personDescription": "{name} se eliminará de tu árbol. El perfil permanece intacto y sigue en el sistema. Las personas que solo están conectadas a tu árbol a través de este perfil también desaparecerán de esta vista.",
       "title": "¿Eliminar del árbol?"
     },
@@ -551,6 +568,7 @@
         "twelve": "doce",
         "two": "dos"
       },
+      "petCount": "{count, plural, one {# mascota} other {# mascotas}}",
       "summary": "Árbol con {count, plural, one {# persona distribuida} other {# personas distribuidas}} en {word} {gens, plural, one {generación} other {generaciones}}"
     },
     "subtypes": {
@@ -574,6 +592,8 @@
     "toasts": {
       "coManageRequestSent": "Solicitud enviada. El guardián actual será notificado.",
       "nameRequired": "El nombre y el apellido son obligatorios.",
+      "petAdded": "Mascota agregada al árbol.",
+      "petNameRequired": "Ingresa el nombre de la mascota.",
       "personAdded": "Persona agregada al árbol.",
       "personUpdated": "Persona actualizada.",
       "relationRemoved": "Relación eliminada.",
@@ -907,6 +927,9 @@
     "list": {
       "emptyGuarded": "Aún no hay perfiles memoriales bajo tu resguardo.",
       "emptyOwn": "Aún no hay perfiles memoriales.",
+      "new": "Nuevo",
+      "newPerson": "Memorial de persona",
+      "newPet": "Mascota",
       "newProfile": "Nuevo memorial",
       "sortAria": "Ordenar perfiles",
       "sortAsc": "A → Z",
@@ -1163,8 +1186,9 @@
     "mapAlt": "Mapa",
     "memorialized": "Memorial",
     "petBadge": "Mascota",
-    "petsComingSoon": "Próximamente",
     "petsDescription": "Los compañeros que compartieron el camino",
+    "petsEmptyMetric": "Aún no hay mascotas",
+    "petsMetric": "{count, plural, one {# mascota} other {# mascotas}}",
     "petsTitle": "Mascotas",
     "placesDescription": "Los lugares importantes de una vida, en el mapa",
     "placesEmptyMetric": "Sin lugares aún",

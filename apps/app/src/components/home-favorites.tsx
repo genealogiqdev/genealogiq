@@ -26,19 +26,22 @@ type Translate = (key: string, values?: Record<string, string>) => string
 function toMiniProfile(fav: FavoriteRow, locale: string, t: Translate): MiniProfile {
   const p = fav.target
   const isMemorialized = p.role === "APP_MEMO"
+  const isPet = p.role === "APP_PET"
   return {
     id: p.id,
-    name: `${p.firstName} ${p.lastName}`,
-    subtitle: p.birthPlace
+    name: p.lastName ? `${p.firstName} ${p.lastName}` : p.firstName,
+    subtitle: isPet
+      ? [p.petBreed, p.petSpecies].filter(Boolean).join(", ")
+      : p.birthPlace
       ? `${p.birthPlace}${p.birthCountry ? `, ${getCountryName(p.birthCountry, locale)}` : ""}`
       : isMemorialized ? t("memorializedProfile") : "",
-    status: isMemorialized ? "Memorialized" : "Living",
+    status: isPet ? "Pet" : isMemorialized ? "Memorialized" : "Living",
     metric: isMemorialized && p.deathDate
       ? t("deathMetric", { date: formatDateShort(p.deathDate, locale) })
       : p.birthDate
         ? t("bornMetric", { date: formatMonthYear(p.birthDate, locale) })
         : "",
-    initials: `${p.firstName[0]}${p.lastName[0]}`.toUpperCase(),
+    initials: (p.lastName ? `${p.firstName[0]}${p.lastName[0]}` : p.firstName.slice(0, 2)).toUpperCase(),
     gradient: getProfileGradient(p.id),
     href: `/profile/${p.id}`,
     avatarUrl: p.avatarUrl,

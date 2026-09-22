@@ -46,10 +46,20 @@ export interface TreeRelation {
   requestedById: string | null
 }
 
-export interface FamilyTreeData {
-  persons:   Record<string, TreePerson>
-  relations: TreeRelation[]
+export interface TreePetOwnership {
+  id:        string
+  petId:     string
+  ownerId:   string
+  createdAt: Date
 }
+
+export interface FamilyTreeData {
+  persons:       Record<string, TreePerson>
+  relations:     TreeRelation[]
+  petOwnerships: TreePetOwnership[]
+}
+
+const GENEALOGICAL_RELATION_TYPES = ["PARENT_OF", "SPOUSE", "SIBLING"] as const
 
 export async function getFamilyTree(rootId: string, viewer: TreeViewer): Promise<FamilyTreeData> {
   // BFS the ACCEPTED tree only. A PENDING invite is a boundary edge: it is shown
@@ -59,7 +69,11 @@ export async function getFamilyTree(rootId: string, viewer: TreeViewer): Promise
   let frontier = [rootId]
   while (frontier.length > 0) {
     const rels = await prisma.familyRelation.findMany({
-      where:  { status: "ACCEPTED", OR: [{ fromId: { in: frontier } }, { toId: { in: frontier } }] },
+      where:  {
+        type: { in: [...GENEALOGICAL_RELATION_TYPES] },
+        status: "ACCEPTED",
+        OR: [{ fromId: { in: frontier } }, { toId: { in: frontier } }],
+      },
       select: { fromId: true, toId: true },
     })
     const next: string[] = []
@@ -75,7 +89,11 @@ export async function getFamilyTree(rootId: string, viewer: TreeViewer): Promise
   // Every non-REJECTED relation touching an accepted member — this includes
   // boundary PENDING invites (accepted member ↔ not-yet-accepted invitee).
   const relations = await prisma.familyRelation.findMany({
-    where:  { status: { not: "REJECTED" }, OR: [{ fromId: { in: ids } }, { toId: { in: ids } }] },
+    where:  {
+      type: { in: [...GENEALOGICAL_RELATION_TYPES] },
+      status: { not: "REJECTED" },
+      OR: [{ fromId: { in: ids } }, { toId: { in: ids } }],
+    },
     select: {
       id: true, type: true, subtype: true,
       fromId: true, toId: true,
@@ -89,6 +107,16 @@ export async function getFamilyTree(rootId: string, viewer: TreeViewer): Promise
   // their own node renders (as pending), not their subtree.
   const personIds = new Set(ids)
   for (const r of relations) { personIds.add(r.fromId); personIds.add(r.toId) }
+
+  // Pets are one-way attachments to already-discovered human members. Their
+  // other owners are intentionally not traversed, so co-ownership cannot join
+  // two unrelated family graphs or expand the authorization set.
+  const petOwnerships = await prisma.petOwnership.findMany({
+    where: { ownerId: { in: ids } },
+    select: { id: true, petId: true, ownerId: true, createdAt: true },
+    orderBy: [{ ownerId: "asc" }, { createdAt: "asc" }, { petId: "asc" }],
+  })
+  for (const ownership of petOwnerships) personIds.add(ownership.petId)
 
   const users = await prisma.appUser.findMany({
     where: { id: { in: Array.from(personIds) } },
@@ -156,7 +184,7 @@ export async function getFamilyTree(rootId: string, viewer: TreeViewer): Promise
       : r,
   )
 
-  return { persons, relations: redactedRelations }
+  return { persons, relations: redactedRelations, petOwnerships }
 }
 
 /**
@@ -171,7 +199,11 @@ export async function getTreeMemberIds(rootId: string): Promise<Set<string>> {
   let frontier = [rootId]
   while (frontier.length > 0) {
     const rels = await prisma.familyRelation.findMany({
-      where:  { status: "ACCEPTED", OR: [{ fromId: { in: frontier } }, { toId: { in: frontier } }] },
+      where:  {
+        type: { in: [...GENEALOGICAL_RELATION_TYPES] },
+        status: "ACCEPTED",
+        OR: [{ fromId: { in: frontier } }, { toId: { in: frontier } }],
+      },
       select: { fromId: true, toId: true },
     })
     const next: string[] = []

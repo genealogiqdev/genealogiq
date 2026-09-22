@@ -33,7 +33,10 @@ export function getPetSchema(t: Translator) {
 export type PetValues = z.infer<ReturnType<typeof getPetSchema>>
 
 export function getPetEditSchema(t: Translator) {
-  return z.object(petIdentityShape(t))
+  return z.object({
+    ...petIdentityShape(t),
+    ownerIds: z.array(z.string().cuid()).min(1, t("required")),
+  })
     .refine(deathAfterBirth, { message: t("deathBeforeBirth"), path: ["deathDate"] })
 }
 

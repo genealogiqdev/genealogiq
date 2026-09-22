@@ -5,6 +5,7 @@ import { getProfileById, redactLivingProfile } from "@/queries/profile"
 import { isFavoritedByUser, getFavoriteCount, getFavoritesByUserId } from "@/queries/favorite"
 import { getGeolocationForViewer } from "@/queries/geolocation"
 import { getMemorialsByCreatorId } from "@/queries/memorial"
+import { getPetsByOwnerId } from "@/queries/pet"
 import { countTreeMembers } from "@/queries/family-tree"
 import { getGalleryImageUrls, getGalleryCount, getGalleryHasVideos } from "@/queries/gallery"
 import { getPlacesForMap } from "@/queries/places"
@@ -49,10 +50,10 @@ export default async function ProfileByIdPage({ params }: Props) {
   const isMemorialized = rawUser.role === "APP_MEMO"
   const isPet = rawUser.role === "APP_PET"
 
-  const isGuardian = isMemorialized && sessionUserId
+  const isGuardian = (isMemorialized || isPet) && sessionUserId
     ? rawUser.guardedBy.some((g) => g.guardianId === sessionUserId)
     : false
-  const guardians = isMemorialized
+  const guardians = isMemorialized || isPet
     ? rawUser.guardedBy.map((g) => ({ id: g.guardianId, firstName: g.guardian.firstName }))
     : []
 
@@ -81,6 +82,7 @@ export default async function ProfileByIdPage({ params }: Props) {
     tributeCount,
     favorites,
     memorials,
+    pets,
     bio,
     treeCount,
     documentsPreview,
@@ -97,6 +99,7 @@ export default async function ProfileByIdPage({ params }: Props) {
     getTributeCountByProfileId(id),
     !isMemorialized && !isPet ? getFavoritesByUserId(id, sessionUserId) : Promise.resolve([]),
     !isMemorialized && !isPet ? getMemorialsByCreatorId(id) : Promise.resolve([]),
+    !isPet ? getPetsByOwnerId(id) : Promise.resolve([]),
     getBioByUserId(id),
     countTreeMembers(id),
     // Preview/metric only ever reflect PUBLIC documents unless the viewer can
@@ -108,6 +111,7 @@ export default async function ProfileByIdPage({ params }: Props) {
 
   const hasBio = !!bio && !!(bio.text || bio.quote || bio.images.length > 0)
   const memorialCount = memorials.length
+  const petCount = pets.length
 
   const locale = await getLocale()
 
@@ -161,7 +165,13 @@ export default async function ProfileByIdPage({ params }: Props) {
     metric: hasBio ? t("bioMetric") : t("bioEmptyMetric"),
     icon: BookOpenText,
     span: 2,
-    preview: <BioPreview hasBio={hasBio} initial1={user.firstName[0]} initial2={user.lastName[0]} />,
+    preview: (
+      <BioPreview
+        hasBio={hasBio}
+        initial1={user.firstName[0] ?? "P"}
+        initial2={user.lastName[0] ?? user.firstName[1] ?? user.firstName[0] ?? "T"}
+      />
+    ),
     href: `${base}/bio`,
   }
 
@@ -209,6 +219,17 @@ export default async function ProfileByIdPage({ params }: Props) {
     href: `${base}/places`,
   }
 
+  const petsCard: SectionCard = {
+    key: "pets",
+    title: t("petsTitle"),
+    description: t("petsDescription"),
+    metric: petCount > 0 ? t("petsMetric", { count: petCount }) : t("petsEmptyMetric"),
+    icon: PawPrint,
+    span: 2,
+    preview: <PetsPreview pets={pets} />,
+    href: `${base}/pets`,
+  }
+
   const memorializedCards: SectionCard[] = [
     treeCard,
     bioCard,
@@ -216,6 +237,7 @@ export default async function ProfileByIdPage({ params }: Props) {
     galleryCard,
     placesCard,
     tributesCard,
+    petsCard,
   ]
 
   // Pets get the memorial-style modules minus the guestbook — no
@@ -261,23 +283,7 @@ export default async function ProfileByIdPage({ params }: Props) {
       preview: <GuardianPreview memorials={memorials} />,
       ...(isAnon ? {} : { href: `${base}/memorialized` }),
     },
-    {
-      // Inert placeholder for now — the Pets module (queries/actions/UI) is
-      // fully built (see pet.actions.ts/pets-client.tsx/etc.) and still
-      // reachable by direct URL, but isn't surfaced from this grid yet
-      // pending a few more polish passes. No href, so BentoGrid renders a
-      // plain non-clickable div (same fallback favorites/guardian use for
-      // anon visitors) instead of a Link. Preview forced to the empty state
-      // regardless of real pet count so the card doesn't leak data that
-      // contradicts its own "coming soon" caption.
-      key: "pets",
-      title: t("petsTitle"),
-      description: t("petsDescription"),
-      metric: t("petsComingSoon"),
-      icon: PawPrint,
-      span: 2,
-      preview: <PetsPreview pets={[]} />,
-    },
+    petsCard,
   ]
 
   // Raw data for the recently-viewed cache — display strings (subtitle, metric,
@@ -294,6 +300,9 @@ export default async function ProfileByIdPage({ params }: Props) {
     birthYear: user.birthYear,
     deathYear: user.deathYear,
     avatarUrl: user.avatarUrl ?? null,
+    role: user.role,
+    petSpecies: user.petSpecies ?? null,
+    petBreed: user.petBreed ?? null,
   }
 
   return (

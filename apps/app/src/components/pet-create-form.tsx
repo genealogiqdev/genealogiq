@@ -153,7 +153,7 @@ export function PetCreateForm({ ownerId, ownerOptions }: { ownerId: string; owne
         deathDate: form.deathDate ?? null,
         avatarUrl: form.avatarUrl || null,
         ownerIds: form.ownerIds,
-      })
+      }, ownerId)
       if (!result.ok) { toast.error(result.message); return }
       toast.success(t("toasts.created"))
       router.push(`/profile/${result.data!.id}`)

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { computeLayout, applyPositionOverrides } from "./index"
-import type { TreePerson, TreeRelation } from "@/queries/family-tree"
+import type { TreePerson, TreePetOwnership, TreeRelation } from "@/queries/family-tree"
 import type { LaidNode } from "./index"
 
 const person = (id: string, overrides: Partial<TreePerson> = {}): TreePerson => ({
@@ -53,24 +53,19 @@ const spouseRel = (fromId: string, toId: string): TreeRelation => ({
   requestedById: null,
 })
 
-const petOf = (petId: string, ownerId: string): TreeRelation => ({
+const petOf = (petId: string, ownerId: string): TreePetOwnership => ({
   id: `pet-${petId}-${ownerId}`,
-  type: "PET_OF",
-  subtype: null,
-  fromId: petId,
-  toId: ownerId,
-  startDate: null,
-  endDate: null,
-  status: "ACCEPTED",
-  requestedById: null,
+  petId,
+  ownerId,
+  createdAt: new Date(0),
 })
 
 describe("computeLayout — pet attachment", () => {
   it("attaches a pet below its owner when the owner is present in this tree view", () => {
     const persons = { ...personsOf("subject"), rex: person("rex", { role: "APP_PET" }) }
-    const relations: TreeRelation[] = [petOf("rex", "subject")]
+    const ownerships = [petOf("rex", "subject")]
 
-    const result = computeLayout(persons, relations, "subject")
+    const result = computeLayout(persons, [], "subject", new Set(), ownerships)
 
     const subjectNode = result.nodes.find((n) => n.personId === "subject")!
     const petNode = result.nodes.find((n) => n.personId === "rex")!
@@ -84,9 +79,9 @@ describe("computeLayout — pet attachment", () => {
 
   it("never generates ancestors/descendants for a pet — PET_OF is invisible to buildFamilyGraph", () => {
     const persons = { ...personsOf("subject"), rex: person("rex", { role: "APP_PET" }) }
-    const relations: TreeRelation[] = [petOf("rex", "subject")]
+    const ownerships = [petOf("rex", "subject")]
 
-    const result = computeLayout(persons, relations, "subject")
+    const result = computeLayout(persons, [], "subject", new Set(), ownerships)
 
     const petNode = result.nodes.find((n) => n.personId === "rex")!
     expect(petNode.hasCollapsible).toBe(false)
@@ -98,9 +93,9 @@ describe("computeLayout — pet attachment", () => {
   it("omits a pet entirely when none of its owners are present in this tree view", () => {
     const persons = { ...personsOf("subject"), rex: person("rex", { role: "APP_PET" }) }
     // Owner "stranger" isn't in `persons` at all — not reachable from this tree.
-    const relations: TreeRelation[] = [petOf("rex", "stranger")]
+    const ownerships = [petOf("rex", "stranger")]
 
-    const result = computeLayout(persons, relations, "subject")
+    const result = computeLayout(persons, [], "subject", new Set(), ownerships)
 
     expect(result.nodes.find((n) => n.personId === "rex")).toBeUndefined()
     expect(result.petLines).toEqual([])
@@ -112,9 +107,9 @@ describe("computeLayout — pet attachment", () => {
       rex: person("rex", { role: "APP_PET" }),
       fido: person("fido", { role: "APP_PET" }),
     }
-    const relations: TreeRelation[] = [petOf("rex", "subject"), petOf("fido", "subject")]
+    const ownerships = [petOf("rex", "subject"), petOf("fido", "subject")]
 
-    const result = computeLayout(persons, relations, "subject")
+    const result = computeLayout(persons, [], "subject", new Set(), ownerships)
 
     const rexNode = result.nodes.find((n) => n.personId === "rex")!
     const fidoNode = result.nodes.find((n) => n.personId === "fido")!
@@ -124,6 +119,26 @@ describe("computeLayout — pet attachment", () => {
     expect(Math.abs(rexNode.x - fidoNode.x)).toBeGreaterThan(0)
   })
 
+  it("moves a pet away from the owner's human child row", () => {
+    const persons = {
+      ...personsOf("subject", "child"),
+      rex: person("rex", { role: "APP_PET" }),
+    }
+    const relations = [parentOf("subject", "child")]
+    const ownerships = [petOf("rex", "subject")]
+
+    const result = computeLayout(persons, relations, "subject", new Set(), ownerships)
+    const petNode = result.nodes.find((node) => node.personId === "rex")!
+    const childNode = result.nodes.find((node) => node.personId === "child")!
+    const overlaps =
+      petNode.x < childNode.x + 168 &&
+      petNode.x + 168 > childNode.x &&
+      petNode.y < childNode.y + 72 &&
+      petNode.y + 72 > childNode.y
+
+    expect(overlaps).toBe(false)
+  })
+
   it("anchors a co-owned pet between both owners when both are present", () => {
     const persons = {
       ...personsOf("subject", "spouse"),
@@ -131,11 +146,10 @@ describe("computeLayout — pet attachment", () => {
     }
     const relations: TreeRelation[] = [
       spouseRel("subject", "spouse"),
-      petOf("rex", "subject"),
-      petOf("rex", "spouse"),
     ]
+    const ownerships = [petOf("rex", "subject"), petOf("rex", "spouse")]
 
-    const result = computeLayout(persons, relations, "subject")
+    const result = computeLayout(persons, relations, "subject", new Set(), ownerships)
 
     const petNode = result.nodes.find((n) => n.personId === "rex")!
     expect(petNode).toBeDefined()

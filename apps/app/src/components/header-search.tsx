@@ -17,6 +17,8 @@ interface SearchResult {
   birthPlace: string | null
   birthCountry: string | null
   deathDate: string | null
+  petSpecies: string | null
+  petBreed: string | null
 }
 
 interface Props {
@@ -122,9 +124,13 @@ export function HeaderSearch({ onNavigate }: Props = {}) {
           ) : (
             <ul>
               {results.map((r, i) => {
-                const initials = `${r.firstName[0]}${r.lastName[0]}`.toUpperCase()
+                const isPet = r.role === "APP_PET"
+                const name = r.lastName ? `${r.firstName} ${r.lastName}` : r.firstName
+                const initials = (r.lastName ? `${r.firstName[0]}${r.lastName[0]}` : r.firstName.slice(0, 2)).toUpperCase()
                 const isMemorialized = r.role === "APP_MEMO"
-                const sub = r.birthPlace
+                const sub = isPet
+                  ? [r.petBreed, r.petSpecies].filter(Boolean).join(", ")
+                  : r.birthPlace
                   ? `${r.birthPlace}${r.birthCountry ? `, ${getCountryName(r.birthCountry, locale)}` : ""}`
                   : isMemorialized ? t("memorializedProfile") : ""
                 return (
@@ -146,12 +152,17 @@ export function HeaderSearch({ onNavigate }: Props = {}) {
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{r.firstName} {r.lastName}</p>
+                        <p className="text-sm font-medium truncate">{name}</p>
                         <p className="text-xs text-muted-foreground truncate">{sub}</p>
                       </div>
                       {isMemorialized && (
                         <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full border border-border/60 text-muted-foreground">
                           {t("memorializedBadge")}
+                        </span>
+                      )}
+                      {isPet && (
+                        <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full border border-border/60 text-muted-foreground">
+                          {t("petBadge")}
                         </span>
                       )}
                     </button>

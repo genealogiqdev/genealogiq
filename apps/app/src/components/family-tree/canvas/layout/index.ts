@@ -55,7 +55,7 @@
 //     SIBLING-line emitter still treats explicit cross-unit SIBLING relations
 //     uniformly (no dashed-line distinction yet; that's a v2 polish).
 
-import type { TreePerson, TreeRelation } from "@/queries/family-tree"
+import type { TreePerson, TreePetOwnership, TreeRelation } from "@/queries/family-tree"
 import { buildFamilyGraph, type FamilyGraph, type FamilyUnit } from "./family-units"
 
 // ─── Constants (unchanged from the previous layout) ─────────────────────────
@@ -66,7 +66,6 @@ export const Y_GEN     = 140
 export const X_TIGHT   = 24   // gap inside a couple
 export const X_SIBLING = 40   // gap between siblings of the same parents
 export const X_FAMILY  = 64   // gap between unrelated family blocks at the same level
-export const PET_GAP_Y = 20   // vertical gap below an owner's card before a pet node
 export const PET_GAP_X = 12   // horizontal gap between two pets stacked under the same owner(s)
 
 // ─── Output types ────────────────────────────────────────────────────────────
@@ -568,6 +567,7 @@ export function computeLayout(
   rootId:       string,
   // User-driven, not persisted — see the module-level v1-limitations note.
   collapsedIds: Set<string> = new Set(),
+  petOwnerships: TreePetOwnership[] = [],
 ): LayoutResult {
   const graph = buildFamilyGraph(persons, relations)
   const dedup = createDedupState()
@@ -816,14 +816,9 @@ export function computeLayout(
   }
   if (!Number.isFinite(minX)) { minX = 0; maxX = NODE_W; minY = 0; maxY = NODE_H }
 
-  // 4b. Attach pets to their owner(s) — a pure post-layout pass. `PET_OF` is
-  // invisible to buildFamilyGraph (only PARENT_OF/SPOUSE/SIBLING are
-  // recognized there), so pets never entered `combined` above and never
-  // gain ancestors/descendants of their own — exactly the "attached leaf,
-  // not a blood relative" behavior wanted. A pet is placed just below
-  // whichever owner(s) already have a placed occurrence in THIS particular
-  // tree view; a pet with none of its owners present here is simply
-  // omitted (it belongs to a different branch/tree than the one rendered).
+  // 4b. Attach pets to their owner(s) as a separate domain edge. Pets never
+  // enter buildFamilyGraph and therefore can neither gain ancestors nor join
+  // co-owners' genealogies.
   const petLines: PetLineGeom[] = []
   const posByPersonId = new Map<string, { x: number; y: number }>()
   for (const n of nodes) {
@@ -832,11 +827,10 @@ export function computeLayout(
   }
 
   const petOwnerRows = new Map<string, { ownerId: string; relationId: string }[]>()
-  for (const r of relations) {
-    if (r.type !== "PET_OF" || r.status === "REJECTED") continue
-    const arr = petOwnerRows.get(r.fromId) ?? []
-    arr.push({ ownerId: r.toId, relationId: r.id })
-    petOwnerRows.set(r.fromId, arr)
+  for (const ownership of petOwnerships) {
+    const arr = petOwnerRows.get(ownership.petId) ?? []
+    arr.push({ ownerId: ownership.ownerId, relationId: ownership.id })
+    petOwnerRows.set(ownership.petId, arr)
   }
 
   // Group pets by the exact set of their PRESENT owners so co-owned pets
@@ -856,13 +850,25 @@ export function computeLayout(
     }
   }
 
-  for (const { ownerIds, petIds } of petsByOwnerGroup.values()) {
+  const ownerGroups = Array.from(petsByOwnerGroup.values())
+    .sort((a, b) => [...a.ownerIds].sort().join("|").localeCompare([...b.ownerIds].sort().join("|")))
+  for (const { ownerIds, petIds: unsortedPetIds } of ownerGroups) {
+    const petIds = [...unsortedPetIds].sort()
     const ownerPositions = ownerIds.map((id) => posByPersonId.get(id)!)
     const anchorX = ownerPositions.reduce((sum, p) => sum + p.x + NODE_W / 2, 0) / ownerPositions.length
     const anchorY = Math.max(...ownerPositions.map((p) => p.y))
-    const petY = anchorY + NODE_H + PET_GAP_Y
+    // Use the next row and shift the whole pet group to the first free
+    // horizontal slot. This avoids the old between-row placement overlapping
+    // human child cards.
+    const petY = anchorY + Y_GEN
     const totalWidth = petIds.length * NODE_W + (petIds.length - 1) * PET_GAP_X
     let petX = anchorX - totalWidth / 2
+    const collidingNodes = nodes
+      .filter((node) => node.y < petY + NODE_H && node.y + NODE_H > petY)
+      .sort((a, b) => a.x - b.x)
+    while (collidingNodes.some((node) => petX < node.x + NODE_W + PET_GAP_X && petX + totalWidth + PET_GAP_X > node.x)) {
+      petX = Math.max(...collidingNodes.map((node) => node.x + NODE_W)) + PET_GAP_X
+    }
     for (const petId of petIds) {
       nodes.push({
         id: petId, personId: petId, isDuplicate: false, x: petX, y: petY,

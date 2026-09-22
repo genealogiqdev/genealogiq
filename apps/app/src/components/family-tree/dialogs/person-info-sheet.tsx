@@ -27,13 +27,14 @@ import {
 } from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
 import { removeMember } from "@/actions/family-tree.actions"
+import { detachPetFromTree } from "@/actions/pet.actions"
 import { requestGuardianship } from "@/actions/guardian.actions"
 import { relationFromRoot } from "@/lib/family-relation-label"
 import { formatDateShort } from "@/lib/format-date"
 import { EditRelationDialog } from "./edit-relation-dialog"
-import type { TreePerson, TreeRelation } from "@/queries/family-tree"
+import type { TreePerson, TreePetOwnership, TreeRelation } from "@/queries/family-tree"
 
-type Kind = "parent" | "child" | "spouse" | "sibling"
+type Kind = "parent" | "child" | "spouse" | "sibling" | "pet"
 
 interface Props {
   open:           boolean
@@ -42,6 +43,7 @@ interface Props {
   rootId:         string
   persons:        Record<string, TreePerson>
   relations:      TreeRelation[]
+  petOwnerships:  TreePetOwnership[]
   canManage:      boolean
   managedIds:     string[]
   requestedIds:   string[]
@@ -128,7 +130,7 @@ function eventLabel(e: Event, t: EventTranslator): string {
 }
 
 export function PersonInfoSheet({
-  open, onClose, person, rootId, persons, relations,
+  open, onClose, person, rootId, persons, relations, petOwnerships,
   canManage, managedIds, requestedIds, sessionUserId,
   onEdit, onAddRelative, onSuccess,
 }: Props) {
@@ -150,12 +152,9 @@ export function PersonInfoSheet({
   const userManagesThis = managedIds.includes(person.id)
   const alreadyRequested = requestedIds.includes(person.id)
 
-  // Editable = current user is an active guardian of THIS specific person.
-  // Deliberately excludes pets — EditMemberDialog's schema requires a
-  // non-empty lastName (pets have none) and has no species/breed fields;
-  // pet identity is edited on its own profile page (/profile/[id]/edit)
-  // instead.
-  const canEditMember = userManagesThis && (isGhost || isMemorial || isSelf)
+  // Pets use their dedicated profile editor; human tree members keep using
+  // the compact in-tree editor.
+  const canEditMember = userManagesThis && (isGhost || isMemorial || isPet || isSelf)
   // Anyone in the tree (except the root) can be removed by a tree-level manager.
   // Ghosts get deleted entirely; real users/memorials are just disconnected.
   const canRemoveMember = canManage && !isSelf
@@ -165,17 +164,22 @@ export function PersonInfoSheet({
   // sheet already disables itself for anon via its own boolean, and this one
   // hadn't (managedIds/requestedIds are just empty sets for anon, which
   // otherwise leaves this looking identically requestable).
-  const canRequestCoManage = (isGhost || isMemorial) && !userManagesThis && !alreadyRequested && !!sessionUserId
+  const canRequestCoManage = (isGhost || isMemorial || isPet) && !userManagesThis && !alreadyRequested && !!sessionUserId
 
   // Every relation touching this person, for the Relationships list below.
   // Non-REJECTED (not just ACCEPTED) so a manager can also see — and, via the
   // requester carve-out below, withdraw — their own still-pending invites.
-  // PET_OF is excluded — pets aren't managed through this generic editor
-  // (see displayName/canEditMember below), and the type-to-label mapping
-  // further down only knows PARENT_OF/SPOUSE/SIBLING.
+  // Pet ownership is stored separately, so this list contains only
+  // genealogical relations understood by the generic relation editor.
   const personRelations = relations.filter(
-    (r) => (r.fromId === person.id || r.toId === person.id) && r.status !== "REJECTED" && r.type !== "PET_OF",
+    (r) => (r.fromId === person.id || r.toId === person.id) && r.status !== "REJECTED",
   )
+  const petOwners = isPet
+    ? petOwnerships
+        .filter((ownership) => ownership.petId === person.id)
+        .map((ownership) => persons[ownership.ownerId])
+        .filter((owner): owner is TreePerson => !!owner)
+    : []
   const canEditRelation = (r: TreeRelation) =>
     canManage || (r.status === "PENDING" && r.requestedById === sessionUserId)
 
@@ -188,7 +192,7 @@ export function PersonInfoSheet({
     })
   }
 
-  const label = relationFromRoot(persons, relations, rootId, person.id, t)
+  const label = isPet ? t("relation.pet") : relationFromRoot(persons, relations, rootId, person.id, t)
   // Pets have no lastName (empty string) — avoid a trailing space / bogus
   // second initial for them.
   const fullName = isPet ? person.firstName : `${person.firstName} ${person.lastName}`
@@ -203,7 +207,9 @@ export function PersonInfoSheet({
 
   const handleRemove = async () => {
     setRemoving(true)
-    const result = await removeMember(rootId, person.id)
+    const result = isPet
+      ? await detachPetFromTree(rootId, person.id)
+      : await removeMember(rootId, person.id)
     setRemoving(false)
     if (!result.ok) { toast.error(result.message); return }
     toast.success(t("toasts.removedFromTree"))
@@ -251,7 +257,7 @@ export function PersonInfoSheet({
               variant="outline"
               size="sm"
               className="gap-1.5 shrink-0"
-              onClick={onEdit}
+              onClick={isPet ? () => router.push(`/profile/${person.id}/edit`) : onEdit}
               disabled={!canEditMember}
             >
               <SquarePen className="h-3.5 w-3.5" />
@@ -260,7 +266,7 @@ export function PersonInfoSheet({
           </div>
 
           {/* Co-management row — only for ghosts/memorials the user doesn't already manage */}
-          {(isGhost || isMemorial) && !userManagesThis && (
+          {(isGhost || isMemorial || isPet) && !userManagesThis && (
             <div className="px-5 py-4 flex items-center justify-between gap-3 border-b border-border/60">
               <p className="text-xs text-muted-foreground leading-snug max-w-[220px]">
                 {alreadyRequested
@@ -284,6 +290,21 @@ export function PersonInfoSheet({
                   {t("infoSheet.coManage")}
                 </Button>
               )}
+            </div>
+          )}
+
+          {isPet && petOwners.length > 0 && (
+            <div className="px-5 py-4 border-b border-border/60">
+              <h3 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+                {t("infoSheet.owners")}
+              </h3>
+              <ul className="space-y-1">
+                {petOwners.map((owner) => (
+                  <li key={owner.id} className="text-sm">
+                    {owner.firstName} {owner.lastName}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 
@@ -360,7 +381,7 @@ export function PersonInfoSheet({
           )}
 
           {/* Quick add relatives */}
-          {canManage && (
+          {canManage && !isPet && (
             <div className="px-5 py-4 border-b border-border/60">
               <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">{t("infoSheet.addRelative")}</p>
               <div className="grid grid-cols-2 gap-1.5">
@@ -368,6 +389,7 @@ export function PersonInfoSheet({
                 <Button variant="outline" size="sm" className="gap-1.5 justify-start" onClick={() => onAddRelative(person.id, "sibling")}>{t("infoSheet.addSibling")}</Button>
                 <Button variant="outline" size="sm" className="gap-1.5 justify-start" onClick={() => onAddRelative(person.id, "spouse")}>{t("infoSheet.addPartner")}</Button>
                 <Button variant="outline" size="sm" className="gap-1.5 justify-start" onClick={() => onAddRelative(person.id, "child")}>{t("infoSheet.addChild")}</Button>
+                <Button variant="outline" size="sm" className="gap-1.5 justify-start" onClick={() => onAddRelative(person.id, "pet")}>{t("infoSheet.addPet")}</Button>
               </div>
             </div>
           )}
@@ -397,6 +419,8 @@ export function PersonInfoSheet({
                     <AlertDialogDescription>
                       {isGhost
                         ? t("removeDialog.ghostDescription", { name: displayName })
+                        : isPet
+                          ? t("removeDialog.petDescription", { name: displayName })
                         : t("removeDialog.personDescription", { name: displayName })}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
