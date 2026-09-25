@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest"
-import { computeLayout, applyPositionOverrides } from "./index"
+import { computeLayout } from "./index"
 import type { TreePerson, TreePetOwnership, TreeRelation } from "@/queries/family-tree"
-import type { LaidNode } from "./index"
 
 const person = (id: string, overrides: Partial<TreePerson> = {}): TreePerson => ({
   id,
@@ -361,55 +360,5 @@ describe("computeLayout — collapse", () => {
 
     const child1 = result.nodes.find((n) => n.personId === "child1")!
     expect(child1).toMatchObject({ hasCollapsible: false, isCollapsed: false })
-  })
-})
-
-describe("applyPositionOverrides", () => {
-  const node = (over: Partial<LaidNode> = {}): LaidNode => ({
-    id: "alice", personId: "alice", isDuplicate: false, x: 100, y: 200,
-    hasCollapsible: false, isCollapsed: false, collapseDirection: "down",
-    ...over,
-  })
-
-  it("nudges a node whose override generation matches the live layout", () => {
-    const nodes = [node()]
-    const generation = new Map([["alice", -1]])
-    const overrides = { alice: { dx: 10, dy: -5, generation: -1 } }
-
-    const result = applyPositionOverrides(nodes, overrides, generation)
-
-    expect(result[0]).toMatchObject({ x: 110, y: 195 })
-  })
-
-  it("leaves a node unchanged when there is no override for it", () => {
-    const nodes = [node()]
-    const generation = new Map([["alice", -1]])
-
-    const result = applyPositionOverrides(nodes, {}, generation)
-
-    expect(result[0]).toMatchObject({ x: 100, y: 200 })
-  })
-
-  it("ignores a stale override — saved at a generation the person no longer occupies", () => {
-    // e.g. a relation change moved alice from gen -1 to gen -2 after the
-    // override was saved; applying the old dx/dy would misplace her
-    // relative to her new family unit instead of the old one.
-    const nodes = [node()]
-    const generation = new Map([["alice", -2]])
-    const overrides = { alice: { dx: 10, dy: -5, generation: -1 } }
-
-    const result = applyPositionOverrides(nodes, overrides, generation)
-
-    expect(result[0]).toMatchObject({ x: 100, y: 200 })
-  })
-
-  it("never offsets a duplicate (pedigree-collapse stub), even if an override exists for its personId", () => {
-    const nodes = [node({ id: "alice~dup1", isDuplicate: true })]
-    const generation = new Map([["alice", -1]])
-    const overrides = { alice: { dx: 10, dy: -5, generation: -1 } }
-
-    const result = applyPositionOverrides(nodes, overrides, generation)
-
-    expect(result[0]).toMatchObject({ x: 100, y: 200, isDuplicate: true })
   })
 })

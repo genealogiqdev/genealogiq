@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { getProfileById } from "@/queries/profile"
 import { canManageProfile } from "@/lib/profile"
 import { assertPublicMemorialAccess } from "@/lib/public-profile-access"
-import { countTreeMembers, getFamilyTree, getNodePositions } from "@/queries/family-tree"
+import { countTreeMembers, getFamilyTree } from "@/queries/family-tree"
 import { getPetOwners } from "@/queries/pet"
 import { getPetCreationStatus } from "@/lib/pet-quota"
 import { getMemorialFeatures } from "@/lib/subscription"
@@ -34,10 +34,9 @@ export default async function TreePage({ params, searchParams }: Props) {
 
   const canManage = viewerId ? canManageProfile(profile, viewerId) : false
 
-  const [{ persons, relations, petOwnerships }, features, initialPositions, memberCount, petCreationStatus] = await Promise.all([
+  const [{ persons, relations, petOwnerships }, features, memberCount, petCreationStatus] = await Promise.all([
     getFamilyTree(id, { id: viewerId ?? null, canManage }),
     getMemorialFeatures(id),
-    getNodePositions(id),
     countTreeMembers(id),
     canManage && viewerId ? getPetCreationStatus(viewerId) : Promise.resolve(null),
   ])
@@ -106,7 +105,6 @@ export default async function TreePage({ params, searchParams }: Props) {
           canManage={canManage}
           managedIds={Array.from(managedIds)}
           requestedIds={Array.from(requestedIds)}
-          initialPositions={initialPositions}
           memberCount={memberCount}
           memberLimit={memberLimit}
           petCount={petCreationStatus?.count ?? 0}

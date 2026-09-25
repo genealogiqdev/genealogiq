@@ -3,7 +3,6 @@
 import { useCallback, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
-import { toast } from "sonner"
 import { SvgCanvas } from "./svg-canvas"
 import { ViewportControls } from "./viewport-controls"
 import { CanvasSearch } from "./canvas-search"
@@ -11,13 +10,12 @@ import { MiniMap } from "./mini-map"
 import { CompareTool } from "./compare-tool"
 import { PersonNode } from "./person-node"
 import { FamilyEdges } from "./edges/family-edges"
-import { computeLayout, applyPositionOverrides, NODE_W, NODE_H, type LaidNode } from "./layout"
+import { computeLayout, NODE_W, NODE_H } from "./layout"
 import { AddRelativeDialog } from "../dialogs/add-relative-dialog"
 import { EditMemberDialog } from "../dialogs/edit-member-dialog"
 import { PersonInfoSheet } from "../dialogs/person-info-sheet"
-import { saveNodePosition } from "@/actions/tree-position.actions"
 import { findRelationPath, relationFromRoot } from "@/lib/family-relation-label"
-import type { TreePerson, TreePetOwnership, TreeRelation, NodePositionOverride } from "@/queries/family-tree"
+import type { TreePerson, TreePetOwnership, TreeRelation } from "@/queries/family-tree"
 import type { PlanTier } from "@/lib/plan-quotas"
 
 type Kind = "parent" | "child" | "spouse" | "sibling" | "pet"
@@ -32,7 +30,6 @@ interface Props {
   canManage:        boolean
   managedIds:       string[]
   requestedIds:     string[]
-  initialPositions: Record<string, NodePositionOverride>
   memberCount:      number
   memberLimit:      number
   petCount:         number
@@ -51,7 +48,6 @@ export function FamilyTreeCanvas({
   canManage,
   managedIds,
   requestedIds,
-  initialPositions,
   memberCount,
   memberLimit,
   petCount,
@@ -66,7 +62,6 @@ export function FamilyTreeCanvas({
   const [sheetOpen,     setSheetOpen]     = useState(false)
   const [adder,         setAdder]         = useState<{ anchorId: string; kind: Kind } | null>(null)
   const [editing,       setEditing]       = useState<TreePerson | null>(null)
-  const [positions,     setPositions]     = useState(initialPositions)
   // Pure client view state, never persisted — resets on reload (see
   // layout/index.ts's module-level collapse comment).
   const [collapsedIds,  setCollapsedIds]  = useState<Set<string>>(() => new Set())
@@ -84,10 +79,7 @@ export function FamilyTreeCanvas({
 
   const activePerson = selectedId ? persons[selectedId] ?? null : null
 
-  const positionedNodes: LaidNode[] = useMemo(
-    () => applyPositionOverrides(layout.nodes, positions, layout.generation),
-    [layout.nodes, layout.generation, positions],
-  )
+  const positionedNodes = layout.nodes
 
   const paddedBounds = useMemo(() => {
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
@@ -148,21 +140,6 @@ export function FamilyTreeCanvas({
     }
     return ids
   }, [comparePath, comparePick1])
-
-  const handleReposition = useCallback((personId: string, ddx: number, ddy: number) => {
-    const gen = layout.generation.get(personId)
-    if (gen === undefined) return
-    const base = positions[personId]
-    const baseDx = base && base.generation === gen ? base.dx : 0
-    const baseDy = base && base.generation === gen ? base.dy : 0
-    const updated: NodePositionOverride = { dx: baseDx + ddx, dy: baseDy + ddy, generation: gen }
-    setPositions((prev) => ({ ...prev, [personId]: updated }))
-    // Optimistic: the local state above is already this session's source of
-    // truth, so a failure here just means the nudge doesn't survive a reload.
-    saveNodePosition(rootId, { personId, ...updated }).then((result) => {
-      if (!result.ok) toast.error(result.message)
-    })
-  }, [layout.generation, positions, rootId])
 
   const handleComparePick = useCallback((personId: string) => {
     setComparePicks((prev) => {
@@ -252,8 +229,6 @@ export function FamilyTreeCanvas({
         isSessionUser={n.personId === sessionUserId}
         isSelected={selectedId === n.personId}
         isDuplicate={n.isDuplicate}
-        draggable={canManage && !n.isDuplicate && p.role !== "APP_PET"}
-        onReposition={(ddx, ddy) => handleReposition(n.personId, ddx, ddy)}
         hasCollapsible={n.hasCollapsible}
         isCollapsed={n.isCollapsed}
         collapseDirection={n.collapseDirection}

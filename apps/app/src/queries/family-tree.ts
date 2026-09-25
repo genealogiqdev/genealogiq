@@ -266,20 +266,3 @@ export async function hasConflictingRelationType(idA: string, idB: string, type:
   })
   return !!existing
 }
-
-export interface NodePositionOverride {
-  dx:         number
-  dy:         number
-  generation: number
-}
-
-/** Manual drag-to-reposition overrides for this tree, keyed by person id. */
-export async function getNodePositions(rootId: string): Promise<Record<string, NodePositionOverride>> {
-  const rows = await prisma.treeNodePosition.findMany({
-    where:  { rootId },
-    select: { personId: true, dx: true, dy: true, generation: true },
-  })
-  const out: Record<string, NodePositionOverride> = {}
-  for (const r of rows) out[r.personId] = { dx: r.dx, dy: r.dy, generation: r.generation }
-  return out
-}

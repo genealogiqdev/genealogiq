@@ -922,23 +922,3 @@ export function computeLayout(
     generation,
   }
 }
-
-/** Layer saved drag-to-reposition offsets on top of a computed layout. A
- *  duplicate (pedigree-collapse stub) is never offset — its position is
- *  fully determined by the primary occurrence it stands in for. An override
- *  whose snapshotted `generation` no longer matches the live layout is
- *  stale (a relation change reshaped the tree since it was saved) and is
- *  ignored, rather than misplacing the node relative to its now-different
- *  family unit. */
-export function applyPositionOverrides(
-  nodes: LaidNode[],
-  overrides: Record<string, { dx: number; dy: number; generation: number }>,
-  generation: Map<string, number>,
-): LaidNode[] {
-  return nodes.map((n) => {
-    if (n.isDuplicate) return n
-    const override = overrides[n.personId]
-    if (!override || override.generation !== generation.get(n.personId)) return n
-    return { ...n, x: n.x + override.dx, y: n.y + override.dy }
-  })
-}

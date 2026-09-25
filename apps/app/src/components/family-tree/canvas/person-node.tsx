@@ -1,14 +1,10 @@
 'use client'
 
-import { useCallback, useRef, useState } from "react"
 import { useTranslations } from "next-intl"
 import { User, BookOpen, GitBranch, Plus, Minus, PawPrint } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { TreePerson } from "@/queries/family-tree"
 import { NODE_W, NODE_H } from "./layout"
-import { useViewport } from "./svg-canvas"
-
-const DRAG_THRESHOLD_PX = 5
 
 interface Props {
   person:         TreePerson
@@ -21,12 +17,6 @@ interface Props {
    *  (pedigree collapse, e.g. a cousin marriage) — renders as a de-emphasized
    *  stub with a hint that this is the same person shown elsewhere. */
   isDuplicate?:   boolean
-  /** Enables drag-to-reposition (gated to tree managers; never for a
-   *  duplicate occurrence — see family-tree-canvas.tsx). */
-  draggable?:     boolean
-  /** Fired once, on release, with the completed drag's WORLD-space delta —
-   *  already past the click-vs-drag threshold. */
-  onReposition?:  (dx: number, dy: number) => void
   /** Whether this occurrence has descendants/ancestors that a collapse
    *  toggle could hide — see computeLayout's LaidNode.hasCollapsible. */
   hasCollapsible?:    boolean
@@ -42,62 +32,15 @@ interface Props {
 }
 
 export function PersonNode({
-  person, x, y, isRoot, isSessionUser, isSelected, isDuplicate, draggable, onReposition,
+  person, x, y, isRoot, isSessionUser, isSelected, isDuplicate,
   hasCollapsible, isCollapsed, collapseDirection, onToggleCollapse,
   isOnPath, comparePickIndex, onActivate,
 }: Props) {
   const t = useTranslations("FamilyTree")
-  const { viewport } = useViewport()
   const isGhost = person.role === "APP_GHOST"
   const isMemorial = person.role === "APP_MEMO"
   const isPet = person.role === "APP_PET"
   const isPending = person.pending && !isRoot
-
-  // Edges intentionally do NOT live-follow a drag in progress (see
-  // family-tree-canvas.tsx) — they snap to the new position once dragState
-  // commits via onReposition, matching plenty of prior art (e.g. Trello)
-  // rather than lifting per-pointermove state up through the whole canvas.
-  const dragState        = useRef<{ startX: number; startY: number; dragging: boolean } | null>(null)
-  const suppressClickRef = useRef(false)
-  const [dragPreview, setDragPreview] = useState<{ dx: number; dy: number } | null>(null)
-
-  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!draggable) return
-    e.stopPropagation()
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-    dragState.current = { startX: e.clientX, startY: e.clientY, dragging: false }
-  }, [draggable])
-
-  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const state = dragState.current
-    if (!state) return
-    const screenDx = e.clientX - state.startX
-    const screenDy = e.clientY - state.startY
-    if (!state.dragging) {
-      if (Math.hypot(screenDx, screenDy) < DRAG_THRESHOLD_PX) return
-      state.dragging = true
-    }
-    setDragPreview({ dx: screenDx / viewport.scale, dy: screenDy / viewport.scale })
-  }, [viewport.scale])
-
-  const handlePointerUp = useCallback(() => {
-    const state = dragState.current
-    dragState.current = null
-    if (!state) return
-    if (state.dragging) {
-      suppressClickRef.current = true
-      setDragPreview((preview) => {
-        if (preview) onReposition?.(preview.dx, preview.dy)
-        return null
-      })
-    }
-  }, [onReposition])
-
-  const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation()
-    if (suppressClickRef.current) { suppressClickRef.current = false; return }
-    onActivate()
-  }, [onActivate])
 
   const ringColor =
     person.gender === "FEMALE"
@@ -136,37 +79,30 @@ export function PersonNode({
       role="button"
       tabIndex={0}
       aria-label={displayName}
-      onClick={handleClick}
+      onClick={(e) => { e.stopPropagation(); onActivate() }}
       onKeyDown={(e) => {
         if (e.key !== "Enter" && e.key !== " ") return
         e.preventDefault()
         e.stopPropagation()
         onActivate()
       }}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
       className={cn(
         "absolute rounded-xl border bg-card/85 backdrop-blur-md flex items-center gap-2.5 px-2.5 pointer-events-auto",
         "transition-[box-shadow,border-color,opacity] duration-150",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:border-primary/30",
-        draggable ? (dragPreview ? "cursor-grabbing" : "cursor-grab") : "cursor-pointer",
+        "cursor-pointer",
         isGhost || isPending ? "border-dashed border-border/70" : "border-white/30",
         isDuplicate && "border-dashed border-border/50 opacity-70",
         isSelected && "ring-2 ring-primary/70 border-primary/30",
         isOnPath && !isSelected && `ring-2 ${pathColor}`,
-        isRoot && !dragPreview && "scale-[1.04]",
+        isRoot && "scale-[1.04]",
         isPending && "opacity-60",
-        dragPreview && "z-20 shadow-xl",
       )}
       style={{
         left:        x,
         top:         y,
         width:       NODE_W,
         height:      NODE_H,
-        transform:   dragPreview ? `translate(${dragPreview.dx}px, ${dragPreview.dy}px)` : undefined,
-        touchAction: draggable ? "none" : undefined,
         boxShadow: isGhost || isPending
           ? undefined
           : "0 4px 14px -6px hsl(230 40% 12% / 0.25), inset 0 1px 0 hsl(0 0% 100% / 0.4)",
