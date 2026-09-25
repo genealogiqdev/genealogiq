@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server"
 import { done, fail, type ActionResult } from "@genealogiq/core"
 import { Prisma } from "@genealogiq/db"
 import { checkRateLimit } from "@genealogiq/services/rate-limit"
+import { isAuthorizedMediaReference } from "@genealogiq/services/media-storage"
 import { prisma } from "@/lib/prisma"
 import { verifySession } from "@/lib/dal"
 import { getProfileById } from "@/queries/profile"
@@ -25,6 +26,7 @@ import {
 } from "@/schemas/family-tree.schema"
 import { identityTranslator } from "@/schemas/i18n"
 import { notify } from "@/lib/notifications"
+import { deleteBlobs } from "@/lib/blob"
 
 function isUniqueConstraintError(e: unknown): boolean {
   return e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002"
@@ -251,10 +253,17 @@ export async function addGhostRelative(rootId: string, data: unknown): Promise<A
 
   const parsed = getAddGhostRelativeSchema(identityTranslator).safeParse(data)
   if (!parsed.success) return fail(parsed.error.issues[0].message)
+  if (!isAuthorizedMediaReference(
+    parsed.data.avatarUrl,
+    [`pending/${session.user.id}/create-ghost`],
+    { allowLegacy: false },
+  )) {
+    return fail(t("common.invalidData"))
+  }
 
   const {
     firstName, lastName, maidenName, nickname,
-    gender, birthDate, deathDate, birthPlace, deathPlace,
+    gender, birthDate, deathDate, birthPlace, deathPlace, avatarUrl,
     anchorId, kind, subtype, startDate, endDate, linkSpouseId,
   } = parsed.data
 
@@ -293,6 +302,7 @@ export async function addGhostRelative(rootId: string, data: unknown): Promise<A
         deathDate:  toDate(deathDate),
         birthPlace: birthPlace ?? null,
         deathPlace: deathPlace ?? null,
+        avatarUrl:  avatarUrl ?? null,
       },
       select: { id: true },
     })
@@ -414,7 +424,7 @@ export async function updateMember(rootId: string, memberId: string, data: unkno
 
   const member = await prisma.appUser.findUnique({
     where:  { id: memberId },
-    select: { id: true, role: true },
+    select: { id: true, role: true, avatarUrl: true },
   })
   if (!member) return fail(t("familyTree.memberNotFound"))
 
@@ -432,6 +442,16 @@ export async function updateMember(rootId: string, memberId: string, data: unkno
 
   const parsed = getUpdateMemberSchema(identityTranslator).safeParse(data)
   if (!parsed.success) return fail(parsed.error.issues[0].message)
+  if (
+    parsed.data.avatarUrl !== member.avatarUrl &&
+    !isAuthorizedMediaReference(
+      parsed.data.avatarUrl,
+      [`profiles/${memberId}/bio`],
+      { allowLegacy: false },
+    )
+  ) {
+    return fail(t("common.invalidData"))
+  }
 
   const d = parsed.data
   await prisma.appUser.update({
@@ -449,8 +469,12 @@ export async function updateMember(rootId: string, memberId: string, data: unkno
       avatarUrl:  d.avatarUrl ?? null,
     },
   })
+  if (member.avatarUrl && member.avatarUrl !== (d.avatarUrl ?? null)) {
+    await deleteBlobs([member.avatarUrl])
+  }
 
   revalidatePath(`/profile/${rootId}/tree`)
+  revalidatePath(`/profile/${memberId}`)
   return done()
 }
 
@@ -530,7 +554,7 @@ export async function removeMember(rootId: string, memberId: string): Promise<Ac
 
   const member = await prisma.appUser.findUnique({
     where:  { id: memberId },
-    select: { id: true, role: true },
+    select: { id: true, role: true, avatarUrl: true },
   })
   if (!member) return fail(t("familyTree.memberNotFound"))
 
@@ -541,6 +565,7 @@ export async function removeMember(rootId: string, memberId: string): Promise<Ac
     const memberIds = await getTreeMemberIds(rootId)
     if (!memberIds.has(memberId)) return fail(t("familyTree.notAuthorized"))
     await prisma.appUser.delete({ where: { id: memberId } })
+    await deleteBlobs([member.avatarUrl])
   } else {
     // Real users / memorials keep their profile. Disconnect them from THIS
     // tree by deleting every relation between this member and any current

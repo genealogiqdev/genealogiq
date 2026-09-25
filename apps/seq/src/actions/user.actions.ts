@@ -6,6 +6,7 @@ import { getTranslations } from 'next-intl/server'
 import { Prisma } from '@genealogiq/db'
 import { prisma } from '@/lib/prisma'
 import { hashToken, done, fail, type ActionResult } from '@genealogiq/core'
+import { deleteUnreferencedMediaUrls } from '@genealogiq/services/media-storage'
 import { verifyAdmin } from '@/lib/dal'
 
 // User management (invite, edit, deactivate, delete tenant employees) is
@@ -112,7 +113,12 @@ export async function deleteUser(userId: string): Promise<ActionResult> {
   if (session.user!.id === userId) return fail(t('user.cannotDeleteSelf'))
 
   try {
+    const media = await prisma.user.findUnique({
+      where: { id: userId, tenantId: session.customerId },
+      select: { avatarUrl: true, cover_url: true },
+    })
     await prisma.user.delete({ where: { id: userId, tenantId: session.customerId } })
+    await deleteUnreferencedMediaUrls([media?.avatarUrl, media?.cover_url])
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
       return fail(t('user.notFound'))

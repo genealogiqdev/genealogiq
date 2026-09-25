@@ -19,11 +19,17 @@ Agents operating this environment must follow
 - Key Vault: `kv-gen-ohqluyie`
 - Log Analytics: `log-genealogiq-prod`
 - Backup storage: `stgenohqluyie/database-backups`
+- Public media storage: `stgenmediaohqluyie/media`
+- Private upload staging: `stgenmediaohqluyie/media-staging`
+- Private migration state: `stgenmediaohqluyie/media-migration`
+- Media identity: `id-genealogiq-media-prod`
+- Manual media migration job: `job-gen-media-migrate-prod`
 
 The applications use PostgreSQL's built-in PgBouncer endpoint on port 6432.
 Migrations use the direct endpoint on port 5432. Both URLs are held in Key
-Vault. Vercel Blob remains the media store until its client upload and stored
-URL flows are deliberately migrated.
+Vault. New uploads use short-lived, single-object Azure Blob SAS URLs issued by
+the applications through the media identity. Blob reads remain anonymous to
+preserve public profile and tree behavior; container listing remains private.
 
 ## First deployment and infrastructure updates
 
@@ -31,6 +37,7 @@ From a PowerShell prompt authenticated with Azure CLI:
 
 ```powershell
 ./scripts/azure/deploy-foundation.ps1
+./scripts/azure/deploy-media-infrastructure.ps1
 ./scripts/azure/build-images.ps1 -RegistryName acrgenohqluyie
 ./scripts/azure/deploy-applications.ps1
 ./scripts/azure/run-migrations.ps1
@@ -41,6 +48,27 @@ The scripts never commit or print secret values. Local `.env` values are copied
 to Key Vault by `sync-secrets.ps1`. Missing optional integrations stay disabled.
 Infrastructure changes must be previewed with `az deployment sub what-if`
 before deployment.
+
+## Media migration
+
+The applications accept both legacy Vercel Blob URLs and the configured Azure
+media origin during the migration window. New writes go to Azure after the
+updated Container Apps revision is deployed.
+
+Run the resumable migration from the private Container Apps job so it can reach
+the private PostgreSQL endpoint:
+
+```powershell
+./scripts/azure/run-media-migration.ps1
+# After copy/verification succeeds and the manifest is reviewed:
+./scripts/azure/run-media-migration.ps1 -Rewrite
+```
+
+The job inventories every Vercel URL referenced by the database, stores its
+manifest in the private `media-migration` container, copies and verifies bytes,
+and conditionally rewrites references. Re-running it is safe. Unreferenced
+legacy objects are intentionally ignored; historical CV links in already
+delivered email cannot be rewritten.
 
 ## DNS and managed TLS
 
@@ -71,10 +99,9 @@ Azure-managed certificate. The public callback URLs do not change:
 
 ## Missing optional production credentials
 
-The local environment supplied database, Auth.js, and APP/BMS Stripe secrets.
-It did not contain Google OAuth, Vercel Blob, Resend, VAPID, Turnstile, Sentry,
-or a Sequoia Stripe webhook secret. Add these to the appropriate local `.env`,
-run `sync-secrets.ps1`, and redeploy before enabling those features.
+Azure media access uses managed identity and does not require an account key or
+Vercel token in production. Other optional integrations still require their own
+Key Vault secrets.
 
 ## CI/CD
 

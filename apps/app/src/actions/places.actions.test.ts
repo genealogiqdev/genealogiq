@@ -21,6 +21,7 @@ vi.mock("@/lib/profile", () => ({ canManageProfile: vi.fn() }))
 vi.mock("@/lib/blob", () => ({ deleteBlobs: vi.fn() }))
 vi.mock("@/lib/subscription", () => ({ getMemorialFeatures: vi.fn() }))
 vi.mock("@/queries/media-usage", () => ({ getCombinedMediaUsage: vi.fn() }))
+vi.mock("@genealogiq/services/media-storage", () => ({ isAuthorizedMediaReference: vi.fn(() => true) }))
 vi.mock("@/lib/geo-quota", () => ({ getGuardianGeoPlacesStatus: vi.fn() }))
 
 import { savePlace, deletePlace } from "./places.actions"

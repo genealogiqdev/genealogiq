@@ -6,6 +6,7 @@
     "./activation-trial": "./src/activation-trial.ts",
     "./credits": "./src/credits.ts",
     "./gencode-package": "./src/gencode-package.ts",
+    "./media-storage": "./src/media-storage.ts",
     "./partner-billing": "./src/partner-billing.ts",
     "./partner-checkout": "./src/partner-checkout.ts",
     "./partner-lifecycle": "./src/partner-lifecycle.ts",
@@ -20,22 +21,26 @@
     "./subscription-price": "./src/subscription-price.ts"
   },
   "scripts": {
+    "migrate:media": "node --conditions=react-server --import tsx src/media-migration.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@azure/identity": "^4.13.3",
+    "@azure/storage-blob": "^12.34.0",
     "@genealogiq/core": "workspace:*",
     "@genealogiq/db": "workspace:*",
-    "server-only": "^0.0.1",
-    "stripe": "^22.5.0",
     "@genealogiq/email": "workspace:*",
-    "@vercel/blob": "^2.8.0"
+    "server-only": "^0.0.1",
+    "stripe": "^22.5.0"
   },
   "peerDependencies": {
     "next": "16.3.1"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",
+    "dotenv": "^18.0.3",
     "next": "16.3.1",
+    "tsx": "^4.23.12",
     "typescript": "^5",
     "vitest": "^3.2.7"
   }

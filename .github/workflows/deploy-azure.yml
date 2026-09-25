@@ -20,6 +20,7 @@ env:
   RESOURCE_GROUP: rg-genealogiq-prod
   REGISTRY_NAME: acrgenohqluyie
   REGISTRY_SERVER: acrgenohqluyie.azurecr.io
+  MEDIA_PUBLIC_BASE_URL: https://stgenmediaohqluyie.blob.core.windows.net/media
 
 jobs:
   build:
@@ -80,6 +81,7 @@ jobs:
             args+=(
               --build-arg "APP=${{ matrix.app }}"
               --build-arg "NEXT_PUBLIC_SENTRY_DSN=$sentry_dsn"
+              --build-arg "NEXT_PUBLIC_MEDIA_PUBLIC_BASE_URL=$MEDIA_PUBLIC_BASE_URL"
             )
           fi
           if [ "${{ matrix.app }}" = "app" ]; then
@@ -145,6 +147,9 @@ jobs:
           az containerapp job update --name job-genealogiq-daily-prod \
             --resource-group "$RESOURCE_GROUP" \
             --image "$REGISTRY_SERVER/genealogiq-scheduler:$GITHUB_SHA" --output none
+          az containerapp job update --name job-gen-media-migrate-prod \
+            --resource-group "$RESOURCE_GROUP" \
+            --image "$REGISTRY_SERVER/genealogiq-migration:$GITHUB_SHA" --output none
 
       - name: Verify revisions
         run: |

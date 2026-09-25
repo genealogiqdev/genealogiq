@@ -26,6 +26,7 @@ const { creditsMock } = vi.hoisted(() => ({
   },
 }))
 vi.mock("@genealogiq/services/credits", () => creditsMock)
+vi.mock("@genealogiq/services/media-storage", () => ({ isAuthorizedMediaReference: vi.fn(() => true) }))
 // The action localizes its business messages via getTranslations('Actions').
 // Stub it to echo the key so assertions can pin the exact message source.
 vi.mock("next-intl/server", () => ({

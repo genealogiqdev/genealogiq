@@ -3,6 +3,7 @@ param name string
 param environmentId string
 param registryServer string
 param identityResourceId string
+param mediaIdentityResourceId string = ''
 param image string
 param keyVaultUri string
 param plainEnvironment array
@@ -32,15 +33,25 @@ var secretEnvironmentVariables = [
   }
 ]
 var environmentVariables = concat(plainEnvironmentVariables, secretEnvironmentVariables)
+var userAssignedIdentities = empty(mediaIdentityResourceId)
+  ? {
+      '${identityResourceId}': {}
+    }
+  : union(
+      {
+        '${identityResourceId}': {}
+      },
+      {
+        '${mediaIdentityResourceId}': {}
+      }
+    )
 
 resource app 'Microsoft.App/containerApps@2024-03-01' = {
   name: name
   location: location
   identity: {
     type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${identityResourceId}': {}
-    }
+    userAssignedIdentities: userAssignedIdentities
   }
   properties: {
     managedEnvironmentId: environmentId

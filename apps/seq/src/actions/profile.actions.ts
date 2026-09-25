@@ -2,7 +2,11 @@
 
 import { revalidatePath } from 'next/cache'
 import { getTranslations } from 'next-intl/server'
-import { done, fail, BLOB_URL_PATTERN, type ActionResult } from '@genealogiq/core'
+import { done, fail, isAllowedMediaUrl, type ActionResult } from '@genealogiq/core'
+import {
+  deleteUnreferencedMediaUrls,
+  isAuthorizedMediaReference,
+} from '@genealogiq/services/media-storage'
 import { prisma } from '@/lib/prisma'
 import { verifySession } from '@/lib/dal'
 import { getProfileSchema, type ProfileFormValues } from '@/schemas/profile.schema'
@@ -47,14 +51,31 @@ export async function updateAvatar(url: string): Promise<ActionResult> {
   const t = await getTranslations('Actions')
   const session = await verifySession()
 
-  if (!BLOB_URL_PATTERN.test(url)) {
+  if (!isAllowedMediaUrl(url)) {
     return fail(t('profile.invalidAvatarUrl'))
   }
 
+  const current = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { avatarUrl: true },
+  })
+  if (
+    url !== current?.avatarUrl &&
+    !isAuthorizedMediaReference(
+      url,
+      [`users/${session.user.id}/avatar`],
+      { allowLegacy: false },
+    )
+  ) {
+    return fail(t('profile.invalidAvatarUrl'))
+  }
   await prisma.user.update({
     where: { id: session.user.id },
     data:  { avatarUrl: url },
   })
+  if (current?.avatarUrl && current.avatarUrl !== url) {
+    await deleteUnreferencedMediaUrls([current.avatarUrl])
+  }
 
   revalidatePath('/profile')
   return done(t('profile.avatarUpdated'))

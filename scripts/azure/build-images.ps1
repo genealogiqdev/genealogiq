@@ -7,7 +7,8 @@ param(
   [string]$BmsSentryDsn = "",
   [string]$SeqSentryDsn = "",
   [string]$VapidPublicKey = "",
-  [string]$TurnstileSiteKey = ""
+  [string]$TurnstileSiteKey = "",
+  [string]$MediaPublicBaseUrl = "https://stgenmediaohqluyie.blob.core.windows.net/media"
 )
 
 $ErrorActionPreference = "Stop"
@@ -41,7 +42,8 @@ function Build-AppImage(
     "--target", "app-runtime",
     "--tag", $image,
     "--build-arg", "APP=$Application",
-    "--build-arg", "NEXT_PUBLIC_SENTRY_DSN=$SentryDsn"
+    "--build-arg", "NEXT_PUBLIC_SENTRY_DSN=$SentryDsn",
+    "--build-arg", "NEXT_PUBLIC_MEDIA_PUBLIC_BASE_URL=$MediaPublicBaseUrl"
   ) + $AdditionalArguments + @(".")
 
   Write-Host "Building $image..."

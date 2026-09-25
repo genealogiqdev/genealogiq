@@ -55,6 +55,20 @@ describe("getAddGhostRelativeSchema", () => {
     expect(addGhostSchema.safeParse(base).success).toBe(true)
   })
 
+  it("accepts a migrated Azure portrait and rejects an off-site portrait", () => {
+    const azureBase =
+      process.env.MEDIA_PUBLIC_BASE_URL ||
+      "https://stgenmediaexample.blob.core.windows.net/media"
+    expect(addGhostSchema.safeParse({
+      ...base,
+      avatarUrl: `${azureBase}/profiles/p/avatar.jpg`,
+    }).success).toBe(true)
+    expect(addGhostSchema.safeParse({
+      ...base,
+      avatarUrl: "https://example.com/avatar.jpg",
+    }).success).toBe(false)
+  })
+
   it("rejects a death date before the birth date", () => {
     const r = addGhostSchema.safeParse({ ...base, birthDate: "1990-01-01", deathDate: "1980-01-01" })
     expect(r.success).toBe(false)
@@ -80,6 +94,10 @@ describe("getAddGhostRelativeSchema", () => {
   it("rejects a subtype that isn't valid for the kind", () => {
     const r = addGhostSchema.safeParse({ ...base, subtype: "divorced" })
     expect(r.success).toBe(false)
+  })
+
+  it("accepts removing a portrait", () => {
+    expect(updateMemberSchema.safeParse({ ...base, avatarUrl: null }).success).toBe(true)
   })
 })
 

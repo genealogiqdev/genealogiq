@@ -1,37 +1,39 @@
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client"
+import { processMediaUpload, readMediaUploadBody } from "@genealogiq/services/media-storage"
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { canManageProfile } from "@/lib/profile"
+import { checkRateLimit } from "@/lib/rate-limit"
 
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"]
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"]
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const body = (await request.json()) as HandleUploadBody
-
   try {
-    const json = await handleUpload({
-      body,
-      request,
-      onBeforeGenerateToken: async (_pathname, clientPayload) => {
-        const session = await auth()
-        if (!session?.user?.id) throw new Error("Unauthorized")
+    const body = await readMediaUploadBody(request)
+    const session = await auth()
+    if (!session?.user?.id) throw new Error("Unauthorized")
+    if (body.type === "media.upload.authorize") {
+      const rl = await checkRateLimit({
+        key: `upload:geolocation:${session.user.id}`,
+        maxAttempts: 20,
+        windowSeconds: 600,
+      })
+      if (!rl.allowed) throw new Error(`Too many uploads. Try again in ${rl.retryAfter}s.`)
+    }
 
-        const { profileId } = parseClientPayload(clientPayload)
-        const profile = await prisma.appUser.findUnique({
-          where:  { id: profileId },
-          select: { id: true, guardedBy: { where: { status: "ACCEPTED" }, select: { guardianId: true, status: true } } },
-        })
-        if (!profile) throw new Error("Profile not found")
-        if (!canManageProfile(profile, session.user.id)) throw new Error("Forbidden")
+    const { profileId } = parseClientPayload(body.clientPayload)
+    const profile = await prisma.appUser.findUnique({
+      where:  { id: profileId },
+      select: { id: true, guardedBy: { where: { status: "ACCEPTED" }, select: { guardianId: true, status: true } } },
+    })
+    if (!profile) throw new Error("Profile not found")
+    if (!canManageProfile(profile, session.user.id)) throw new Error("Forbidden")
 
-        return {
-          allowedContentTypes: ALLOWED_TYPES,
-          maximumSizeInBytes:  10 * 1024 * 1024,
-          addRandomSuffix:     true,
-        }
-      },
-      onUploadCompleted: async () => {},
+    const json = await processMediaUpload(body, {
+      allowedContentTypes: ALLOWED_TYPES,
+      maximumSizeInBytes: 10 * 1024 * 1024,
+      prefix: `profiles/${profileId}/geolocation`,
+      container: "staging",
     })
     return NextResponse.json(json)
   } catch (error) {

@@ -71,7 +71,6 @@ $enabled = New-Object System.Collections.Generic.List[string]
 $sharedMappings = [ordered]@{
   "google-client-id" = "GOOGLE_CLIENT_ID"
   "google-client-secret" = "GOOGLE_CLIENT_SECRET"
-  "blob-read-write-token" = "BLOB_READ_WRITE_TOKEN"
   "resend-api-key" = "RESEND_API_KEY"
   "stripe-secret-key" = "STRIPE_SECRET_KEY"
 }

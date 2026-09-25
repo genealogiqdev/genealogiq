@@ -23,17 +23,20 @@ var tags = {
 }
 var registryName = 'acrgen${uniqueSuffix}'
 var storageAccountName = 'stgen${uniqueSuffix}'
+var mediaStorageAccountName = 'stgenmedia${uniqueSuffix}'
 var keyVaultName = 'kv-gen-${uniqueSuffix}'
 var postgresServerName = 'psql-genealogiq-${uniqueSuffix}'
 var postgresDatabaseName = 'genealogiq'
 var postgresAdminLogin = 'genealogiqadmin'
 var containerAppsEnvironmentName = 'cae-genealogiq-${environmentName}'
 var identityName = 'id-genealogiq-${environmentName}'
+var mediaIdentityName = 'id-genealogiq-media-${environmentName}'
 var keyVaultSecretsUserRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
 var keyVaultSecretsOfficerRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7')
 var acrPullRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
 var acrPushRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8311e382-0749-4cb8-b61a-304f252e45ec')
 var contributorRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
+var storageBlobDataContributorRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
 
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
   name: 'vnet-genealogiq-${environmentName}'
@@ -170,10 +173,170 @@ resource databaseBackups 'Microsoft.Storage/storageAccounts/blobServices/contain
   }
 }
 
+resource mediaStorageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+  name: mediaStorageAccountName
+  location: location
+  tags: tags
+  sku: {
+    name: 'Standard_LRS'
+  }
+  kind: 'StorageV2'
+  properties: {
+    accessTier: 'Hot'
+    allowBlobPublicAccess: true
+    allowCrossTenantReplication: false
+    allowSharedKeyAccess: false
+    defaultToOAuthAuthentication: true
+    minimumTlsVersion: 'TLS1_2'
+    publicNetworkAccess: 'Enabled'
+    supportsHttpsTrafficOnly: true
+  }
+}
+
+resource mediaBlobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = {
+  name: 'default'
+  parent: mediaStorageAccount
+  properties: {
+    cors: {
+      corsRules: [
+        {
+          allowedHeaders: [
+            'content-length'
+            'content-type'
+            'x-ms-*'
+          ]
+          allowedMethods: [
+            'GET'
+            'HEAD'
+            'OPTIONS'
+            'PUT'
+          ]
+          allowedOrigins: [
+            'https://genealogiq.app'
+            'https://bms.genealogiq.app'
+            'https://sequoia.rip'
+            'http://localhost:3000'
+            'http://localhost:3001'
+            'http://localhost:3002'
+            'http://127.0.0.1:3000'
+            'http://127.0.0.1:3001'
+            'http://127.0.0.1:3002'
+          ]
+          exposedHeaders: [
+            'content-length'
+            'content-type'
+            'etag'
+            'x-ms-request-id'
+            'x-ms-version'
+          ]
+          maxAgeInSeconds: 3600
+        }
+      ]
+    }
+    containerDeleteRetentionPolicy: {
+      enabled: true
+      days: 14
+    }
+    deleteRetentionPolicy: {
+      enabled: true
+      days: 14
+    }
+    isVersioningEnabled: true
+  }
+}
+
+resource publicMedia 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  name: 'media'
+  parent: mediaBlobService
+  properties: {
+    publicAccess: 'Blob'
+  }
+}
+
+resource temporaryMedia 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  name: 'media-staging'
+  parent: mediaBlobService
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
+resource mediaMigrationState 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  name: 'media-migration'
+  parent: mediaBlobService
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
+resource mediaLifecycle 'Microsoft.Storage/storageAccounts/managementPolicies@2023-05-01' = {
+  name: 'default'
+  parent: mediaStorageAccount
+  properties: {
+    policy: {
+      rules: [
+        {
+          enabled: true
+          name: 'delete-abandoned-staging-uploads'
+          type: 'Lifecycle'
+          definition: {
+            actions: {
+              baseBlob: {
+                delete: {
+                  daysAfterModificationGreaterThan: 1
+                }
+              }
+              version: {
+                delete: {
+                  daysAfterCreationGreaterThan: 1
+                }
+              }
+            }
+            filters: {
+              blobTypes: [
+                'blockBlob'
+              ]
+              prefixMatch: [
+                'media-staging/'
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
 resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: identityName
   location: location
   tags: tags
+}
+
+resource mediaIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: mediaIdentityName
+  location: location
+  tags: tags
+}
+
+resource mediaBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(mediaStorageAccount.id, mediaIdentity.id, storageBlobDataContributorRoleId)
+  scope: mediaStorageAccount
+  properties: {
+    principalId: mediaIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: storageBlobDataContributorRoleId
+  }
+}
+
+resource deployerMediaBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(deployerPrincipalId)) {
+  name: guid(mediaStorageAccount.id, deployerPrincipalId, storageBlobDataContributorRoleId)
+  scope: mediaStorageAccount
+  properties: {
+    principalId: deployerPrincipalId
+    principalType: 'User'
+    roleDefinitionId: storageBlobDataContributorRoleId
+  }
 }
 
 resource githubIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
@@ -283,6 +446,26 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
     sku: {
       name: 'PerGB2018'
     }
+  }
+}
+
+resource mediaDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: 'media-blob-diagnostics'
+  scope: mediaBlobService
+  properties: {
+    workspaceId: logAnalytics.id
+    logs: [
+      {
+        categoryGroup: 'allLogs'
+        enabled: true
+      }
+    ]
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+      }
+    ]
   }
 }
 
@@ -441,6 +624,38 @@ var commonPlainEnvironment = [
     name: 'DATABASE_POOL_MAX'
     value: '5'
   }
+  {
+    name: 'MEDIA_PUBLIC_BASE_URL'
+    value: '${mediaStorageAccount.properties.primaryEndpoints.blob}${publicMedia.name}'
+  }
+  {
+    name: 'NEXT_PUBLIC_MEDIA_PUBLIC_BASE_URL'
+    value: '${mediaStorageAccount.properties.primaryEndpoints.blob}${publicMedia.name}'
+  }
+  {
+    name: 'AZURE_STORAGE_ACCOUNT_NAME'
+    value: mediaStorageAccount.name
+  }
+  {
+    name: 'AZURE_STORAGE_ACCOUNT_URL'
+    value: mediaStorageAccount.properties.primaryEndpoints.blob
+  }
+  {
+    name: 'AZURE_STORAGE_MEDIA_CONTAINER'
+    value: publicMedia.name
+  }
+  {
+    name: 'AZURE_STORAGE_STAGING_CONTAINER'
+    value: temporaryMedia.name
+  }
+  {
+    name: 'AZURE_STORAGE_MIGRATION_CONTAINER'
+    value: mediaMigrationState.name
+  }
+  {
+    name: 'AZURE_STORAGE_MANAGED_IDENTITY_CLIENT_ID'
+    value: mediaIdentity.properties.clientId
+  }
 ]
 
 var commonSecretEnvironment = [
@@ -458,11 +673,6 @@ var commonSecretEnvironment = [
     environmentName: 'GOOGLE_CLIENT_SECRET'
     secretName: 'google-client-secret'
     keyVaultSecretName: 'google-client-secret'
-  }
-  {
-    environmentName: 'BLOB_READ_WRITE_TOKEN'
-    secretName: 'blob-read-write-token'
-    keyVaultSecretName: 'blob-read-write-token'
   }
   {
     environmentName: 'RESEND_API_KEY'
@@ -556,6 +766,14 @@ var transferSecretEnvironment = filter([
   }
 ], item => contains(enabledSecretNames, item.keyVaultSecretName))
 
+var mediaMigrationSecretEnvironment = filter([
+  {
+    environmentName: 'DATABASE_URL'
+    secretName: 'database-url-direct'
+    keyVaultSecretName: 'database-url-direct'
+  }
+], item => contains(enabledSecretNames, item.keyVaultSecretName))
+
 module consumerApp './container-app.bicep' = if (deployApplications) {
   name: 'deploy-consumer-app'
   params: {
@@ -564,6 +782,7 @@ module consumerApp './container-app.bicep' = if (deployApplications) {
     environmentId: containerAppsEnvironment.id
     registryServer: registry.properties.loginServer
     identityResourceId: identity.id
+    mediaIdentityResourceId: mediaIdentity.id
     image: '${registry.properties.loginServer}/genealogiq-app:${imageTag}'
     keyVaultUri: keyVault.properties.vaultUri
     minReplicas: 1
@@ -597,6 +816,7 @@ module consumerApp './container-app.bicep' = if (deployApplications) {
   dependsOn: [
     registryPull
     keyVaultReader
+    mediaBlobContributor
     database
     pgbouncer
   ]
@@ -610,6 +830,7 @@ module bmsApp './container-app.bicep' = if (deployApplications) {
     environmentId: containerAppsEnvironment.id
     registryServer: registry.properties.loginServer
     identityResourceId: identity.id
+    mediaIdentityResourceId: mediaIdentity.id
     image: '${registry.properties.loginServer}/genealogiq-bms:${imageTag}'
     keyVaultUri: keyVault.properties.vaultUri
     minReplicas: 1
@@ -631,6 +852,7 @@ module bmsApp './container-app.bicep' = if (deployApplications) {
   dependsOn: [
     registryPull
     keyVaultReader
+    mediaBlobContributor
     database
     pgbouncer
   ]
@@ -644,6 +866,7 @@ module seqApp './container-app.bicep' = if (deployApplications) {
     environmentId: containerAppsEnvironment.id
     registryServer: registry.properties.loginServer
     identityResourceId: identity.id
+    mediaIdentityResourceId: mediaIdentity.id
     image: '${registry.properties.loginServer}/genealogiq-seq:${imageTag}'
     keyVaultUri: keyVault.properties.vaultUri
     minReplicas: 1
@@ -665,6 +888,7 @@ module seqApp './container-app.bicep' = if (deployApplications) {
   dependsOn: [
     registryPull
     keyVaultReader
+    mediaBlobContributor
     database
     pgbouncer
   ]
@@ -724,6 +948,54 @@ module migrationJob './container-job.bicep' = if (deployApplications) {
   dependsOn: [
     registryPull
     keyVaultReader
+  ]
+}
+
+module mediaMigrationJob './container-job.bicep' = if (deployApplications) {
+  name: 'deploy-media-migration-job'
+  params: {
+    location: location
+    name: 'job-gen-media-migrate-${environmentName}'
+    environmentId: containerAppsEnvironment.id
+    registryServer: registry.properties.loginServer
+    identityResourceId: identity.id
+    mediaIdentityResourceId: mediaIdentity.id
+    image: '${registry.properties.loginServer}/genealogiq-migration:${imageTag}'
+    keyVaultUri: keyVault.properties.vaultUri
+    triggerType: 'Manual'
+    replicaTimeout: 7200
+    replicaRetryLimit: 0
+    cpu: '1.0'
+    memory: '2Gi'
+    command: [
+      'node'
+    ]
+    args: [
+      '--conditions=react-server'
+      '--import'
+      'tsx'
+      'packages/services/src/media-migration.ts'
+      '--copy'
+      '--verify'
+      '--manifest=/tmp/media-migration-manifest.json'
+    ]
+    plainEnvironment: filter(commonPlainEnvironment, item => contains([
+      'MEDIA_PUBLIC_BASE_URL'
+      'AZURE_STORAGE_ACCOUNT_NAME'
+      'AZURE_STORAGE_ACCOUNT_URL'
+      'AZURE_STORAGE_MEDIA_CONTAINER'
+      'AZURE_STORAGE_STAGING_CONTAINER'
+      'AZURE_STORAGE_MIGRATION_CONTAINER'
+      'AZURE_STORAGE_MANAGED_IDENTITY_CLIENT_ID'
+    ], item.name))
+    secretEnvironment: mediaMigrationSecretEnvironment
+  }
+  dependsOn: [
+    registryPull
+    keyVaultReader
+    mediaBlobContributor
+    database
+    pgbouncer
   ]
 }
 
@@ -896,6 +1168,14 @@ output registryName string = registry.name
 output registryLoginServer string = registry.properties.loginServer
 output storageAccountName string = storageAccount.name
 output databaseBackupContainerName string = databaseBackups.name
+output mediaStorageAccountName string = mediaStorageAccount.name
+output mediaContainerName string = publicMedia.name
+output mediaStagingContainerName string = temporaryMedia.name
+output mediaMigrationContainerName string = mediaMigrationState.name
+output mediaPublicBaseUrl string = '${mediaStorageAccount.properties.primaryEndpoints.blob}${publicMedia.name}'
+output mediaManagedIdentityName string = mediaIdentity.name
+output mediaManagedIdentityClientId string = mediaIdentity.properties.clientId
+output mediaMigrationJobName string = deployApplications ? mediaMigrationJob!.outputs.name : ''
 output keyVaultName string = keyVault.name
 output keyVaultUri string = keyVault.properties.vaultUri
 output containerAppsEnvironmentName string = containerAppsEnvironment.name

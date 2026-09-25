@@ -10,6 +10,7 @@ import { identityTranslator } from "@/schemas/i18n"
 import { getProfileById } from "@/queries/profile"
 import { canManageProfile } from "@/lib/profile"
 import { deleteBlobs } from "@/lib/blob"
+import { isAuthorizedMediaReference } from "@genealogiq/services/media-storage"
 
 export async function saveGeolocation(profileId: string, data: unknown): Promise<ActionResult> {
   const t = await getTranslations("Actions")
@@ -25,11 +26,27 @@ export async function saveGeolocation(profileId: string, data: unknown): Promise
     where: { userId: profileId },
     select: { photo1: true, photo2: true, photo3: true },
   })
+  const oldPhotos = new Set(
+    [existing?.photo1, existing?.photo2, existing?.photo3]
+      .filter((url): url is string => Boolean(url)),
+  )
+  const nextPhotos = [parsed.data.photo1, parsed.data.photo2, parsed.data.photo3]
+  if (nextPhotos.some((url) =>
+    Boolean(url) &&
+    !oldPhotos.has(url!) &&
+    !isAuthorizedMediaReference(
+      url,
+      [`profiles/${profileId}/geolocation`],
+      { allowLegacy: false },
+    )
+  )) {
+    return fail(t("common.invalidData"))
+  }
+  let stalePhotos: string[] = []
   if (existing) {
     const newPhotos = new Set([parsed.data.photo1, parsed.data.photo2, parsed.data.photo3].filter(Boolean))
-    await deleteBlobs(
-      [existing.photo1, existing.photo2, existing.photo3].filter((u): u is string => !!u && !newPhotos.has(u)),
-    )
+    stalePhotos = [existing.photo1, existing.photo2, existing.photo3]
+      .filter((u): u is string => !!u && !newPhotos.has(u))
   }
 
   // Flatten the nested address object into the DB columns. Coordinates used to
@@ -43,6 +60,7 @@ export async function saveGeolocation(profileId: string, data: unknown): Promise
     create: { userId: profileId, ...flat },
     update: flat,
   })
+  await deleteBlobs(stalePhotos)
 
   revalidatePath(`/profile/${profileId}/geolocation`)
   return done()
@@ -59,9 +77,8 @@ export async function deleteGeolocation(profileId: string): Promise<ActionResult
     where: { userId: profileId },
     select: { photo1: true, photo2: true, photo3: true },
   })
-  await deleteBlobs([existing?.photo1, existing?.photo2, existing?.photo3])
-
   await prisma.geolocation.deleteMany({ where: { userId: profileId } })
+  await deleteBlobs([existing?.photo1, existing?.photo2, existing?.photo3])
   revalidatePath(`/profile/${profileId}/geolocation`)
   return done()
 }

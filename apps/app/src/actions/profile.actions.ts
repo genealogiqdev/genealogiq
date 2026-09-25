@@ -8,6 +8,7 @@ import { verifySession } from "@/lib/dal"
 import { getProfileEditSchema } from "@/schemas/profile.schema"
 import { identityTranslator } from "@/schemas/i18n"
 import { deleteBlobs } from "@/lib/blob"
+import { isAuthorizedMediaReference } from "@genealogiq/services/media-storage"
 
 export async function updateProfile(data: unknown): Promise<ActionResult> {
   const t = await getTranslations("Actions")
@@ -30,9 +31,15 @@ export async function updateProfile(data: unknown): Promise<ActionResult> {
     where: { id: session.user.id },
     select: { avatarUrl: true, addressId: true },
   })
-
-  if (current?.avatarUrl && current.avatarUrl !== avatarUrl) {
-    await deleteBlobs([current.avatarUrl])
+  if (
+    avatarUrl !== current?.avatarUrl &&
+    !isAuthorizedMediaReference(
+      avatarUrl,
+      [`profiles/${session.user.id}/bio`],
+      { allowLegacy: false },
+    )
+  ) {
+    return fail(t("common.invalidData"))
   }
 
   const addressId = await upsertAddress(current?.addressId ?? null, address)
@@ -66,6 +73,9 @@ export async function updateProfile(data: unknown): Promise<ActionResult> {
       addressId,
     },
   })
+  if (current?.avatarUrl && current.avatarUrl !== avatarUrl) {
+    await deleteBlobs([current.avatarUrl])
+  }
 
   revalidatePath(`/profile/${session.user.id}`)
   revalidatePath("/", "layout")

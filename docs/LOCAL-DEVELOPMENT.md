@@ -43,6 +43,12 @@ SEQUOIA_URL="http://localhost:3002"
 AUTH_TRUST_HOST=true
 DATABASE_URL="postgresql://genealogiq:genealogiq@localhost:5432/genealogiq?schema=public"
 AUTH_SECRET="replace-with-a-random-local-secret-at-least-32-characters"
+AZURE_STORAGE_CONNECTION_STRING="UseDevelopmentStorage=true"
+AZURE_STORAGE_MEDIA_CONTAINER="media"
+AZURE_STORAGE_STAGING_CONTAINER="media-staging"
+AZURE_STORAGE_MIGRATION_CONTAINER="media-migration"
+MEDIA_PUBLIC_BASE_URL="http://127.0.0.1:10000/devstoreaccount1/media"
+NEXT_PUBLIC_MEDIA_PUBLIC_BASE_URL="http://127.0.0.1:10000/devstoreaccount1/media"
 ```
 
 The `.env` files are gitignored. Generate a secret, for example, with:
@@ -51,10 +57,10 @@ The `.env` files are gitignored. Generate a secret, for example, with:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-The other variables in each app's `.env.example` enable optional integrations
-such as Google OAuth, Stripe, Resend, Vercel Blob, Sentry, web push, and
-Turnstile. The apps boot locally without them, but their associated features
-will not work.
+`compose.yaml` starts Azurite with PostgreSQL. The media containers are created
+on the first upload. The other variables in each app's `.env.example` enable
+optional integrations such as Google OAuth, Stripe, Resend, Sentry, web push,
+and Turnstile.
 
 Start PostgreSQL, create the schema, and seed the local identities:
 
@@ -67,6 +73,15 @@ history reflects historical production DDL, including changes that were applied
 outside the repository, and cannot bootstrap an empty database. Do not replace
 the production deployment process with `db:push`; production continues to use
 `pnpm db:migrate:deploy` as described in `packages/db/README.md`.
+
+To exercise the real upload/SAS path against Azurite:
+
+```powershell
+$env:RUN_AZURITE_TESTS="true"
+$env:AZURE_STORAGE_CONNECTION_STRING="UseDevelopmentStorage=true"
+$env:MEDIA_PUBLIC_BASE_URL="http://127.0.0.1:10000/devstoreaccount1/media"
+pnpm exec vitest run --project services packages/services/src/media-storage.integration.test.ts
+```
 
 ## Local login
 

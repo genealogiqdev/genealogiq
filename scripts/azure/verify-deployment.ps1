@@ -43,4 +43,38 @@ if ($failedJobs) {
   Write-Warning "Historical failed job executions exist; inspect them before cleanup."
 }
 
+$outputs = Get-Content ".azure/outputs.json" -Raw | ConvertFrom-Json
+$mediaAccount = $outputs.mediaStorageAccountName.value
+$mediaContainer = $outputs.mediaContainerName.value
+$mediaAccountState = az storage account show `
+  --name $mediaAccount `
+  --resource-group $ResourceGroup `
+  --query "{httpsOnly:enableHttpsTrafficOnly,minTls:minimumTlsVersion,publicBlob:allowBlobPublicAccess,sharedKey:allowSharedKeyAccess}" `
+  --output json | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0) { throw "Unable to inspect media storage account." }
+if (
+  -not $mediaAccountState.httpsOnly -or
+  $mediaAccountState.minTls -ne "TLS1_2" -or
+  -not $mediaAccountState.publicBlob -or
+  $mediaAccountState.sharedKey
+) {
+  throw "Media storage security settings do not match the deployment contract."
+}
+
+$publicAccess = az storage container show `
+  --account-name $mediaAccount `
+  --name $mediaContainer `
+  --auth-mode login `
+  --query properties.publicAccess `
+  --output tsv
+if ($LASTEXITCODE -ne 0 -or $publicAccess -ne "blob") {
+  throw "Media container is not configured for blob-only public reads."
+}
+
+az containerapp job show `
+  --name job-gen-media-migrate-prod `
+  --resource-group $ResourceGroup `
+  --output none
+if ($LASTEXITCODE -ne 0) { throw "Unable to inspect the media migration job." }
+
 Write-Host "Azure deployment verification passed."

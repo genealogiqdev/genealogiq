@@ -10,6 +10,8 @@ const { prismaMock } = vi.hoisted(() => ({
     galleryItem: { findMany: vi.fn() },
     tribute: { findMany: vi.fn() },
     geolocation: { findUnique: vi.fn() },
+    document: { findMany: vi.fn() },
+    geoPlace: { findMany: vi.fn() },
   },
 }))
 
@@ -21,6 +23,7 @@ vi.mock("@/lib/dal", () => ({ verifySession: vi.fn() }))
 vi.mock("@/queries/profile", () => ({ getProfileById: vi.fn(), getProfileForEdit: vi.fn() }))
 vi.mock("@/lib/profile", () => ({ canManageProfile: vi.fn() }))
 vi.mock("@/lib/blob", () => ({ deleteBlobs: vi.fn() }))
+vi.mock("@genealogiq/services/media-storage", () => ({ isAuthorizedMediaReference: vi.fn(() => true) }))
 vi.mock("@/lib/memorial-quota", () => ({ getMemorialCreationStatus: vi.fn() }))
 
 import { createMemorial, deleteMemorial } from "./memorial.actions"
@@ -49,6 +52,8 @@ beforeEach(() => {
   // Default create-path success wiring.
   prismaMock.appUser.create.mockResolvedValue({ id: "memo-1" })
   prismaMock.appUserGuardian.create.mockResolvedValue({})
+  prismaMock.document.findMany.mockResolvedValue([])
+  prismaMock.geoPlace.findMany.mockResolvedValue([])
 })
 
 describe("createMemorial — quota guard", () => {
@@ -147,23 +152,28 @@ describe("deleteMemorial — guards + cascade", () => {
       avatarUrl: "https://example.public.blob.vercel-storage.com/avatar.png",
     } as never)
     prismaMock.bio.findUnique.mockResolvedValue({ images: [{ url: "bio-1.png" }] })
-    prismaMock.galleryItem.findMany.mockResolvedValue([{ url: "gallery-1.png" }])
+    prismaMock.galleryItem.findMany.mockResolvedValue([{ url: "gallery-1.png", poster: "poster-1.png" }])
     prismaMock.tribute.findMany.mockResolvedValue([{ imageUrl: "tribute-1.png" }])
     prismaMock.geolocation.findUnique.mockResolvedValue({ photo1: "geo-1.png", photo2: null, photo3: null })
+    prismaMock.document.findMany.mockResolvedValue([{ fileUrl: "document-1.pdf" }])
+    prismaMock.geoPlace.findMany.mockResolvedValue([{ photos: ["place-1.png"] }])
     prismaMock.appUser.delete.mockResolvedValue({})
 
     const res = await deleteMemorial("p")
 
     expect(res).toEqual({ ok: true, message: undefined })
     expect(prismaMock.appUser.delete).toHaveBeenCalledWith({ where: { id: "p" } })
-    // Every collected blob URL is handed to deleteBlobs before the row is removed.
+    // Every collected blob URL is handed to deleteBlobs after the row is removed.
     const passedUrls = vi.mocked(deleteBlobs).mock.calls[0]?.[0]
     expect(passedUrls).toEqual(
       expect.arrayContaining([
         "https://example.public.blob.vercel-storage.com/avatar.png",
         "bio-1.png",
         "gallery-1.png",
+        "poster-1.png",
         "tribute-1.png",
+        "document-1.pdf",
+        "place-1.png",
         "geo-1.png",
       ]),
     )

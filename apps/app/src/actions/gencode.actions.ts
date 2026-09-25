@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server"
 import { ok, fail, type ActionResult } from "@genealogiq/core"
 import { canActivate, consumeCreditForActivation, InsufficientCreditsError } from "@genealogiq/services/credits"
 import { grantActivationTrial } from "@genealogiq/services/activation-trial"
+import { isAuthorizedMediaReference } from "@genealogiq/services/media-storage"
 import { prisma } from "@/lib/prisma"
 import { verifySession } from "@/lib/dal"
 import { getMemorialSchema } from "@/schemas/memorial.schema"
@@ -48,6 +49,13 @@ export async function activateGenCode(
 
   const parsed = getMemorialSchema(identityTranslator).safeParse(data)
   if (!parsed.success) return fail(parsed.error.issues[0].message)
+  if (!isAuthorizedMediaReference(
+    parsed.data.avatarUrl,
+    [`pending/${session.user.id}/create-memorial`],
+    { allowLegacy: false },
+  )) {
+    return fail(t("common.invalidData"))
+  }
 
   const { firstName, lastName, gender, birthDate, birthPlace, birthCountry, deathDate, deathPlace, deathCountry, avatarUrl } = parsed.data
 

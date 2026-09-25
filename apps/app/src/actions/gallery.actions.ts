@@ -12,6 +12,7 @@ import { deleteBlobs } from "@/lib/blob"
 import { getMemorialFeatures } from "@/lib/subscription"
 import { exceedsQuota } from "@/lib/quota"
 import { getCombinedMediaUsage } from "@/queries/media-usage"
+import { isAuthorizedMediaReference } from "@genealogiq/services/media-storage"
 
 export async function saveGallery(profileId: string, data: unknown): Promise<ActionResult> {
   const t = await getTranslations("Actions")
@@ -50,29 +51,56 @@ export async function saveGallery(profileId: string, data: unknown): Promise<Act
 
   const oldItems = await prisma.galleryItem.findMany({
     where: { userId: profileId },
-    select: { url: true },
+    select: { url: true, poster: true },
   })
-  const newUrls = new Set(items.map((i) => i.url))
-  await deleteBlobs(oldItems.map((i) => i.url).filter((u) => !newUrls.has(u)))
-
-  await prisma.galleryItem.deleteMany({ where: { userId: profileId } })
-
-  if (items.length > 0) {
-    await prisma.galleryItem.createMany({
-      data: items.map((item, i) => ({
-        // id is DB-generated (cuid) — never persist a client-supplied primary key.
-        kind: item.kind,
-        url: item.url,
-        poster: item.poster,
-        durationSec: item.durationSec,
-        takenAt: item.takenAt,
-        location: item.location,
-        description: item.description,
-        order: i,
-        userId: profileId,
-      })),
-    })
+  const oldUrls = new Set(
+    oldItems
+      .flatMap((item) => [item.url, item.poster])
+      .filter((url): url is string => Boolean(url)),
+  )
+  if (items.some((item) =>
+    (!oldUrls.has(item.url) &&
+      !isAuthorizedMediaReference(item.url, [`profiles/${profileId}/gallery`], {
+        allowLegacy: false,
+      })) ||
+    (Boolean(item.poster) &&
+      !oldUrls.has(item.poster!) &&
+      !isAuthorizedMediaReference(item.poster, [`profiles/${profileId}/gallery`], {
+        allowLegacy: false,
+      }))
+  )) {
+    return fail(t("common.invalidData"))
   }
+  const newUrls = new Set(
+    items
+      .flatMap((item) => [item.url, item.poster])
+      .filter((url): url is string => Boolean(url)),
+  )
+  const staleUrls = oldItems
+    .flatMap((item) => [item.url, item.poster])
+    .filter((url): url is string => Boolean(url))
+    .filter((url) => !newUrls.has(url))
+
+  await prisma.$transaction(async (tx) => {
+    await tx.galleryItem.deleteMany({ where: { userId: profileId } })
+    if (items.length > 0) {
+      await tx.galleryItem.createMany({
+        data: items.map((item, i) => ({
+          // id is DB-generated (cuid) — never persist a client-supplied primary key.
+          kind: item.kind,
+          url: item.url,
+          poster: item.poster,
+          durationSec: item.durationSec,
+          takenAt: item.takenAt,
+          location: item.location,
+          description: item.description,
+          order: i,
+          userId: profileId,
+        })),
+      })
+    }
+  })
+  await deleteBlobs(staleUrls)
 
   revalidatePath(`/profile/${profileId}/gallery`)
   return done()
@@ -87,11 +115,14 @@ export async function deleteGallery(profileId: string): Promise<ActionResult> {
 
   const items = await prisma.galleryItem.findMany({
     where: { userId: profileId },
-    select: { url: true },
+    select: { url: true, poster: true },
   })
-  await deleteBlobs(items.map((i) => i.url))
-
   await prisma.galleryItem.deleteMany({ where: { userId: profileId } })
+  await deleteBlobs(
+    items
+      .flatMap((item) => [item.url, item.poster])
+      .filter((url): url is string => Boolean(url)),
+  )
   revalidatePath(`/profile/${profileId}/gallery`)
   return done()
 }

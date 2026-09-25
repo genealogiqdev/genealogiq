@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl"
 import { User, BookOpen, GitBranch, Plus, Minus, PawPrint } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { TreePerson } from "@/queries/family-tree"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { NODE_W, NODE_H } from "./layout"
 
 interface Props {
@@ -108,20 +109,19 @@ export function PersonNode({
           : "0 4px 14px -6px hsl(230 40% 12% / 0.25), inset 0 1px 0 hsl(0 0% 100% / 0.4)",
       }}
     >
-      <div className={cn("h-9 w-9 rounded-full overflow-hidden shrink-0 bg-muted flex items-center justify-center ring-2", ringColor)}>
-        {person.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+      <Avatar className={cn("h-9 w-9 shrink-0 bg-muted ring-2", ringColor)}>
+        {person.avatarUrl && (
+          <AvatarImage
             src={person.avatarUrl}
             alt={displayName}
-            className={cn("h-full w-full object-cover", isMemorial && "saturate-50")}
+            loading="lazy"
+            className={cn(isMemorial && "saturate-50")}
           />
-        ) : (
-          <span className="text-[10px] font-semibold text-muted-foreground">
-            {initials || <User className="h-3.5 w-3.5" />}
-          </span>
         )}
-      </div>
+        <AvatarFallback className="text-[10px] font-semibold text-muted-foreground">
+          {initials || <User className="h-3.5 w-3.5" />}
+        </AvatarFallback>
+      </Avatar>
 
       <div className="min-w-0 flex-1">
         <p className={cn("text-[11.5px] font-semibold leading-tight truncate", (isGhost || isPending) && "italic text-muted-foreground")}>

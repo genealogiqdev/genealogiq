@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { BLOB_URL_PATTERN } from "@genealogiq/core"
+import { isAllowedMediaUrl } from "@genealogiq/core"
 import type { Translator } from "./i18n"
 import { addressSchema } from "./address.schema"
 import { PLACE_CATEGORIES } from "@/consts/place-categories"
@@ -8,7 +8,7 @@ const MAX_PHOTOS = 6
 
 // Place photos are uploaded to Vercel Blob (see /api/places/upload), so stored
 // URLs must point at that host — never an arbitrary external origin.
-const blobUrl = z.string().regex(BLOB_URL_PATTERN, "Invalid media URL")
+const blobUrl = z.string().refine(isAllowedMediaUrl, "Invalid media URL")
 
 export function getPlaceSchema(t: Translator) {
   return z

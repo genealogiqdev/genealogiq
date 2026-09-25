@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
-const { prismaMock } = vi.hoisted(() => ({
-  prismaMock: { user: { update: vi.fn() } },
+const { prismaMock, deleteUnreferencedMediaUrls } = vi.hoisted(() => ({
+  prismaMock: { user: { findUnique: vi.fn(), update: vi.fn() } },
+  deleteUnreferencedMediaUrls: vi.fn(),
 }))
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
@@ -10,6 +11,10 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (key: string) => key }))
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }))
 vi.mock("@/lib/dal", () => ({ verifySession: vi.fn() }))
+vi.mock("@genealogiq/services/media-storage", () => ({
+  deleteUnreferencedMediaUrls,
+  isAuthorizedMediaReference: vi.fn(() => true),
+}))
 
 import { updateProfile, updateAvatar } from "./profile.actions"
 import { verifySession } from "@/lib/dal"
@@ -133,6 +138,9 @@ describe("updateAvatar — url validation + self-scope", () => {
   })
 
   it("returns done(profile.avatarUpdated) and scopes the write to the session user on a valid url", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      avatarUrl: "https://old.public.blob.vercel-storage.com/avatar.png",
+    })
     prismaMock.user.update.mockResolvedValue({ id: SESSION_USER_ID })
 
     const res = await updateAvatar(validUrl)
@@ -145,5 +153,8 @@ describe("updateAvatar — url validation + self-scope", () => {
       }),
     )
     expect(revalidatePath).toHaveBeenCalledWith("/profile")
+    expect(deleteUnreferencedMediaUrls).toHaveBeenCalledWith([
+      "https://old.public.blob.vercel-storage.com/avatar.png",
+    ])
   })
 })

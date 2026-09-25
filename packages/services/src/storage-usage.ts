@@ -1,7 +1,7 @@
 import 'server-only'
 
-import { list } from '@vercel/blob'
 import { prisma } from '@genealogiq/db'
+import { getMediaObjectSize } from './media-storage'
 
 /**
  * How many BYTES a profile actually stores.
@@ -27,26 +27,52 @@ export interface StorageUsage {
   bytes:     number
 }
 
-/** Blob keys are prefixed per profile by the upload routes. */
-function prefixFor(profileId: string): string {
-  return `${profileId}/`
-}
-
 export async function getProfileStorageUsage(profileId: string): Promise<StorageUsage> {
-  let files = 0
+  const [profile, operator, bio, gallery, places, documents, geolocation, tributes] =
+    await Promise.all([
+      prisma.appUser.findUnique({ where: { id: profileId }, select: { avatarUrl: true } }),
+      prisma.user.findUnique({ where: { id: profileId }, select: { avatarUrl: true, cover_url: true } }),
+      prisma.bio.findUnique({
+        where: { userId: profileId },
+        select: { images: { select: { url: true } } },
+      }),
+      prisma.galleryItem.findMany({
+        where: { userId: profileId },
+        select: { url: true, poster: true },
+      }),
+      prisma.geoPlace.findMany({ where: { userId: profileId }, select: { photos: true } }),
+      prisma.document.findMany({ where: { userId: profileId }, select: { fileUrl: true } }),
+      prisma.geolocation.findUnique({
+        where: { userId: profileId },
+        select: { photo1: true, photo2: true, photo3: true },
+      }),
+      prisma.tribute.findMany({ where: { profileId }, select: { imageUrl: true } }),
+    ])
+
+  const urls = [
+    profile?.avatarUrl,
+    operator?.avatarUrl,
+    operator?.cover_url,
+    ...(bio?.images.map((image) => image.url) ?? []),
+    ...gallery.flatMap((item) => [item.url, item.poster]),
+    ...places.flatMap((place) => place.photos),
+    ...documents.map((document) => document.fileUrl),
+    geolocation?.photo1,
+    geolocation?.photo2,
+    geolocation?.photo3,
+    ...tributes.map((tribute) => tribute.imageUrl),
+  ].filter((url): url is string => Boolean(url))
+
+  const uniqueUrls = [...new Set(urls)]
   let bytes = 0
-  let cursor: string | undefined
+  for (let index = 0; index < uniqueUrls.length; index += 10) {
+    const sizes = await Promise.all(
+      uniqueUrls.slice(index, index + 10).map((url) => getMediaObjectSize(url)),
+    )
+    bytes += sizes.reduce((sum, size) => sum + size, 0)
+  }
 
-  do {
-    const page = await list({ prefix: prefixFor(profileId), cursor, limit: 1000 })
-    for (const blob of page.blobs) {
-      files += 1
-      bytes += blob.size
-    }
-    cursor = page.hasMore ? page.cursor : undefined
-  } while (cursor)
-
-  return { profileId, files, bytes }
+  return { profileId, files: uniqueUrls.length, bytes }
 }
 
 /**
@@ -79,7 +105,7 @@ export async function getGuardianStorageUsage(guardianId: string): Promise<{
   }
 }
 
-/** Bytes → GB-month cost at Vercel Blob's rate, for reasoning about a trial. */
+/** Bytes → estimated GB-month storage cost; retained for historical reports. */
 export const BLOB_USD_PER_GB_MONTH = 0.023
 
 export function monthlyStorageCostUsd(bytes: number): number {

@@ -7,6 +7,7 @@ import { verifyTurnstileToken } from "@/lib/turnstile"
 import { getFeedbackSchema } from "@/schemas/feedback.schema"
 import { identityTranslator } from "@/schemas/i18n"
 import { sendFeedback as sendFeedbackEmail } from "@/lib/email"
+import { isAuthorizedMediaReference } from "@genealogiq/services/media-storage"
 
 // Minimum time a real human needs to open the dialog and fill it in — bots
 // that skip the honeypot but submit instantly are the target.
@@ -19,6 +20,9 @@ export async function sendFeedback(data: unknown): Promise<ActionResult> {
 
   const parsed = getFeedbackSchema(identityTranslator).safeParse(data)
   if (!parsed.success) return fail(t("common.invalidData"))
+  if (!isAuthorizedMediaReference(parsed.data.cvUrl, ["career"], { allowLegacy: false })) {
+    return fail(t("common.invalidData"))
+  }
 
   const ip = await getClientIp()
 

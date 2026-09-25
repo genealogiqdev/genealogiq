@@ -7,7 +7,7 @@ Para cada item: execute a ação e confirme o resultado esperado. Marque `[x]` a
 
 - [ ] App carrega sem erro no console do navegador (F12 → Console).
 - [ ] Build de produção / preview Vercel sobe sem erro (`pnpm build` por app, se quiser validar local).
-- [ ] Variáveis de ambiente por app presentes (cookie name, `AUTH_SECRET`, `DATABASE_URL`, `STRIPE_*`, `RESEND_API_KEY`, `BLOB_READ_WRITE_TOKEN`).
+- [ ] Variáveis de ambiente por app presentes (cookie name, `AUTH_SECRET`, `DATABASE_URL`, `STRIPE_*`, `RESEND_API_KEY`, `AZURE_STORAGE_*`, `MEDIA_PUBLIC_BASE_URL`).
 
 > Dica: use um navegador (ou perfil) separado por app — os cookies de sessão são
 > distintos (`bms.`/`seq.`/`app.session-token`), então dá pra ficar logado nas três ao mesmo tempo.
@@ -134,6 +134,8 @@ Para cada item: execute a ação e confirme o resultado esperado. Marque `[x]` a
 ### 3.4 Memorializados e árvore
 - [ ] **Memorialized:** ver (`/profile/[id]/memorialized`) e criar (`/memorialized/new`).
 - [ ] **Family tree** (`/profile/[id]/tree`): carrega o layout, adiciona/edita parentesco.
+- [ ] **Fotos na árvore:** criar pessoa e pet com foto; trocar/remover a foto ao editar; confirmar fallback para iniciais quando a URL falha.
+- [ ] A foto aparece nos nós e detalhes da árvore em desktop/mobile, inclusive para pets e memoriais, sem alterar o layout.
 - [ ] **Tributes:** ver, editar (`/tributes/edit`), **upload** (`/api/tribute/upload`); **moderar** (`/tributes/moderate`) só pelo dono/guardião.
 
 ### 3.5 Guardianship e family requests

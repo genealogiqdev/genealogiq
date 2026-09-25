@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { BLOB_URL_PATTERN } from "@genealogiq/core"
+import { isAllowedMediaUrl } from "@genealogiq/core"
 import type { Translator } from "./i18n"
 
 // Identity fields shared by create and update — species/breed are free text
@@ -13,7 +13,7 @@ function petIdentityShape(t: Translator) {
     gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional().nullable(),
     birthDate: z.coerce.date().optional().nullable(),
     deathDate: z.coerce.date().optional().nullable(),
-    avatarUrl: z.string().regex(BLOB_URL_PATTERN, t("invalidUrl")).optional().nullable(),
+    avatarUrl: z.string().refine(isAllowedMediaUrl, t("invalidUrl")).optional().nullable(),
   }
 }
 

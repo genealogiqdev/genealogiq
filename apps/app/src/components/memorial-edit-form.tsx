@@ -10,7 +10,7 @@ import {
   CalendarIcon, Image as ImageIcon, Trash2, Save, RotateCcw,
 } from "lucide-react"
 import { toast } from "sonner"
-import { upload } from "@vercel/blob/client"
+import { uploadMedia as upload } from "@genealogiq/core"
 import { compressImage } from "@/lib/image-compress"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"

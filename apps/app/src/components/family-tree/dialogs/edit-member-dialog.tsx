@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select"
 import { updateMember } from "@/actions/family-tree.actions"
 import type { TreePerson } from "@/queries/family-tree"
+import { TreePortraitPicker } from "./tree-portrait-picker"
 
 interface Props {
   open:      boolean
@@ -46,8 +47,14 @@ export function EditMemberDialog({ open, onClose, rootId, person, onSuccess }: P
   const [deathDate,  setDeathDate]  = useState(toInputDate(person.deathDate))
   const [birthPlace, setBirthPlace] = useState(person.birthPlace ?? "")
   const [deathPlace, setDeathPlace] = useState(person.deathPlace ?? "")
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(person.avatarUrl)
+  const [avatarUploading, setAvatarUploading] = useState(false)
 
   const handleSave = () => {
+    if (avatarUploading) {
+      toast.warning(t("portrait.waitUploading"))
+      return
+    }
     if (!firstName.trim() || !lastName.trim()) {
       toast.error(t("toasts.nameRequired"))
       return
@@ -62,7 +69,7 @@ export function EditMemberDialog({ open, onClose, rootId, person, onSuccess }: P
         deathDate:  deathDate || null,
         birthPlace: birthPlace || null,
         deathPlace: deathPlace || null,
-        avatarUrl:  person.avatarUrl,
+        avatarUrl,
       })
       if (!result.ok) { toast.error(result.message); return }
       toast.success(t("toasts.personUpdated"))
@@ -72,12 +79,21 @@ export function EditMemberDialog({ open, onClose, rootId, person, onSuccess }: P
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={(v) => { if (!v && !isPending && !avatarUploading) onClose() }}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("editMember.title")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3 py-2">
+          <TreePortraitPicker
+            value={avatarUrl}
+            name={`${firstName} ${lastName}`.trim()}
+            initials={`${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase()}
+            clientPayload={{ profileId: person.id }}
+            disabled={isPending}
+            onChange={setAvatarUrl}
+            onUploadingChange={setAvatarUploading}
+          />
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
               <FieldLabel htmlFor="e-first" required>{t("fields.firstName")}</FieldLabel>
@@ -131,8 +147,8 @@ export function EditMemberDialog({ open, onClose, rootId, person, onSuccess }: P
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isPending}>{tc("cancel")}</Button>
-          <Button onClick={handleSave} disabled={isPending}>{isPending ? tc("saving") : tc("save")}</Button>
+          <Button variant="outline" onClick={onClose} disabled={isPending || avatarUploading}>{tc("cancel")}</Button>
+          <Button onClick={handleSave} disabled={isPending || avatarUploading}>{isPending ? tc("saving") : tc("save")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

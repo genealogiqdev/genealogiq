@@ -315,14 +315,16 @@ export async function deleteAccount(
   const match = await bcrypt.compare(validated.data.currentPassword, user.password)
   if (!match) return failFields(t("common.invalidData"), { currentPassword: [t("auth.incorrectPassword")] })
 
-  const [ownProfile, ownBio, ownGallery, ownGeo, ownTributesAuthored, ownTributesReceived] =
+  const [ownProfile, ownBio, ownGallery, ownGeo, ownTributesAuthored, ownTributesReceived, ownDocuments, ownPlaces] =
     await Promise.all([
       prisma.appUser.findUnique({ where: { id: userId }, select: { avatarUrl: true } }),
       prisma.bio.findUnique({ where: { userId }, select: { images: { select: { url: true } } } }),
-      prisma.galleryItem.findMany({ where: { userId }, select: { url: true } }),
+      prisma.galleryItem.findMany({ where: { userId }, select: { url: true, poster: true } }),
       prisma.geolocation.findUnique({ where: { userId }, select: { photo1: true, photo2: true, photo3: true } }),
       prisma.tribute.findMany({ where: { authorId: userId }, select: { imageUrl: true } }),
       prisma.tribute.findMany({ where: { profileId: userId }, select: { imageUrl: true } }),
+      prisma.document.findMany({ where: { userId }, select: { fileUrl: true } }),
+      prisma.geoPlace.findMany({ where: { userId }, select: { photos: true } }),
     ])
 
   const memorials = await prisma.appUser.findMany({
@@ -346,7 +348,7 @@ export async function deleteAccount(
   const [managedBios, managedGallery, managedTributes, managedGeos, managedDocuments, managedPlaces] = managedProfileIds.length > 0
     ? await Promise.all([
         prisma.bio.findMany({ where: { userId: { in: managedProfileIds } }, select: { images: { select: { url: true } } } }),
-        prisma.galleryItem.findMany({ where: { userId: { in: managedProfileIds } }, select: { url: true } }),
+        prisma.galleryItem.findMany({ where: { userId: { in: managedProfileIds } }, select: { url: true, poster: true } }),
         prisma.tribute.findMany({ where: { profileId: { in: managedProfileIds } }, select: { imageUrl: true } }),
         prisma.geolocation.findMany({ where: { userId: { in: managedProfileIds } }, select: { photo1: true, photo2: true, photo3: true } }),
         prisma.document.findMany({ where: { userId: { in: managedProfileIds } }, select: { fileUrl: true } }),
@@ -354,21 +356,23 @@ export async function deleteAccount(
       ])
     : [[], [], [], [], [], []]
 
-  await deleteBlobs([
+  const blobUrls = [
     ownProfile?.avatarUrl,
     ...(ownBio?.images.map((i) => i.url) ?? []),
-    ...ownGallery.map((i) => i.url),
+    ...ownGallery.flatMap((item) => [item.url, item.poster]),
     ownGeo?.photo1, ownGeo?.photo2, ownGeo?.photo3,
     ...ownTributesAuthored.map((t) => t.imageUrl),
     ...ownTributesReceived.map((t) => t.imageUrl),
+    ...ownDocuments.map((document) => document.fileUrl),
+    ...ownPlaces.flatMap((place) => place.photos),
     ...managedProfiles.map((profile) => profile.avatarUrl),
     ...managedBios.flatMap((bio) => bio.images.map((image) => image.url)),
-    ...managedGallery.map((item) => item.url),
+    ...managedGallery.flatMap((item) => [item.url, item.poster]),
     ...managedTributes.map((tribute) => tribute.imageUrl),
     ...managedGeos.flatMap((geo) => [geo.photo1, geo.photo2, geo.photo3]),
     ...managedDocuments.map((document) => document.fileUrl),
     ...managedPlaces.flatMap((place) => place.photos),
-  ])
+  ]
 
   if (managedProfileIds.length > 0) {
     await prisma.appUser.deleteMany({ where: { id: { in: managedProfileIds } } })
@@ -376,6 +380,7 @@ export async function deleteAccount(
 
   await sendAccountDeletionEmail(user.email!)
   await prisma.appUser.delete({ where: { id: userId } })
+  await deleteBlobs(blobUrls)
 
   await signOut({ redirectTo: "/sign-in" })
 }

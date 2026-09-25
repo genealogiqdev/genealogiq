@@ -1,11 +1,11 @@
 import { z } from "zod"
-import { BLOB_URL_PATTERN } from "@genealogiq/core"
+import { isAllowedMediaUrl } from "@genealogiq/core"
 import type { Translator } from "./i18n"
 import { DOCUMENT_CATEGORIES } from "@/consts/document-categories"
 
 // Document files are uploaded to Vercel Blob (see /api/documents/upload), so stored
 // URLs must point at that host — never an arbitrary external origin.
-const blobUrl = z.string().regex(BLOB_URL_PATTERN, "Invalid media URL")
+const blobUrl = z.string().refine(isAllowedMediaUrl, "Invalid media URL")
 
 export function getDocumentSchema(t: Translator) {
   return z.object({

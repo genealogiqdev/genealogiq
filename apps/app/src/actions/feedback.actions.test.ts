@@ -8,6 +8,7 @@ const { sendFeedbackMock, verifyTurnstileTokenMock } = vi.hoisted(() => ({
 vi.mock("next-intl/server", () => ({ getTranslations: vi.fn(async () => (key: string) => key) }))
 vi.mock("@/lib/email", () => ({ sendFeedback: sendFeedbackMock }))
 vi.mock("@/lib/turnstile", () => ({ verifyTurnstileToken: verifyTurnstileTokenMock }))
+vi.mock("@genealogiq/services/media-storage", () => ({ isAuthorizedMediaReference: vi.fn(() => true) }))
 vi.mock("@/lib/rate-limit", () => ({
   getClientIp: vi.fn(async () => "1.2.3.4"),
   checkRateLimit: vi.fn(async () => ({ allowed: true, retryAfter: 0 })),
@@ -128,10 +129,11 @@ describe("sendFeedback — happy path", () => {
   })
 
   it("forwards cvUrl for career submissions", async () => {
-    await sendFeedback(validInput({ type: "career", cvUrl: "https://blob.example.com/cv.pdf" }))
+    const cvUrl = "https://qa.public.blob.vercel-storage.com/cv.pdf"
+    await sendFeedback(validInput({ type: "career", cvUrl }))
 
     expect(sendFeedbackMock).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "career", cvUrl: "https://blob.example.com/cv.pdf" }),
+      expect.objectContaining({ type: "career", cvUrl }),
     )
   })
 })

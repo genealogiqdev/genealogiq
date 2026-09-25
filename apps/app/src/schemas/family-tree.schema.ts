@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { BLOB_URL_PATTERN } from "@genealogiq/core"
+import { isAllowedMediaUrl } from "@genealogiq/core"
 import type { Translator } from "./i18n"
 
 // ─── Subtype canon ───────────────────────────────────────────────────────────
@@ -74,6 +74,7 @@ function makeGhostIdentity(t: Translator) {
 export function getAddGhostRelativeSchema(t: Translator) {
   const dateString = makeDateString(t)
   return makeGhostIdentity(t).extend({
+    avatarUrl:    z.string().refine(isAllowedMediaUrl, t("invalidUrl")).optional().nullable(),
     anchorId:     z.string().cuid(),
     kind:         z.enum(["parent", "child", "spouse", "sibling"]),
     subtype:      z.string().min(1).optional().nullable(),
@@ -102,7 +103,7 @@ export type AddGhostRelativeInput = z.infer<ReturnType<typeof getAddGhostRelativ
 
 export function getUpdateMemberSchema(t: Translator) {
   return makeGhostIdentity(t).extend({
-    avatarUrl: z.string().regex(BLOB_URL_PATTERN, t("invalidUrl")).optional().nullable(),
+    avatarUrl: z.string().refine(isAllowedMediaUrl, t("invalidUrl")).optional().nullable(),
   }).refine((d) => !d.birthDate || !d.deathDate || d.deathDate >= d.birthDate, {
     message: t("deathBeforeBirth"),
     path:    ["deathDate"],

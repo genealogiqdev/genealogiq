@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
-const { prismaMock, PrismaKnownError } = vi.hoisted(() => {
+const { prismaMock, PrismaKnownError, isAuthorizedMediaReference } = vi.hoisted(() => {
   class PrismaKnownError extends Error {
     code: string
     constructor(message: string, code: string) {
@@ -15,7 +15,7 @@ const { prismaMock, PrismaKnownError } = vi.hoisted(() => {
     notification: { updateMany: vi.fn() },
     $transaction: vi.fn(),
   }
-  return { prismaMock, PrismaKnownError }
+  return { prismaMock, PrismaKnownError, isAuthorizedMediaReference: vi.fn(() => true) }
 })
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
@@ -27,7 +27,9 @@ vi.mock("@/queries/profile", () => ({ getProfileById: vi.fn() }))
 vi.mock("@/lib/profile", () => ({ canManageProfile: vi.fn() }))
 vi.mock("@/lib/subscription", () => ({ getMemorialFeatures: vi.fn() }))
 vi.mock("@/lib/notifications", () => ({ notify: vi.fn() }))
+vi.mock("@/lib/blob", () => ({ deleteBlobs: vi.fn() }))
 vi.mock("@genealogiq/services/rate-limit", () => ({ checkRateLimit: vi.fn() }))
+vi.mock("@genealogiq/services/media-storage", () => ({ isAuthorizedMediaReference }))
 vi.mock("@/queries/family-tree", () => ({
   getTreeMemberIds: vi.fn(),
   countTreeMembers: vi.fn(),
@@ -36,7 +38,7 @@ vi.mock("@/queries/family-tree", () => ({
 }))
 
 import {
-  addRelation, addGhostRelative, updateRelation, removeRelation, updateMember, acceptFamilyRequest,
+  addRelation, addGhostRelative, updateRelation, removeRelation, updateMember, removeMember, acceptFamilyRequest,
 } from "./family-tree.actions"
 import { verifySession } from "@/lib/dal"
 import { getProfileById } from "@/queries/profile"
@@ -47,6 +49,7 @@ import {
   getTreeMemberIds, countTreeMembers, createsAncestryCycle, hasConflictingRelationType,
 } from "@/queries/family-tree"
 import { getMemorialFeatures } from "@/lib/subscription"
+import { deleteBlobs } from "@/lib/blob"
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -60,6 +63,7 @@ beforeEach(() => {
   vi.mocked(checkRateLimit).mockResolvedValue({ allowed: true, retryAfter: 0 })
   vi.mocked(createsAncestryCycle).mockResolvedValue(false)
   vi.mocked(hasConflictingRelationType).mockResolvedValue(false)
+  isAuthorizedMediaReference.mockReturnValue(true)
   // Default: no pre-existing relation between any pair (addRelation's own
   // REJECTED-revival check). Tests for that behavior override this
   // explicitly; everyone else gets a clean "nothing exists yet" baseline
@@ -120,16 +124,50 @@ describe("updateMember — C3 IDOR guard (ghost branch)", () => {
   })
 
   it("updates a ghost that belongs to root's tree", async () => {
-    prismaMock.appUser.findUnique.mockResolvedValue({ id: "ghost-1", role: "APP_GHOST" })
+    prismaMock.appUser.findUnique.mockResolvedValue({
+      id: "ghost-1",
+      role: "APP_GHOST",
+      avatarUrl: "https://old.public.blob.vercel-storage.com/avatar.jpg",
+    })
     vi.mocked(getTreeMemberIds).mockResolvedValue(new Set(["A", "ghost-1"]))
     prismaMock.appUser.update.mockResolvedValue({})
 
-    const res = await updateMember("A", "ghost-1", { firstName: "John", lastName: "Doe" })
+    const avatarUrl = "https://new.public.blob.vercel-storage.com/avatar.jpg"
+    const res = await updateMember("A", "ghost-1", {
+      firstName: "John",
+      lastName: "Doe",
+      avatarUrl,
+    })
 
     expect(res).toEqual({ ok: true, message: undefined })
     expect(prismaMock.appUser.update).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: "ghost-1" } }),
+      expect.objectContaining({
+        where: { id: "ghost-1" },
+        data: expect.objectContaining({ avatarUrl }),
+      }),
     )
+    expect(deleteBlobs).toHaveBeenCalledWith([
+      "https://old.public.blob.vercel-storage.com/avatar.jpg",
+    ])
+  })
+
+  it("rejects an avatar URL outside the member's authorized storage prefix", async () => {
+    prismaMock.appUser.findUnique.mockResolvedValue({
+      id: "ghost-1",
+      role: "APP_GHOST",
+      avatarUrl: null,
+    })
+    vi.mocked(getTreeMemberIds).mockResolvedValue(new Set(["A", "ghost-1"]))
+    isAuthorizedMediaReference.mockReturnValueOnce(false)
+
+    const res = await updateMember("A", "ghost-1", {
+      firstName: "John",
+      lastName: "Doe",
+      avatarUrl: `${process.env.MEDIA_PUBLIC_BASE_URL ?? "https://stgenmediaexample.blob.core.windows.net/media"}/profiles/other/avatar.jpg`,
+    })
+
+    expect(res).toEqual({ ok: false, message: "common.invalidData" })
+    expect(prismaMock.appUser.update).not.toHaveBeenCalled()
   })
 })
 
@@ -261,12 +299,15 @@ describe("addGhostRelative — IDOR guard", () => {
     }
     prismaMock.$transaction.mockImplementation((cb: (t: typeof tx) => unknown) => cb(tx))
 
+    const avatarUrl = "https://example.public.blob.vercel-storage.com/jane.jpg"
     const res = await addGhostRelative(ROOT, {
-      firstName: "Jane", lastName: "Doe", anchorId: ROOT, kind: "parent",
+      firstName: "Jane", lastName: "Doe", anchorId: ROOT, kind: "parent", avatarUrl,
     })
 
     expect(res).toEqual({ ok: true, message: undefined })
-    expect(tx.appUser.create).toHaveBeenCalled()
+    expect(tx.appUser.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ avatarUrl }) }),
+    )
     expect(tx.familyRelation.create).toHaveBeenCalled()
   })
 })
@@ -295,6 +336,25 @@ describe("removeRelation — pending-invite management (ACCEPTED-only membership
 
     expect(res).toEqual({ ok: false, message: "familyTree.notAuthorized" })
     expect(prismaMock.familyRelation.delete).not.toHaveBeenCalled()
+  })
+})
+
+describe("removeMember — ghost media cleanup", () => {
+  it("deletes the ghost row before pruning its portrait", async () => {
+    const avatarUrl = "https://example.public.blob.vercel-storage.com/ghost.jpg"
+    prismaMock.appUser.findUnique.mockResolvedValue({
+      id: "ghost-1",
+      role: "APP_GHOST",
+      avatarUrl,
+    })
+    vi.mocked(getTreeMemberIds).mockResolvedValue(new Set([ROOT, "ghost-1"]))
+    prismaMock.appUser.delete.mockResolvedValue({})
+
+    const res = await removeMember(ROOT, "ghost-1")
+
+    expect(res).toEqual({ ok: true, message: undefined })
+    expect(prismaMock.appUser.delete).toHaveBeenCalledWith({ where: { id: "ghost-1" } })
+    expect(deleteBlobs).toHaveBeenCalledWith([avatarUrl])
   })
 })
 

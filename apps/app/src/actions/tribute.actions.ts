@@ -12,6 +12,7 @@ import { canManageProfile } from "@/lib/profile"
 import { assertOwnership } from "@genealogiq/auth/authz"
 import { deleteBlobs } from "@/lib/blob"
 import { notify, markNotificationsRead } from "@/lib/notifications"
+import { isAuthorizedMediaReference } from "@genealogiq/services/media-storage"
 
 export async function submitTribute(profileId: string, data: unknown): Promise<ActionResult> {
   const t = await getTranslations("Actions")
@@ -25,15 +26,24 @@ export async function submitTribute(profileId: string, data: unknown): Promise<A
     where: { authorId_profileId: { authorId: session.user.id, profileId } },
     select: { imageUrl: true },
   })
-  if (existing?.imageUrl && existing.imageUrl !== parsed.data.imageUrl) {
-    await deleteBlobs([existing.imageUrl])
+  if (
+    parsed.data.imageUrl !== existing?.imageUrl &&
+    !isAuthorizedMediaReference(
+      parsed.data.imageUrl,
+      [`profiles/${profileId}/tributes/${session.user.id}`],
+      { allowLegacy: false },
+    )
+  ) {
+    return fail(t("common.invalidData"))
   }
-
   const tribute = await prisma.tribute.upsert({
     where: { authorId_profileId: { authorId: session.user.id, profileId } },
     create: { authorId: session.user.id, profileId, ...parsed.data, status: "PENDING" },
     update: { ...parsed.data, status: "PENDING" },
   })
+  if (existing?.imageUrl && existing.imageUrl !== parsed.data.imageUrl) {
+    await deleteBlobs([existing.imageUrl])
+  }
 
   // Notify everyone who can moderate this profile: the profile owner (when it's
   // a living user) and any guardians (typical for memorial profiles). Deduped.
@@ -172,8 +182,8 @@ export async function deleteTribute(tributeId: string): Promise<ActionResult> {
   if (!isAuthor && !isManager) return fail(t("tribute.notAuthorized"))
 
   await markNotificationsRead(session.user.id, { tributeId: tribute.id })
-  await deleteBlobs([tribute.imageUrl])
   await prisma.tribute.delete({ where: { id: tribute.id } })
+  await deleteBlobs([tribute.imageUrl])
 
   revalidatePath(`/profile/${tribute.profileId}/tributes`)
   return done()

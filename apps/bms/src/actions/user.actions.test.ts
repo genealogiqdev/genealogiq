@@ -21,6 +21,7 @@ vi.mock("@genealogiq/db", () => ({ Prisma: { PrismaClientKnownRequestError: Pris
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }))
 vi.mock("@/lib/dal", () => ({ verifyAdmin: vi.fn() }))
 vi.mock("@/lib/email", () => ({ sendWelcomeEmail: vi.fn() }))
+vi.mock("@genealogiq/services/media-storage", () => ({ deleteUnreferencedMediaUrls: vi.fn() }))
 vi.mock("@genealogiq/core", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@genealogiq/core")>()),
   hashToken: vi.fn((t: string) => `hashed:${t}`),

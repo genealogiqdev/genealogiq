@@ -14,6 +14,9 @@ jobs:
     env:
       # Prisma generate/validate never connect to the DB — a dummy URL suffices.
       DATABASE_URL: postgresql://user:pass@localhost:5432/db
+      RUN_AZURITE_TESTS: "true"
+      AZURE_STORAGE_CONNECTION_STRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;"
+      MEDIA_PUBLIC_BASE_URL: http://127.0.0.1:10000/devstoreaccount1/media
     steps:
       - uses: actions/checkout@v4
 
@@ -28,6 +31,13 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Start Azurite
+        run: >-
+          docker run --detach --rm --name azurite
+          --publish 10000:10000
+          mcr.microsoft.com/azure-storage/azurite:3.35.0
+          azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck
 
       - name: Generate Prisma clients
         run: pnpm db:generate
@@ -45,6 +55,9 @@ jobs:
       # Migrate workflow's job, gated behind the production environment.
       - name: Migration structure guard (blocking)
         run: pnpm check:migrations
+
+      - name: Validate Azure infrastructure (blocking)
+        run: az bicep build --file infra/main.bicep --stdout >/dev/null
 
       - name: i18n parity guard (blocking)
         run: pnpm check:i18n-parity

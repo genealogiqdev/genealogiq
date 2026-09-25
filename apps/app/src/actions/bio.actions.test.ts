@@ -5,6 +5,7 @@ const { prismaMock } = vi.hoisted(() => ({
   prismaMock: {
     bio: { upsert: vi.fn(), findUnique: vi.fn(), deleteMany: vi.fn() },
     bioImage: { findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn(), count: vi.fn() },
+    $transaction: vi.fn(),
   },
 }))
 
@@ -18,6 +19,7 @@ vi.mock("@/lib/profile", () => ({ canManageProfile: vi.fn() }))
 vi.mock("@/lib/blob", () => ({ deleteBlobs: vi.fn() }))
 vi.mock("@/lib/subscription", () => ({ getMemorialFeatures: vi.fn() }))
 vi.mock("@/queries/media-usage", () => ({ getCombinedMediaUsage: vi.fn() }))
+vi.mock("@genealogiq/services/media-storage", () => ({ isAuthorizedMediaReference: vi.fn(() => true) }))
 
 import { saveBio, deleteBio } from "./bio.actions"
 import { verifySession } from "@/lib/dal"
@@ -42,6 +44,7 @@ beforeEach(() => {
   vi.mocked(getMemorialFeatures).mockResolvedValue({ bioMaxChars: 10000, mediaMaxImages: 10 } as never)
   vi.mocked(getCombinedMediaUsage).mockResolvedValue({ images: 0, videos: 0 })
   prismaMock.bioImage.count.mockResolvedValue(0)
+  prismaMock.$transaction.mockImplementation(async (callback: (tx: typeof prismaMock) => unknown) => callback(prismaMock))
 })
 
 describe("saveBio — ownership + validation guards", () => {

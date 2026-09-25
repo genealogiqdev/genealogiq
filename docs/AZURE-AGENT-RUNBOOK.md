@@ -4,6 +4,9 @@ This document is the operating contract for an agent deploying or maintaining
 Genealogiq in Azure. Read it together with `docs/AZURE-DEPLOYMENT.md` before
 changing code or cloud resources.
 
+For private production database queries and account-level data repairs, also
+follow [`AZURE-DATABASE-ACCESS.md`](AZURE-DATABASE-ACCESS.md).
+
 ## Mission
 
 Maintain three independently deployed Next.js applications:
@@ -41,6 +44,8 @@ each application.
 9. Do not change DNS until all Azure live and readiness checks pass.
 10. A Container Apps revision rollback does not roll back PostgreSQL. Prefer
     forward-compatible expand/contract migrations.
+11. Keep public media in `stgenmediaohqluyie`; never enable anonymous access on
+    the database-backup account.
 
 ## Current production resources
 
@@ -53,8 +58,12 @@ each application.
 - PostgreSQL: `psql-genealogiq-ohqluyie`
 - Log Analytics: `log-genealogiq-prod`
 - Backup storage: `stgenohqluyie/database-backups`
+- Media storage: `stgenmediaohqluyie` (`media`, `media-staging`, and private
+  `media-migration` containers)
+- Media identity: `id-genealogiq-media-prod`
 - Daily job: `job-genealogiq-daily-prod`, daily at 06:00 UTC
 - Migration job: `job-genealogiq-migrate-prod`, manual
+- Media migration job: `job-gen-media-migrate-prod`, manual
 - GitHub deployment identity: `id-genealogiq-github-prod`
 
 Discover live values rather than assuming they are unchanged:
@@ -186,7 +195,6 @@ Integration secrets are optional only when the corresponding feature is
 intentionally disabled:
 
 - Google OAuth client ID and secret
-- Vercel Blob token
 - Resend API key
 - Stripe secret and per-app webhook secrets
 - VAPID private key and subject
@@ -215,6 +223,24 @@ For every schema change:
 
 Never run `prisma migrate dev` or `prisma db push` against Azure production.
 Never expose the private PostgreSQL server temporarily to simplify a migration.
+
+## Media migration
+
+Media infrastructure and the one-time migration are declarative. Do not create
+an ad hoc container in the backup account. Deploy the Bicep changes and the
+dual-host-compatible application image first, then start:
+
+```powershell
+./scripts/azure/run-media-migration.ps1
+# Review the copy/verification execution and private manifest first.
+./scripts/azure/run-media-migration.ps1 -Rewrite
+```
+
+The job persists its resumable manifest in the private `media-migration`
+container. Verify its execution logs and confirm that the live database has no
+remaining Vercel URLs. Unreferenced legacy objects are outside the migration;
+historical career-email links are an explicit exception because sent email
+cannot be rewritten.
 
 The initial local database was restored and then baselined with 71 migration
 records. That one-time baseline must not be repeated. Azure currently has one

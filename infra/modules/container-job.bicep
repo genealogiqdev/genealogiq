@@ -3,6 +3,7 @@ param name string
 param environmentId string
 param registryServer string
 param identityResourceId string
+param mediaIdentityResourceId string = ''
 param image string
 param keyVaultUri string
 param plainEnvironment array = []
@@ -13,6 +14,8 @@ param replicaTimeout int = 900
 param replicaRetryLimit int = 1
 param cpu string = '0.25'
 param memory string = '0.5Gi'
+param command array = []
+param args array = []
 
 var triggerConfiguration = triggerType == 'Schedule'
   ? {
@@ -51,15 +54,38 @@ var secretEnvironmentVariables = [
   }
 ]
 var environmentVariables = concat(plainEnvironmentVariables, secretEnvironmentVariables)
+var userAssignedIdentities = empty(mediaIdentityResourceId)
+  ? {
+      '${identityResourceId}': {}
+    }
+  : union(
+      {
+        '${identityResourceId}': {}
+      },
+      {
+        '${mediaIdentityResourceId}': {}
+      }
+    )
+var containerDefinition = union(
+  {
+    name: name
+    image: image
+    env: environmentVariables
+    resources: {
+      cpu: json(cpu)
+      memory: memory
+    }
+  },
+  length(command) > 0 ? { command: command } : {},
+  length(args) > 0 ? { args: args } : {}
+)
 
 resource job 'Microsoft.App/jobs@2024-03-01' = {
   name: name
   location: location
   identity: {
     type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${identityResourceId}': {}
-    }
+    userAssignedIdentities: userAssignedIdentities
   }
   properties: {
     environmentId: environmentId
@@ -76,15 +102,7 @@ resource job 'Microsoft.App/jobs@2024-03-01' = {
     })
     template: {
       containers: [
-        {
-          name: name
-          image: image
-          env: environmentVariables
-          resources: {
-            cpu: json(cpu)
-            memory: memory
-          }
-        }
+        containerDefinition
       ]
     }
   }

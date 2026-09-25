@@ -217,27 +217,29 @@ message + (if `isOwn`) a CTA button.
   monorepo root after touching any `messages/*.json` — both are wired as `pnpm check:i18n-parity`
   / `pnpm check:i18n-keys` at the repo root.
 
-## Uploads (Vercel Blob)
+## Uploads (Azure Blob)
 
 One route per feature under `src/app/api/<feature>/upload/route.ts`, using
-`@vercel/blob/client`'s `handleUpload`. Two shapes seen in this app:
+`readMediaUploadBody` and `processMediaUpload` from
+`@genealogiq/services/media-storage`. Browser clients use
+`uploadMedia` from `@genealogiq/core`: the route authorizes a single
+server-generated object key, the browser PUTs directly with a short-lived SAS,
+and the route verifies the stored size, content type, and file signature.
 
 - **Ownership-scoped** (profile-owned media — Places/Bio/Gallery/Tribute/**Documents**):
-  `onBeforeGenerateToken` re-derives the session via `auth()`, parses+validates a
+  each request re-derives the session via `auth()`, parses+validates a
   `clientPayload` of `{ profileId }` (a small `parseClientPayload` helper that throws on
   missing/malformed JSON), loads the profile's `guardedBy` (`status: "ACCEPTED"` pre-filtered
-  in the `select`), and checks `canManageProfile`. `onUploadCompleted` is a no-op unless
-  content verification is needed (see below).
-- **Anonymous, unscoped** (career/CV upload — public form, no owner): no
-  `onBeforeGenerateToken` auth check at all, just content constraints.
-- **Content verification independent of ownership**: when the accepted type is spoofable by
-  a client-declared `content-type` (PDF), `onUploadCompleted` re-fetches
-  `Range: bytes=0-4` and checks the magic header (`%PDF-`), calling `deleteBlobs([blob.url])`
-  if it doesn't match. Documents' upload route is the first to need **both** the
-  ownership check and the magic-byte check in the same route (mirrors career's PDF check +
-  places' ownership check — see `src/app/api/documents/upload/route.ts`).
-- `deleteBlobs(urls)` (`@/lib/blob`) always swallows its own errors — blob cleanup must never
-  block or fail a DB write/delete.
+  in the `select`), and checks `canManageProfile`.
+- **Anonymous, unscoped** (career/CV upload): apply an IP rate limit as well as
+  content constraints.
+- **Content verification**: completion reads the object through the Azure SDK
+  and verifies its magic bytes. Invalid uploads are deleted before their URL is
+  returned to the form.
+- Persisted Azure URLs must match `MEDIA_PUBLIC_BASE_URL`. Legacy Vercel URLs
+  remain accepted only for the migration/rollback window.
+- Perform the database mutation before calling `deleteBlobs(urls)`;
+  `deleteBlobs` removes only URLs no longer referenced by another record.
 
 ## Boundary files (Bruna's step): no-op for public profile sub-segments
 

@@ -1,10 +1,10 @@
 import { z } from "zod"
-import { BLOB_URL_PATTERN } from "@genealogiq/core"
+import { isAllowedMediaUrl } from "@genealogiq/core"
 
 export const bioImageSchema = z.object({
   id: z.string().optional(),
   // Bio images are uploaded to Vercel Blob — pin the host (see /api/bio/upload).
-  url: z.string().regex(BLOB_URL_PATTERN, "Invalid media URL"),
+  url: z.string().refine(isAllowedMediaUrl, "Invalid media URL"),
   aspect: z.enum(["square", "portrait", "landscape"]).default("square"),
   order: z.number().int().min(0),
 })

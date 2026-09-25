@@ -1,45 +1,42 @@
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client"
+import { processMediaUpload, readMediaUploadBody } from "@genealogiq/services/media-storage"
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { canManageProfile } from "@/lib/profile"
-import { deleteBlobs } from "@/lib/blob"
+import { checkRateLimit } from "@/lib/rate-limit"
 
 // Documents combines two existing upload patterns: ownership scoping (like
 // places/upload) since documents belong to a profile, and PDF magic-byte
 // verification (like career/upload) since the client-declared content-type is
 // spoofable.
 const ALLOWED_TYPES = ["application/pdf"]
-const PDF_MAGIC = "%PDF-"
-
 export async function POST(request: Request): Promise<NextResponse> {
-  const body = (await request.json()) as HandleUploadBody
-
   try {
-    const json = await handleUpload({
-      body,
-      request,
-      onBeforeGenerateToken: async (_pathname, clientPayload) => {
-        const session = await auth()
-        if (!session?.user?.id) throw new Error("Unauthorized")
+    const body = await readMediaUploadBody(request)
+    const session = await auth()
+    if (!session?.user?.id) throw new Error("Unauthorized")
+    if (body.type === "media.upload.authorize") {
+      const rl = await checkRateLimit({
+        key: `upload:documents:${session.user.id}`,
+        maxAttempts: 20,
+        windowSeconds: 600,
+      })
+      if (!rl.allowed) throw new Error(`Too many uploads. Try again in ${rl.retryAfter}s.`)
+    }
 
-        const { profileId } = parseClientPayload(clientPayload)
-        const profile = await prisma.appUser.findUnique({
-          where:  { id: profileId },
-          select: { id: true, guardedBy: { where: { status: "ACCEPTED" }, select: { guardianId: true, status: true } } },
-        })
-        if (!profile) throw new Error("Profile not found")
-        if (!canManageProfile(profile, session.user.id)) throw new Error("Forbidden")
+    const { profileId } = parseClientPayload(body.clientPayload)
+    const profile = await prisma.appUser.findUnique({
+      where:  { id: profileId },
+      select: { id: true, guardedBy: { where: { status: "ACCEPTED" }, select: { guardianId: true, status: true } } },
+    })
+    if (!profile) throw new Error("Profile not found")
+    if (!canManageProfile(profile, session.user.id)) throw new Error("Forbidden")
 
-        return {
-          allowedContentTypes: ALLOWED_TYPES,
-          maximumSizeInBytes:  10 * 1024 * 1024,
-          addRandomSuffix:     true,
-        }
-      },
-      onUploadCompleted: async ({ blob }) => {
-        if (!(await isPdf(blob.url))) await deleteBlobs([blob.url])
-      },
+    const json = await processMediaUpload(body, {
+      allowedContentTypes: ALLOWED_TYPES,
+      maximumSizeInBytes: 10 * 1024 * 1024,
+      prefix: `profiles/${profileId}/documents`,
+      container: "staging",
     })
     return NextResponse.json(json)
   } catch (error) {
@@ -55,15 +52,5 @@ function parseClientPayload(raw: string | null): { profileId: string } {
     return { profileId: parsed.profileId }
   } catch {
     throw new Error("Invalid client payload")
-  }
-}
-
-async function isPdf(url: string): Promise<boolean> {
-  try {
-    const response = await fetch(url, { headers: { Range: "bytes=0-4" } })
-    const header = await response.text()
-    return header.startsWith(PDF_MAGIC)
-  } catch {
-    return false
   }
 }

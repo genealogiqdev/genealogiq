@@ -128,6 +128,18 @@ Por projeto, em **Settings → General**:
 
 Valide um deploy de preview por projeto **antes** de re-apontar produção.
 
+## Migração de mídia para Azure Blob
+
+Os três aplicativos agora usam a camada compartilhada
+`@genealogiq/services/media-storage` para novos uploads. Durante a transição,
+URLs legadas do Vercel Blob e URLs da conta Azure configurada são aceitas.
+
+A migração de dados é executada pelo job manual
+`job-gen-media-migrate-prod`. O job inventaria objetos referenciados pelo banco,
+grava um manifesto retomável no container privado `media-migration`, copia e
+verifica os arquivos e só então atualiza referências que ainda tenham o valor
+de origem. Consulte `docs/AZURE-DEPLOYMENT.md` antes de iniciar o job.
+
 ---
 
 ## Fases seguintes (resumo — detalhar quando chegarmos)

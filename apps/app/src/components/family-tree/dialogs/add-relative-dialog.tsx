@@ -12,6 +12,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { FieldLabel } from "@/components/ui/field"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -30,6 +31,7 @@ import { LimitReachedDialog } from "@/components/limit-reached-dialog"
 import type { PlanTier } from "@/lib/plan-quotas"
 import type { WikiTreeSearchResult, WikiTreeProfile } from "@/lib/wikitree"
 import { mapWikiTreeProfileToGhostPrefill, wikiTreeSearchResultYears } from "@/lib/wikitree-mapper"
+import { TreePortraitPicker } from "./tree-portrait-picker"
 
 type RelationKind = "parent" | "spouse" | "sibling" | "child" | "pet"
 type Mode = "search" | "create" | "createPet" | "wikitree"
@@ -121,10 +123,14 @@ export function AddRelativeDialog({
   const [deathDate, setDeathDate]   = useState("")
   const [birthPlace, setBirthPlace] = useState("")
   const [deathPlace, setDeathPlace] = useState("")
+  const [ghostAvatarUrl, setGhostAvatarUrl] = useState<string | null>(null)
+  const [ghostAvatarUploading, setGhostAvatarUploading] = useState(false)
   const [wikiTreeSource, setWikiTreeSource] = useState<string | null>(null)
   const [petName, setPetName] = useState("")
   const [petSpecies, setPetSpecies] = useState("")
   const [petBreed, setPetBreed] = useState("")
+  const [petAvatarUrl, setPetAvatarUrl] = useState<string | null>(null)
+  const [petAvatarUploading, setPetAvatarUploading] = useState(false)
 
   // WikiTree search
   const [wikitreeQuery, setWikitreeQuery]     = useState("")
@@ -233,6 +239,10 @@ export function AddRelativeDialog({
   }
 
   const handleConfirmGhost = () => {
+    if (ghostAvatarUploading) {
+      toast.warning(t("portrait.waitUploading"))
+      return
+    }
     if (!firstName.trim() || !lastName.trim()) {
       toast.error(t("toasts.nameRequired"))
       return
@@ -254,6 +264,7 @@ export function AddRelativeDialog({
         deathDate:  deathDate || null,
         birthPlace: birthPlace || null,
         deathPlace: deathPlace || null,
+        avatarUrl:  ghostAvatarUrl,
         anchorId, kind,
         subtype:   kind === "spouse" ? spouseSubtype : null,
         startDate: kind === "spouse" && marriedAt ? marriedAt : null,
@@ -268,6 +279,10 @@ export function AddRelativeDialog({
   }
 
   const handleConfirmPet = () => {
+    if (petAvatarUploading) {
+      toast.warning(t("portrait.waitUploading"))
+      return
+    }
     if (!petName.trim()) {
       toast.error(t("toasts.petNameRequired"))
       return
@@ -284,7 +299,7 @@ export function AddRelativeDialog({
         gender: null,
         birthDate: null,
         deathDate: null,
-        avatarUrl: null,
+        avatarUrl: petAvatarUrl,
         ownerIds: [anchorId],
       }, rootId)
       if (!result.ok) { toast.error(result.message); return }
@@ -306,9 +321,9 @@ export function AddRelativeDialog({
     setFirstName(""); setLastName(""); setMaidenName("")
     setNickname("")
     setGender(""); setBirthDate(""); setDeathDate("")
-    setBirthPlace(""); setDeathPlace(""); setWikiTreeSource(null)
+    setBirthPlace(""); setDeathPlace(""); setGhostAvatarUrl(null); setGhostAvatarUploading(false); setWikiTreeSource(null)
     setWikitreeQuery(""); setWikitreeResults([]); setWikitreeError(false)
-    setPetName(""); setPetSpecies(""); setPetBreed("")
+    setPetName(""); setPetSpecies(""); setPetBreed(""); setPetAvatarUrl(null); setPetAvatarUploading(false)
   }
 
   const handleKindChange = (value: string) => {
@@ -325,13 +340,14 @@ export function AddRelativeDialog({
   const needsEndDate = spouseSubtype === "divorced" || spouseSubtype === "widowed"
   const startLabel = spouseSubtype === "partner" ? t("addRelative.togetherSince") : t("addRelative.married")
   const endLabel   = spouseSubtype === "widowed" ? t("addRelative.widowed") : t("addRelative.divorced")
+  const avatarUploading = mode === "create" ? ghostAvatarUploading : mode === "createPet" ? petAvatarUploading : false
 
   return (
     <>
     {/* Hidden (not unmounted) while the limit dialog shows on top of it, so
         typed ghost-form state survives a dismiss instead of resetting. */}
-    <Dialog open={open && !limitContext} onOpenChange={(v) => { if (!v && !limitContext) handleClose() }}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open && !limitContext} onOpenChange={(v) => { if (!v && !limitContext && !avatarUploading && !isPending) handleClose() }}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl">
             {mode === "create" || mode === "createPet" ? (
@@ -462,16 +478,18 @@ export function AddRelativeDialog({
                           onClick={() => setSelected(r)}
                           className={cn("w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-accent/60 transition-colors", isSelected && "bg-accent")}
                         >
-                          <div className={cn("h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden ring-2", genderRingClass(r.gender))}>
-                            {r.avatarUrl ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={r.avatarUrl} alt={name} className={cn("h-full w-full object-cover", isMemorialized && "saturate-50")} />
-                            ) : (
+                          <Avatar className={cn("h-8 w-8 shrink-0 bg-muted ring-2", genderRingClass(r.gender))}>
+                            {r.avatarUrl && (
+                              <AvatarImage src={r.avatarUrl} alt={name} className={cn(isMemorialized && "saturate-50")} />
+                            )}
+                            <AvatarFallback>
+                              {
                               isPetResult
                                 ? <PawPrint className="h-4 w-4 text-muted-foreground" />
                                 : <User className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </div>
+                              }
+                            </AvatarFallback>
+                          </Avatar>
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium truncate">{name}</p>
                             {isMemorialized && <p className="text-[10px] text-muted-foreground italic">{t("memorialized")}</p>}
@@ -601,6 +619,15 @@ export function AddRelativeDialog({
             </div>
           ) : mode === "createPet" ? (
             <div className="space-y-3">
+              <TreePortraitPicker
+                value={petAvatarUrl}
+                name={petName}
+                initials={petName.slice(0, 2).toUpperCase()}
+                clientPayload={{ scope: "create-pet" }}
+                disabled={isPending}
+                onChange={setPetAvatarUrl}
+                onUploadingChange={setPetAvatarUploading}
+              />
               <div className="space-y-1.5">
                 <FieldLabel htmlFor="pet-name" required>{t("addRelative.petFields.name")}</FieldLabel>
                 <Input id="pet-name" value={petName} onChange={(e) => setPetName(e.target.value)} maxLength={64} />
@@ -619,6 +646,15 @@ export function AddRelativeDialog({
             </div>
           ) : (
             <div className="space-y-3">
+              <TreePortraitPicker
+                value={ghostAvatarUrl}
+                name={`${firstName} ${lastName}`.trim()}
+                initials={`${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase()}
+                clientPayload={{ scope: "create-ghost" }}
+                disabled={isPending}
+                onChange={setGhostAvatarUrl}
+                onUploadingChange={setGhostAvatarUploading}
+              />
               {wikiTreeSource && (
                 <p className="text-xs text-muted-foreground">
                   {t("addRelative.wikitree.sourceLabel")}{" — "}
@@ -692,15 +728,15 @@ export function AddRelativeDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={isPending}>{tc("cancel")}</Button>
+          <Button variant="outline" onClick={handleClose} disabled={isPending || avatarUploading}>{tc("cancel")}</Button>
           {mode === "search" ? (
             <Button onClick={handleConfirmExisting} disabled={!selected || isPending}>{tc("add")}</Button>
           ) : mode === "create" ? (
-            <Button onClick={handleConfirmGhost} disabled={isPending}>
+            <Button onClick={handleConfirmGhost} disabled={isPending || ghostAvatarUploading}>
               {isPending ? tc("saving") : t("addRelative.addToTree")}
             </Button>
           ) : mode === "createPet" ? (
-            <Button onClick={handleConfirmPet} disabled={isPending}>
+            <Button onClick={handleConfirmPet} disabled={isPending || petAvatarUploading}>
               {isPending ? tc("saving") : t("addRelative.addPetToTree")}
             </Button>
           ) : null}

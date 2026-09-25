@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { BLOB_URL_PATTERN } from "@genealogiq/core"
+import { isAllowedMediaUrl } from "@genealogiq/core"
 import type { Translator } from "./i18n"
 
 export function getMemorialSchema(t: Translator) {
@@ -13,7 +13,7 @@ export function getMemorialSchema(t: Translator) {
     deathDate: z.coerce.date({ error: t("required") }),
     deathPlace: z.string().trim().max(100).optional(),
     deathCountry: z.string().trim().max(100).optional(),
-    avatarUrl: z.string().regex(BLOB_URL_PATTERN, t("invalidUrl")).optional().nullable(),
+    avatarUrl: z.string().refine(isAllowedMediaUrl, t("invalidUrl")).optional().nullable(),
   })
 }
 

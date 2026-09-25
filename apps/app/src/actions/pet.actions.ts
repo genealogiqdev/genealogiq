@@ -13,6 +13,7 @@ import { canManageProfile } from "@/lib/profile"
 import { deleteBlobs } from "@/lib/blob"
 import { getPetCreationStatus } from "@/lib/pet-quota"
 import { getTreeMemberIds } from "@/queries/family-tree"
+import { isAuthorizedMediaReference } from "@genealogiq/services/media-storage"
 
 async function getAuthorizedHumanOwners(rootId: string, actorId: string, ownerIds: string[]) {
   const root = await getProfileById(rootId)
@@ -53,6 +54,13 @@ export async function createPet(data: unknown, rootId?: string): Promise<ActionR
 
   const parsed = getPetSchema(identityTranslator).safeParse(data)
   if (!parsed.success) return fail(t("common.invalidData"))
+  if (!isAuthorizedMediaReference(
+    parsed.data.avatarUrl,
+    [`pending/${session.user.id}/create-pet`],
+    { allowLegacy: false },
+  )) {
+    return fail(t("common.invalidData"))
+  }
 
   const { firstName, species, breed, gender, birthDate, deathDate, avatarUrl, ownerIds } = parsed.data
 
@@ -107,6 +115,16 @@ export async function updatePet(profileId: string, data: unknown, rootId?: strin
 
   const parsed = getPetEditSchema(identityTranslator).safeParse(data)
   if (!parsed.success) return fail(t("common.invalidData"))
+  if (
+    parsed.data.avatarUrl !== profile.avatarUrl &&
+    !isAuthorizedMediaReference(
+      parsed.data.avatarUrl,
+      [`profiles/${profileId}/bio`],
+      { allowLegacy: false },
+    )
+  ) {
+    return fail(t("common.invalidData"))
+  }
 
   const { firstName, species, breed, gender, birthDate, deathDate, avatarUrl, ownerIds } = parsed.data
   const previousOwners = await prisma.petOwnership.findMany({
@@ -125,10 +143,6 @@ export async function updatePet(profileId: string, data: unknown, rootId?: strin
     where: { id: { in: uniqueOwnerIds }, role: { not: "APP_PET" } },
   })
   if (validOwnerCount !== uniqueOwnerIds.length) return fail(t("pet.ownerNotInTree"))
-
-  if (profile.avatarUrl && profile.avatarUrl !== avatarUrl) {
-    await deleteBlobs([profile.avatarUrl])
-  }
 
   await prisma.$transaction(async (tx) => {
     await tx.appUser.update({
@@ -151,6 +165,9 @@ export async function updatePet(profileId: string, data: unknown, rootId?: strin
       skipDuplicates: true,
     })
   })
+  if (profile.avatarUrl && profile.avatarUrl !== avatarUrl) {
+    await deleteBlobs([profile.avatarUrl])
+  }
 
   revalidatePetOwnershipPaths(
     profileId,
@@ -233,12 +250,12 @@ export async function deletePet(profileId: string): Promise<ActionResult> {
   if (!profile || profile.role !== "APP_PET") return fail(t("pet.notFound"))
   if (!canManageProfile(profile, session.user.id)) return fail(t("pet.notAuthorized"))
 
-  const [bio, galleryItems, documents, places, geolocation, ownerships] = await Promise.all([
+  const [bio, galleryItems, documents, places, geolocation, ownerships, tributes] = await Promise.all([
     prisma.bio.findUnique({
       where: { userId: profileId },
       include: { images: { select: { url: true } } },
     }),
-    prisma.galleryItem.findMany({ where: { userId: profileId }, select: { url: true } }),
+    prisma.galleryItem.findMany({ where: { userId: profileId }, select: { url: true, poster: true } }),
     prisma.document.findMany({ where: { userId: profileId }, select: { fileUrl: true } }),
     prisma.geoPlace.findMany({ where: { userId: profileId }, select: { photos: true } }),
     prisma.geolocation.findUnique({
@@ -246,20 +263,23 @@ export async function deletePet(profileId: string): Promise<ActionResult> {
       select: { photo1: true, photo2: true, photo3: true },
     }),
     prisma.petOwnership.findMany({ where: { petId: profileId }, select: { ownerId: true } }),
+    prisma.tribute.findMany({ where: { profileId }, select: { imageUrl: true } }),
   ])
 
+  await prisma.appUser.delete({ where: { id: profileId } })
   await deleteBlobs([
     profile.avatarUrl,
     ...(bio?.images.map((i) => i.url) ?? []),
     ...galleryItems.map((i) => i.url),
+    ...galleryItems.map((i) => i.poster),
     ...documents.map((d) => d.fileUrl),
     ...places.flatMap((p) => p.photos),
     geolocation?.photo1,
     geolocation?.photo2,
     geolocation?.photo3,
+    ...tributes.map((tribute) => tribute.imageUrl),
   ])
 
-  await prisma.appUser.delete({ where: { id: profileId } })
   revalidatePetOwnershipPaths(profileId, session.user.id, ownerships.map((ownership) => ownership.ownerId))
   return done()
 }

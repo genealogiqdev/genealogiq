@@ -11,6 +11,7 @@ import { getProfileById } from "@/queries/profile"
 import { canManageProfile } from "@/lib/profile"
 import { deleteBlobs } from "@/lib/blob"
 import { getMemorialFeatures } from "@/lib/subscription"
+import { isAuthorizedMediaReference } from "@genealogiq/services/media-storage"
 
 /**
  * Create (documentId = null) or update an existing document.
@@ -39,13 +40,29 @@ export async function saveDocument(
       select: { fileUrl: true },
     })
     if (!existing) return fail(t("documents.notFound"))
-
-    if (existing.fileUrl !== flat.fileUrl) {
-      await deleteBlobs([existing.fileUrl])
+    if (
+      flat.fileUrl !== existing.fileUrl &&
+      !isAuthorizedMediaReference(
+        flat.fileUrl,
+        [`profiles/${profileId}/documents`],
+        { allowLegacy: false },
+      )
+    ) {
+      return fail(t("common.invalidData"))
     }
 
     await prisma.document.update({ where: { id: documentId }, data: flat })
+    if (existing.fileUrl !== flat.fileUrl) {
+      await deleteBlobs([existing.fileUrl])
+    }
   } else {
+    if (!isAuthorizedMediaReference(
+      flat.fileUrl,
+      [`profiles/${profileId}/documents`],
+      { allowLegacy: false },
+    )) {
+      return fail(t("common.invalidData"))
+    }
     // Create — enforce the per-plan cap.
     const count = await prisma.document.count({ where: { userId: profileId } })
     const { documentsMax } = await getMemorialFeatures(profileId)
@@ -73,8 +90,8 @@ export async function deleteDocument(profileId: string, documentId: string): Pro
   })
   if (!existing) return fail(t("documents.notFound"))
 
-  await deleteBlobs([existing.fileUrl])
   await prisma.document.delete({ where: { id: documentId } })
+  await deleteBlobs([existing.fileUrl])
 
   revalidatePath(`/profile/${profileId}/documents`)
   return done()

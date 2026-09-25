@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
 // Prisma mock must be hoisted so it exists when the vi.mock factory runs.
-const { prismaMock } = vi.hoisted(() => ({
+const { prismaMock, isAuthorizedMediaReference } = vi.hoisted(() => ({
   prismaMock: {
     appUser: { findUnique: vi.fn(), update: vi.fn() },
     address: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
   },
+  isAuthorizedMediaReference: vi.fn(() => true),
 }))
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
@@ -14,6 +15,7 @@ vi.mock("next-intl/server", () => ({ getTranslations: vi.fn(async () => (key: st
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }))
 vi.mock("@/lib/dal", () => ({ verifySession: vi.fn() }))
 vi.mock("@/lib/blob", () => ({ deleteBlobs: vi.fn() }))
+vi.mock("@genealogiq/services/media-storage", () => ({ isAuthorizedMediaReference }))
 
 import { updateProfile } from "./profile.actions"
 import { verifySession } from "@/lib/dal"
@@ -38,6 +40,7 @@ const validInput = (overrides: Record<string, unknown> = {}) => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
+  isAuthorizedMediaReference.mockReturnValue(true)
   // Self-scoped: the only identity that matters is the live session user.
   vi.mocked(verifySession).mockResolvedValue({ user: { id: "self" } } as never)
   prismaMock.appUser.findUnique.mockResolvedValue({ avatarUrl: null, addressId: null })

@@ -19,6 +19,8 @@ dist/
 
 # misc
 *.log
+*.dump
+*.sql.gz
 .DS_Store
 .vercel
 .azure/

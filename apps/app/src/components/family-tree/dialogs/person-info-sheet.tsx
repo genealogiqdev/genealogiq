@@ -14,6 +14,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -223,17 +224,17 @@ export function PersonInfoSheet({
         <SheetContent side="right" className="sm:max-w-md w-[min(420px,100vw)] p-0 overflow-y-auto">
           <SheetHeader className="px-5 pt-5 pb-3 border-b border-border/60">
             <div className="flex items-start gap-3">
-              <div className={cn(
-                "h-12 w-12 rounded-full overflow-hidden shrink-0 bg-muted flex items-center justify-center ring-2",
+              <Avatar className={cn(
+                "h-12 w-12 shrink-0 bg-muted ring-2",
                 person.gender === "FEMALE" ? "ring-rose-300/70" : person.gender === "MALE" ? "ring-[hsl(var(--brand-indigo)/0.55)]" : "ring-border/50",
               )}>
-                {person.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={person.avatarUrl} alt={displayName} className={cn("h-full w-full object-cover", isMemorial && "saturate-50")} />
-                ) : (
-                  <span className="text-sm font-semibold text-muted-foreground">{initials}</span>
+                {person.avatarUrl && (
+                  <AvatarImage src={person.avatarUrl} alt={displayName} className={cn(isMemorial && "saturate-50")} />
                 )}
-              </div>
+                <AvatarFallback className="text-sm font-semibold text-muted-foreground">
+                  {initials || "?"}
+                </AvatarFallback>
+              </Avatar>
               <div className="min-w-0 flex-1">
                 <SheetTitle className={cn("text-base leading-tight text-left", isGhost && "italic")}>{displayName}</SheetTitle>
                 {person.nickname && (

@@ -354,7 +354,7 @@
         "name": "Nombre de la mascota",
         "species": "Especie"
       },
-      "petHint": "Después podrás agregar foto, fechas y más detalles desde el perfil de la mascota.",
+      "petHint": "Agrega una foto ahora; las fechas y más detalles se pueden completar después en el perfil de la mascota.",
       "petQuota": "{count} de {limit} perfiles de mascotas utilizados",
       "petSearchPlaceholder": "Buscar entre tus mascotas",
       "searchPlaceholder": "Buscar perfil en Genealogiq",
@@ -469,6 +469,14 @@
       "pending": "Pendiente",
       "pet": "Mascota",
       "you": "Tú"
+    },
+    "portrait": {
+      "alt": "Foto de perfil",
+      "change": "Agregar o cambiar foto",
+      "unsupportedFile": "Archivo no compatible. Usa {formats}.",
+      "uploadError": "No se pudo subir la foto.",
+      "uploading": "Subiendo...",
+      "waitUploading": "Espera a que termine de subirse la foto."
     },
     "relation": {
       "aunt": "Tu tía",
@@ -1816,8 +1824,6 @@
     },
     "useMyLocation": "Usar mi ubicación",
     "viewMap": "Ver en el mapa"
-  }
-}
   },
   "PartnerLanding": {
     "meta": {
@@ -2032,3 +2038,5 @@
         "contact": "Hablar con Genealogiq"
       }
     }
+  }
+}

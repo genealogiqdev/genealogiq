@@ -12,6 +12,7 @@ import { deleteBlobs } from "@/lib/blob"
 import { getMemorialFeatures } from "@/lib/subscription"
 import { exceedsQuota } from "@/lib/quota"
 import { getCombinedMediaUsage } from "@/queries/media-usage"
+import { isAuthorizedMediaReference } from "@genealogiq/services/media-storage"
 
 export async function saveBio(profileId: string, data: unknown): Promise<ActionResult> {
   const t = await getTranslations("Actions")
@@ -49,29 +50,46 @@ export async function saveBio(profileId: string, data: unknown): Promise<ActionR
     return fail(t("bio.imageLimit", { max: features.mediaMaxImages }))
   }
 
+  const oldImages = await prisma.bioImage.findMany({
+    where: { bio: { userId: profileId } },
+    select: { url: true },
+  })
+  const oldUrls = new Set(oldImages.map((image) => image.url))
+  if (images.some((image) =>
+    !oldUrls.has(image.url) &&
+    !isAuthorizedMediaReference(
+      image.url,
+      [`profiles/${profileId}/bio`],
+      { allowLegacy: false },
+    )
+  )) {
+    return fail(t("common.invalidData"))
+  }
+
   const bio = await prisma.bio.upsert({
     where: { userId: profileId },
     create: { userId: profileId, quote, text },
     update: { quote, text },
   })
 
-  const oldImages = await prisma.bioImage.findMany({ where: { bioId: bio.id }, select: { url: true } })
   const newUrls = new Set(images.map((i) => i.url))
-  await deleteBlobs(oldImages.map((i) => i.url).filter((u) => !newUrls.has(u)))
+  const staleUrls = oldImages.map((i) => i.url).filter((u) => !newUrls.has(u))
 
-  await prisma.bioImage.deleteMany({ where: { bioId: bio.id } })
-
-  if (images.length > 0) {
-    await prisma.bioImage.createMany({
-      data: images.map((img, i) => ({
-        id: img.id,
-        url: img.url,
-        aspect: img.aspect ?? "square",
-        order: i,
-        bioId: bio.id,
-      })),
-    })
-  }
+  await prisma.$transaction(async (tx) => {
+    await tx.bioImage.deleteMany({ where: { bioId: bio.id } })
+    if (images.length > 0) {
+      await tx.bioImage.createMany({
+        data: images.map((img, i) => ({
+          id: img.id,
+          url: img.url,
+          aspect: img.aspect ?? "square",
+          order: i,
+          bioId: bio.id,
+        })),
+      })
+    }
+  })
+  await deleteBlobs(staleUrls)
 
   revalidatePath(`/profile/${profileId}/bio`)
   return done()
@@ -89,9 +107,8 @@ export async function deleteBio(profileId: string): Promise<ActionResult> {
     where: { userId: profileId },
     include: { images: { select: { url: true } } },
   })
-  await deleteBlobs(bio?.images.map((i) => i.url) ?? [])
-
   await prisma.bio.deleteMany({ where: { userId: profileId } })
+  await deleteBlobs(bio?.images.map((i) => i.url) ?? [])
   revalidatePath(`/profile/${profileId}/bio`)
   return done()
 }

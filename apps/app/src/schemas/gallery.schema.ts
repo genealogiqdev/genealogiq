@@ -1,9 +1,9 @@
 import { z } from "zod"
-import { BLOB_URL_PATTERN } from "@genealogiq/core"
+import { isAllowedMediaUrl } from "@genealogiq/core"
 
 // Gallery media is uploaded to Vercel Blob (see /api/gallery/upload), so the
 // stored URLs must point at that host — never an arbitrary external origin.
-const blobUrl = z.string().regex(BLOB_URL_PATTERN, "Invalid media URL")
+const blobUrl = z.string().refine(isAllowedMediaUrl, "Invalid media URL")
 
 export const mediaItemSchema = z.object({
   id: z.string().optional(),

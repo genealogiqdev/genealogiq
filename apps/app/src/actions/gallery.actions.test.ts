@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 const { prismaMock } = vi.hoisted(() => ({
   prismaMock: {
     galleryItem: { findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn(), count: vi.fn() },
+    $transaction: vi.fn(),
   },
 }))
 
@@ -16,6 +17,7 @@ vi.mock("@/lib/profile", () => ({ canManageProfile: vi.fn() }))
 vi.mock("@/lib/blob", () => ({ deleteBlobs: vi.fn() }))
 vi.mock("@/lib/subscription", () => ({ getMemorialFeatures: vi.fn() }))
 vi.mock("@/queries/media-usage", () => ({ getCombinedMediaUsage: vi.fn() }))
+vi.mock("@genealogiq/services/media-storage", () => ({ isAuthorizedMediaReference: vi.fn(() => true) }))
 
 import { saveGallery, deleteGallery } from "./gallery.actions"
 import { verifySession } from "@/lib/dal"
@@ -53,6 +55,7 @@ beforeEach(() => {
   prismaMock.galleryItem.findMany.mockResolvedValue([])
   prismaMock.galleryItem.deleteMany.mockResolvedValue({})
   prismaMock.galleryItem.createMany.mockResolvedValue({})
+  prismaMock.$transaction.mockImplementation(async (callback: (tx: typeof prismaMock) => unknown) => callback(prismaMock))
   prismaMock.galleryItem.count.mockResolvedValue(0)
 })
 
@@ -131,8 +134,8 @@ describe("saveGallery — reorder/replace happy path", () => {
   it("deletes orphaned blobs, replaces rows in order, and returns done()", async () => {
     // Existing rows: one stays (img-0), one is removed (old).
     prismaMock.galleryItem.findMany.mockResolvedValue([
-      { url: "https://qa.public.blob.vercel-storage.com/img-0.jpg" },
-      { url: "https://qa.public.blob.vercel-storage.com/old.jpg" },
+      { url: "https://qa.public.blob.vercel-storage.com/img-0.jpg", poster: null },
+      { url: "https://qa.public.blob.vercel-storage.com/old.jpg", poster: "https://qa.public.blob.vercel-storage.com/old-poster.jpg" },
     ])
 
     // Reordered set: img(1) first, img(0) second.
@@ -140,7 +143,10 @@ describe("saveGallery — reorder/replace happy path", () => {
 
     expect(res).toEqual({ ok: true, message: undefined })
     // Only the blob no longer referenced is deleted.
-    expect(deleteBlobs).toHaveBeenCalledWith(["https://qa.public.blob.vercel-storage.com/old.jpg"])
+    expect(deleteBlobs).toHaveBeenCalledWith([
+      "https://qa.public.blob.vercel-storage.com/old.jpg",
+      "https://qa.public.blob.vercel-storage.com/old-poster.jpg",
+    ])
     expect(prismaMock.galleryItem.deleteMany).toHaveBeenCalledWith({ where: { userId: "A" } })
     // `order` is re-derived from array index, proving the reorder is persisted.
     const createArg = prismaMock.galleryItem.createMany.mock.calls[0][0]

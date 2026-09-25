@@ -16,6 +16,7 @@ vi.mock("@/queries/profile", () => ({ getProfileById: vi.fn() }))
 vi.mock("@/lib/profile", () => ({ canManageProfile: vi.fn() }))
 vi.mock("@/lib/notifications", () => ({ notify: vi.fn(), markNotificationsRead: vi.fn() }))
 vi.mock("@/lib/blob", () => ({ deleteBlobs: vi.fn() }))
+vi.mock("@genealogiq/services/media-storage", () => ({ isAuthorizedMediaReference: vi.fn(() => true) }))
 
 import { approveTribute } from "./tribute.actions"
 import { verifySession } from "@/lib/dal"

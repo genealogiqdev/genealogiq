@@ -20,6 +20,7 @@ const { prismaMock, txMock } = vi.hoisted(() => {
     document: { findMany: vi.fn() },
     geoPlace: { findMany: vi.fn() },
     geolocation: { findUnique: vi.fn() },
+    tribute: { findMany: vi.fn() },
     $transaction: vi.fn(async (cb: (tx: typeof txMock) => unknown) => cb(txMock)),
   }
   return { prismaMock, txMock }
@@ -38,6 +39,7 @@ vi.mock("@/queries/family-tree", () => ({ getTreeMemberIds: vi.fn() }))
 vi.mock("@genealogiq/services/rate-limit", () => ({
   checkRateLimit: vi.fn(async () => ({ allowed: true, retryAfter: 0 })),
 }))
+vi.mock("@genealogiq/services/media-storage", () => ({ isAuthorizedMediaReference: vi.fn(() => true) }))
 
 import { attachPet, createPet, deletePet, detachPetFromTree, updatePet } from "./pet.actions"
 import { verifySession } from "@/lib/dal"
@@ -68,6 +70,7 @@ beforeEach(() => {
   vi.mocked(verifySession).mockResolvedValue({ user: { id: OWNER_1 } } as never)
   vi.mocked(canManageProfile).mockReturnValue(true)
   vi.mocked(getPetCreationStatus).mockResolvedValue({ count: 0, limit: 2, allowed: true })
+  prismaMock.tribute.findMany.mockResolvedValue([])
   vi.mocked(getTreeMemberIds).mockResolvedValue(new Set([OWNER_1, OWNER_2]))
   vi.mocked(getProfileById).mockResolvedValue({ id: OWNER_1, role: "APP_USER", guardedBy: [] } as never)
   prismaMock.appUser.findMany.mockImplementation(({ where }: { where: { id: { in: string[] } } }) =>
@@ -271,11 +274,12 @@ describe("deletePet — guards + cascade", () => {
       avatarUrl: "https://example.public.blob.vercel-storage.com/avatar.png",
     } as never)
     prismaMock.bio.findUnique.mockResolvedValue({ images: [{ url: "bio-1.png" }] })
-    prismaMock.galleryItem.findMany.mockResolvedValue([{ url: "gallery-1.png" }])
+    prismaMock.galleryItem.findMany.mockResolvedValue([{ url: "gallery-1.png", poster: "poster-1.png" }])
     prismaMock.document.findMany.mockResolvedValue([{ fileUrl: "doc-1.pdf" }])
     prismaMock.geoPlace.findMany.mockResolvedValue([{ photos: ["place-1.png"] }])
     prismaMock.geolocation.findUnique.mockResolvedValue({ photo1: "rest-1.png", photo2: null, photo3: null })
     prismaMock.petOwnership.findMany.mockResolvedValue([{ ownerId: OWNER_1 }])
+    prismaMock.tribute.findMany.mockResolvedValue([{ imageUrl: "tribute-1.png" }])
     prismaMock.appUser.delete.mockResolvedValue({})
 
     const res = await deletePet("p")
@@ -288,9 +292,11 @@ describe("deletePet — guards + cascade", () => {
         "https://example.public.blob.vercel-storage.com/avatar.png",
         "bio-1.png",
         "gallery-1.png",
+        "poster-1.png",
         "doc-1.pdf",
         "place-1.png",
         "rest-1.png",
+        "tribute-1.png",
       ]),
     )
   })

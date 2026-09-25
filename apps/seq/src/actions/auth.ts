@@ -14,6 +14,7 @@ import { verifySession } from "@/lib/dal"
 import { getClientIp, checkRateLimit } from "@/lib/rate-limit"
 import { hashToken, done, fail, type ActionResult } from "@genealogiq/core"
 import { createLoginAction } from "@genealogiq/auth/login"
+import { deleteUnreferencedMediaUrls } from "@genealogiq/services/media-storage"
 import { randomBytes } from "crypto"
 
 // The useActionState forms render two things: a banner (the discriminated
@@ -257,7 +258,7 @@ export async function deleteAccount(
   const userId = session.user!.id!
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { email: true, password: true },
+    select: { email: true, password: true, avatarUrl: true, cover_url: true },
   })
   if (!user?.password) return fail(t("auth.userNotFound"))
 
@@ -266,6 +267,7 @@ export async function deleteAccount(
 
   await sendAccountDeletionEmail(user.email)
   await prisma.user.delete({ where: { id: userId } })
+  await deleteUnreferencedMediaUrls([user.avatarUrl, user.cover_url])
 
   await signOut({ redirectTo: "/" })
 }

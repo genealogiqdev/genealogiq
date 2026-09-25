@@ -19,6 +19,7 @@ vi.mock("@/lib/dal", () => ({ verifySession: vi.fn() }))
 vi.mock("@/queries/profile", () => ({ getProfileById: vi.fn() }))
 vi.mock("@/lib/profile", () => ({ canManageProfile: vi.fn() }))
 vi.mock("@/lib/blob", () => ({ deleteBlobs: vi.fn() }))
+vi.mock("@genealogiq/services/media-storage", () => ({ isAuthorizedMediaReference: vi.fn(() => true) }))
 vi.mock("@/lib/subscription", () => ({ getMemorialFeatures: vi.fn() }))
 
 import { saveDocument, deleteDocument } from "./documents.actions"

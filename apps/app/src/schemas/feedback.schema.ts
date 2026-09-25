@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { isAllowedMediaUrl } from "@genealogiq/core"
 import type { Translator } from "./i18n"
 
 export function getFeedbackSchema(t: Translator) {
@@ -6,7 +7,7 @@ export function getFeedbackSchema(t: Translator) {
     type: z.enum(["bug", "contact", "career"]),
     email: z.string().trim().email(t("invalidEmail")),
     message: z.string().trim().min(1, t("required")).max(2000),
-    cvUrl: z.string().url().optional(),
+    cvUrl: z.string().url().refine(isAllowedMediaUrl, t("invalidUrl")).optional(),
     page: z.string().trim().max(500).optional(),
     // Honeypot: a real submitter never fills this (hidden via CSS). Non-empty
     // means a bot filled every visible-looking field, including this one.

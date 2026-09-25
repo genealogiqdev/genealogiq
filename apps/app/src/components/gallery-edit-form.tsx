@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { upload } from "@vercel/blob/client"
+import { uploadMedia as upload } from "@genealogiq/core"
 import { saveGallery, deleteGallery } from "@/actions/gallery.actions"
 import {
   isAllowedImage,

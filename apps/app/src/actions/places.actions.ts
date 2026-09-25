@@ -14,6 +14,7 @@ import { getMemorialFeatures } from "@/lib/subscription"
 import { exceedsQuota } from "@/lib/quota"
 import { getCombinedMediaUsage } from "@/queries/media-usage"
 import { getGuardianGeoPlacesStatus } from "@/lib/geo-quota"
+import { isAuthorizedMediaReference } from "@genealogiq/services/media-storage"
 
 function toDate(value: string | null | undefined): Date | null {
   if (!value) return null
@@ -60,6 +61,17 @@ export async function savePlace(
       select: { photos: true },
     })
     if (!existing) return fail(t("places.notFound"))
+    const oldPhotos = new Set(existing.photos)
+    if (flat.photos.some((url) =>
+      !oldPhotos.has(url) &&
+      !isAuthorizedMediaReference(
+        url,
+        [`profiles/${profileId}/places`],
+        { allowLegacy: false },
+      )
+    )) {
+      return fail(t("common.invalidData"))
+    }
 
     const combined = await getCombinedMediaUsage(profileId)
     const otherImages = combined.images - existing.photos.length
@@ -68,10 +80,17 @@ export async function savePlace(
     }
 
     const newPhotos = new Set(flat.photos)
-    await deleteBlobs(existing.photos.filter((u) => !newPhotos.has(u)))
-
+    const stalePhotos = existing.photos.filter((u) => !newPhotos.has(u))
     await prisma.geoPlace.update({ where: { id: placeId }, data: flat })
+    await deleteBlobs(stalePhotos)
   } else {
+    if (flat.photos.some((url) => !isAuthorizedMediaReference(
+      url,
+      [`profiles/${profileId}/places`],
+      { allowLegacy: false },
+    ))) {
+      return fail(t("common.invalidData"))
+    }
     // Create — geo places are a pool shared across everything the ACTING
     // guardian manages (own profile + every memorial), not per-profile —
     // same pattern QR codes already use. `session.user.id` is definitionally
@@ -133,8 +152,8 @@ export async function deletePlace(profileId: string, placeId: string): Promise<A
   })
   if (!existing) return fail(t("places.notFound"))
 
-  await deleteBlobs(existing.photos)
   await prisma.geoPlace.delete({ where: { id: placeId } })
+  await deleteBlobs(existing.photos)
 
   revalidatePath(`/profile/${profileId}/places`)
   return done()
