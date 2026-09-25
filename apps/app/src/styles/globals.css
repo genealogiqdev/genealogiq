@@ -756,6 +756,67 @@ html:not(.dark) .marketing-shell footer > img[aria-hidden="true"] {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* Light editorial partner landing */
+.partner-highlight {
+  background-image: linear-gradient(transparent 73%, #b7ed32 73%);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.partner-range {
+  appearance: none;
+  height: 4px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, #a9d826 var(--range-progress), #252b2a var(--range-progress));
+}
+
+.partner-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #98c91b;
+  box-shadow: 0 1px 4px rgb(20 30 22 / 0.25);
+}
+
+.partner-range::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #98c91b;
+  box-shadow: 0 1px 4px rgb(20 30 22 / 0.25);
+}
+
+.partner-header-inner .glass {
+  color: #46504c;
+  background: #f0f3ef;
+  border-color: #e3e8e3;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.partner-header-inner .glass:hover {
+  color: #171a1c;
+  background: #e8ede7;
+}
+
+.partner-footer {
+  color-scheme: light;
+  color: #424b49;
+  background: #f4f6f4;
+  border-color: #e2e7e3;
+}
+
+.partner-footer a {
+  color: #56605d;
+}
+
+.partner-footer a:hover {
+  color: #1c2521;
+}
+
 @keyframes marketing-draw {
   to { stroke-dashoffset: 0; }
 }

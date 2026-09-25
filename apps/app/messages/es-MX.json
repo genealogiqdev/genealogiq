@@ -1818,3 +1818,217 @@
     "viewMap": "Ver en el mapa"
   }
 }
+  },
+  "PartnerLanding": {
+    "meta": {
+      "title": "Alianzas Genealogiq para funerarias — memoriales digitales con GenCode",
+      "description": "Ofrece a las familias memoriales digitales con GenCode QR y consulta créditos, ventas y activaciones en el portal de socios de Genealogiq."
+    },
+    "nav": {
+      "label": "Navegación para socios",
+      "value": "El memorial",
+      "gencode": "GenCode",
+      "model": "Planifica",
+      "process": "Cómo funciona",
+      "faq": "Preguntas frecuentes",
+      "contact": "Contáctanos",
+      "portal": "Portal de socios",
+      "contactCta": "Conoce la alianza"
+    },
+    "hero": {
+      "eyebrow": "UNA ALIANZA PARA FUNERARIAS",
+      "titleLead": "Transforma la despedida",
+      "titleAccent": "en un legado vivo.",
+      "description": "Ofrece a las familias un espacio para reunir biografías, fotos, videos y homenajes en un memorial digital, accesible con GenCode.",
+      "capacityOutputLabel": "Capacidad estimada para 12 meses",
+      "capacityAnnualUnit": "GenCodes al año",
+      "capacityLabel": "¿Cuántos memoriales atiende tu equipo al mes?",
+      "capacityNote": "Estimación de volumen con un GenCode por memorial. No es una cotización ni una garantía de demanda.",
+      "primaryCta": "Conoce la alianza",
+      "secondaryCta": "Así funciona",
+      "trust": {
+        "codes": "Administra GenCodes en un portal",
+        "plans": "Créditos según tu operación",
+        "families": "Acceso sencillo para las familias"
+      },
+      "previewLabel": "PORTAL DE SOCIOS",
+      "previewTitle": "Memoriales en cada etapa",
+      "previewCaption": "Conecta la atención presencial con el legado digital de la familia.",
+      "previewSubtitle": "INVENTARIO DE GENCODES",
+      "statusTitle": "Da seguimiento a tus códigos",
+      "dataNote": "VISTA ILUSTRATIVA",
+      "status": {
+        "available": "Disponibles",
+        "sold": "Vendidos",
+        "activated": "Activados"
+      },
+      "codeCaption": "Un código QR para cada memorial.",
+      "previewFootnote": "Consulta con claridad la actividad de códigos de tu equipo."
+    },
+    "strip": {
+      "codes": "Créditos GenCode para tu operación",
+      "families": "Historias conectadas con las familias",
+      "onboarding": "Activación guiada por QR",
+      "operation": "Seguimiento en el portal de socios"
+    },
+    "value": {
+      "eyebrow": "UNA ALIANZA CON PROPÓSITO",
+      "title": "Una vida entera, reunida en un memorial digital.",
+      "description": "Biografías, fotos, videos y homenajes se reúnen en un espacio que la familia puede abrir y compartir con GenCode.",
+      "included": "Con Genealogiq",
+      "table": { "labels": { "need": "Lo que necesita la familia", "experience": "Cómo ayuda Genealogiq", "included": "Disponible" } },
+      "items": {
+        "care": {
+          "title": "Acompaña a la familia",
+          "description": "Ofrece un espacio digital para conservar historias, fotografías y homenajes a los que la familia pueda volver con el tiempo."
+        },
+        "connection": {
+          "title": "Conecta lo físico con lo digital",
+          "description": "GenCode vincula un memorial o recuerdo con la historia de la persona homenajeada mediante un código QR."
+        },
+        "clarity": {
+          "title": "Organiza la operación",
+          "description": "Consulta códigos disponibles, ventas registradas y activaciones en el portal que usa tu equipo."
+        },
+        "access": {
+          "title": "Acceso sencillo desde el celular",
+          "description": "La cámara del celular lee el código QR y abre el memorial en el navegador, sin instalar una aplicación."
+        }
+      }
+    },
+    "gencode": {
+      "eyebrow": "DEL MEMORIAL A LOS RECUERDOS",
+      "title": "Un código abre la puerta a toda una vida de historias.",
+      "description": "GenCode es un código QR que conecta un memorial físico con un perfil digital de Genealogiq, donde la familia puede reunir todo lo que no cabe en una placa.",
+      "imageAlt": "Familia reunida en un memorial con acceso a la experiencia digital Genealogiq",
+      "scanLabel": "Escanea para abrir el memorial",
+      "points": {
+        "scan": "La familia escanea el código con la cámara del celular.",
+        "story": "El memorial puede incluir biografía, fotos, videos y homenajes.",
+        "share": "Los familiares pueden aportar a la historia familiar según los permisos del perfil."
+      },
+      "cta": "Conoce GenCode"
+    },
+    "model": {
+      "eyebrow": "UN MODELO CLARO PARA TU EMPRESA",
+      "title": "Un plan para socios y códigos según la demanda.",
+      "description": "La operación combina una suscripción para socios con créditos GenCode. Los precios y condiciones dependen del plan comercial vigente.",
+      "items": {
+        "subscription": {
+          "title": "Un plan para tu operación",
+          "description": "La suscripción define las condiciones de socio y la cantidad anual de créditos para activaciones."
+        },
+        "packages": {
+          "title": "Paquetes adicionales",
+          "description": "Si aumenta la demanda, tu empresa puede contratar paquetes adicionales de GenCodes según la oferta disponible."
+        },
+        "activation": {
+          "title": "Un crédito por memorial",
+          "description": "Cuando se activa un código para crear un memorial, se consume el crédito correspondiente y queda registrada la actividad."
+        }
+      }
+    },
+    "calculator": {
+      "eyebrow": "PLANEA LA CAPACIDAD",
+      "title": "De una estimación mensual a una vista anual.",
+      "description": "Ajusta cuántos memoriales espera atender tu empresa cada mes para estimar los códigos que podría necesitar durante un año.",
+      "monthlyLabel": "Memoriales atendidos al mes",
+      "monthlyUnit": "al mes",
+      "rangeLabel": "Cantidad estimada de memoriales al mes",
+      "outputLabel": "Códigos estimados para 12 meses",
+      "annualUnit": "GenCodes al año",
+      "panelTitle": "Arma tu escenario",
+      "badge": "Estimación",
+      "formula": "Estimación sencilla: memoriales al mes × 12, considerando un GenCode por memorial.",
+      "caveat": "Es una referencia de capacidad, no una cotización ni una garantía de demanda. Los créditos y precios dependen del plan y de las condiciones comerciales."
+    },
+    "how": {
+      "eyebrow": "LISTA PARA TU EQUIPO",
+      "title": "De la primera conversación al primer memorial.",
+      "description": "La alianza se adapta a la rutina de tu funeraria y mantiene cada paso sencillo para tu equipo y para la familia.",
+      "steps": {
+        "plan": {
+          "title": "Define el modelo de alianza",
+          "description": "Habla con Genealogiq sobre los servicios de tu empresa, los planes disponibles y el volumen previsto de códigos."
+        },
+        "prepare": {
+          "title": "Organiza tus GenCodes",
+          "description": "Tu equipo obtiene acceso al portal de socios para consultar créditos y preparar códigos para las familias."
+        },
+        "serve": {
+          "title": "Ofrece una nueva forma de recordar",
+          "description": "Comparte un GenCode con la familia. Escanea el QR, activa el memorial y continúa agregando a la historia con el tiempo."
+        }
+      },
+      "cta": "Habla con Genealogiq",
+      "imageAlt": "Familia en un memorial con acceso a un memorial digital Genealogiq",
+      "imageCaption": "GenCode conecta un homenaje presencial con las historias que la familia quiere conservar."
+    },
+    "portal": {
+      "eyebrow": "TODO EN EL PORTAL DE SOCIOS",
+      "title": "Da seguimiento a cada código, disponible o activado.",
+      "description": "Consulta de forma práctica el inventario de GenCodes y la actividad registrada por tu equipo.",
+      "panelTitle": "Estado de tus GenCodes",
+      "panelCaption": "Vista ilustrativa de los estados que ayudan a tu equipo a organizar la atención.",
+      "status": {
+        "available": "Disponible",
+        "sold": "Vendido",
+        "activated": "Activado"
+      },
+      "note": "Los indicadores son ilustrativos; los datos reales de tu empresa aparecen en el portal.",
+      "points": {
+        "inventory": "Consulta los códigos disponibles para tu operación.",
+        "sales": "Registra las ventas realizadas por tu equipo.",
+        "activation": "Revisa los códigos vendidos y los memoriales activados."
+      },
+      "cta": "Acceder a Sequoia"
+    },
+    "faq": {
+      "eyebrow": "ANTES DE EMPEZAR",
+      "title": "Preguntas sobre la alianza.",
+      "description": "Descubre cómo GenCode y el portal de socios pueden integrarse a la operación de tu empresa.",
+      "items": {
+        "who": {
+          "question": "¿Para quién es la alianza Genealogiq?",
+          "answer": "Para funerarias que quieren ofrecer a las familias una forma digital de conservar historias y acceder a memoriales mediante un código QR."
+        },
+        "what": {
+          "question": "¿Qué recibe una familia con GenCode?",
+          "answer": "Acceso por QR a un memorial digital Genealogiq. La familia puede crear una cuenta y reunir biografía, imágenes, videos, homenajes y relaciones familiares."
+        },
+        "credits": {
+          "question": "¿Cómo funcionan los créditos y paquetes?",
+          "answer": "Cada plan de socio define la cantidad y las reglas de créditos para activaciones. Si la demanda supera el plan, la empresa puede contratar paquetes adicionales disponibles."
+        },
+        "families": {
+          "question": "¿La familia necesita instalar una app para escanear?",
+          "answer": "No. El código QR abre el memorial en el navegador del celular. Para crear y administrar el contenido, la familia inicia sesión o crea una cuenta Genealogiq."
+        },
+        "commercial": {
+          "question": "¿Dónde consulto precios y condiciones comerciales?",
+          "answer": "Los precios varían según el plan, la moneda y la oferta vigente. Contacta a Genealogiq para conocer las condiciones aplicables a tu empresa; la estimación de esta página no es una cotización."
+        }
+      }
+    },
+    "closing": {
+      "eyebrow": "UNA NUEVA POSIBILIDAD PARA TU EMPRESA",
+      "title": "¿Llevamos más historias al alcance de cada familia?",
+      "description": "Habla con Genealogiq para agregar memoriales digitales y GenCodes a la experiencia que ofrece tu funeraria.",
+      "primaryCta": "Hablar sobre la alianza",
+      "secondaryCta": "¿Ya eres socio? Accede al portal",
+      "contactNote": "Los planes y las condiciones comerciales se acuerdan con el equipo de Genealogiq."
+    },
+    "footer": {
+      "tagline": "Memoriales digitales con GenCode para que funerarias y familias conserven historias.",
+      "cta": "Hablar sobre la alianza",
+      "product": "La alianza",
+      "account": "Acceso",
+      "links": {
+        "value": "Qué puede ofrecer tu empresa",
+        "gencode": "Cómo funciona GenCode",
+        "model": "Planes y créditos",
+        "how": "Etapas de la alianza",
+        "portal": "Entrar al portal de socios",
+        "contact": "Hablar con Genealogiq"
+      }
+    }
