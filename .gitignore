@@ -1,7 +1,8 @@
 # dependencies
 node_modules/
 .pnpm-store/
-
+genealogiq.dump
+github_token
 # next.js / build
 .next/
 out/
