@@ -8,7 +8,7 @@ import { stripe } from './stripe'
  * whichever way the tenant bought: an employee checking out in SEQ, or a
  * GenealogiQ operator generating a payment link in BMS. Both apps resolve the
  * customer through here so the two paths can never fork into two customers for
- * the same funeral home.
+ * the same Genealogiq partner.
  *
  * Idempotent: the id is cached on Tenant.stripeCustomerId after the first call.
  *

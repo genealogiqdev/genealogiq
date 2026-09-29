@@ -83,10 +83,26 @@ export async function canActivate(tenantId: string, genCodeId: string): Promise<
     where:  { tenantId, status: 'ACTIVE' },
     select: { id: true },
   })
-  if (!contract) return false
+  if (contract) {
+    const balance = await getCreditBalance(tenantId)
+    return balance.general > 0
+  }
 
-  const balance = await getCreditBalance(tenantId)
-  return balance.general > 0
+  // A package is a standalone first-purchase product. Its TOPUP grant remains
+  // usable for its own 12-month term even when the partner has never held (or
+  // no longer holds) an annual contract. Annual and rollover grants stay
+  // frozen without that contract.
+  const packageCredit = await prisma.creditGrant.findFirst({
+    where: {
+      tenantId,
+      source: 'TOPUP',
+      status: 'ACTIVE',
+      remainingQty: { gt: 0 },
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+    },
+    select: { id: true },
+  })
+  return !!packageCredit
 }
 
 async function liveReservationFor(genCodeId: string) {
@@ -187,7 +203,11 @@ export async function reserveCreditForSale(input: {
     })
     if (already?.status === 'HELD') return
 
-    const source = await lockNextGrant(tx, input.tenantId)
+    const activeContract = await tx.partnerSubscription.findFirst({
+      where: { tenantId: input.tenantId, status: 'ACTIVE' },
+      select: { id: true },
+    })
+    const source = await lockNextGrant(tx, input.tenantId, !activeContract)
     if (!source) throw new InsufficientCreditsError(input.tenantId)
 
     await debit(tx, source, 1, {
@@ -347,7 +367,16 @@ export async function consumeCreditForActivation(
       reservationId = reservation.id
     }
   }
-  grant ??= await lockNextGrant(tx, input.tenantId)
+  if (!grant) {
+    const activeContract = await tx.partnerSubscription.findFirst({
+      where: { tenantId: input.tenantId, status: 'ACTIVE' },
+      select: { id: true },
+    })
+    // Without an annual contract, only standalone package credits may fund an
+    // activation. This prevents a package purchase from accidentally thawing
+    // expired-contract ANNUAL or ROLLOVER stock through FEFO.
+    grant = await lockNextGrant(tx, input.tenantId, !activeContract)
+  }
   if (!grant) throw new InsufficientCreditsError(input.tenantId)
 
   const transaction = await debit(tx, grant, 1, {
@@ -382,7 +411,11 @@ interface LockedGrant {
  * COMMITTED grants are excluded — they belong to one code and are reachable only
  * through their reservation.
  */
-async function lockNextGrant(tx: Prisma.TransactionClient, tenantId: string): Promise<LockedGrant | null> {
+async function lockNextGrant(
+  tx: Prisma.TransactionClient,
+  tenantId: string,
+  topupOnly = false,
+): Promise<LockedGrant | null> {
   const rows = await tx.$queryRaw<LockedGrant[]>`
     SELECT id, remaining_qty AS "remainingQty", expires_at AS "expiresAt"
     FROM credit_grants
@@ -390,6 +423,7 @@ async function lockNextGrant(tx: Prisma.TransactionClient, tenantId: string): Pr
       AND status = 'ACTIVE'
       AND remaining_qty > 0
       AND source <> 'COMMITTED'
+      AND (${topupOnly} = FALSE OR source = 'TOPUP')
       AND (expires_at IS NULL OR expires_at > now())
     ORDER BY expires_at ASC NULLS LAST, created_at ASC
     LIMIT 1

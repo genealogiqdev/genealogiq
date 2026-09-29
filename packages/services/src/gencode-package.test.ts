@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { prismaMock, txMock, stripeMock, customerMock, generateMock } = vi.hoisted(() => ({
   prismaMock: {
     genCodePackage: { findUnique: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
+    discountCoupon: { findFirst: vi.fn() },
     genCodeOrder: {
       create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn(), updateMany: vi.fn(),
     },
@@ -24,14 +25,8 @@ const { prismaMock, txMock, stripeMock, customerMock, generateMock } = vi.hoiste
   generateMock: vi.fn(),
 }))
 
-vi.mock('@genealogiq/db', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@genealogiq/db')>()
-  return { ...actual, prisma: prismaMock }
-})
-vi.mock('@genealogiq/core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@genealogiq/core')>()
-  return { ...actual, generateGenCode: generateMock }
-})
+vi.mock('@genealogiq/db', () => ({ prisma: prismaMock }))
+vi.mock('@genealogiq/core', () => ({ generateGenCode: generateMock }))
 vi.mock('server-only', () => ({}))
 vi.mock('./stripe', () => ({ stripe: stripeMock }))
 vi.mock('./stripe-customer', () => ({ ensureTenantStripeCustomer: customerMock }))
@@ -54,6 +49,8 @@ const PACKAGE = {
   unitPrice: '150.00',
   currency: 'BRL',
   minimumQuantity: 20,
+  activationTrialMonths: 12,
+  activationTrialPlanCode: 'PREMIUM',
   isActive: true,
   stripeProductId: 'prod_1',
   stripePriceId: 'price_1',
@@ -82,10 +79,8 @@ function checkoutSession(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
   vi.clearAllMocks()
   prismaMock.genCodePackage.findFirst.mockResolvedValue(PACKAGE)
-  prismaMock.tenant.findFirst.mockResolvedValue({
-    id: 'tenant_1',
-    partnerSubscriptions: [{ id: 'contract_1' }],
-  })
+  prismaMock.discountCoupon.findFirst.mockResolvedValue(null)
+  prismaMock.tenant.findFirst.mockResolvedValue({ id: 'tenant_1' })
   customerMock.mockResolvedValue('cus_1')
   prismaMock.genCodeOrder.create.mockResolvedValue({ id: 'order_1' })
   stripeMock.checkout.sessions.create.mockResolvedValue({
@@ -98,6 +93,7 @@ beforeEach(() => {
   prismaMock.$transaction.mockImplementation(async (callback: any) => callback(txMock))
   prismaMock.genCodeOrder.findUnique.mockResolvedValue({
     id: 'order_1',
+    tenantId: 'tenant_1',
     status: 'PENDING',
     stripeCheckoutSessionId: 'cs_1',
   })
@@ -105,7 +101,7 @@ beforeEach(() => {
   txMock.genCodeOrder.findUnique.mockResolvedValue({
     id: 'order_1',
     tenantId: 'tenant_1',
-    partnerSubscriptionId: 'contract_1',
+    partnerSubscriptionId: null,
     createdById: 'user_1',
     quantity: 20,
   })
@@ -139,13 +135,13 @@ describe('openGenCodePackageCheckout', () => {
     expect(prismaMock.genCodeOrder.create).not.toHaveBeenCalled()
   })
 
-  it('rejects a tenant without an active B2B cycle', async () => {
+  it('rejects an inactive or unknown customer', async () => {
     prismaMock.tenant.findFirst.mockResolvedValue(null)
     await expect(openGenCodePackageCheckout(checkoutInput))
-      .rejects.toMatchObject({ reason: 'tenant-not-eligible' })
+      .rejects.toMatchObject({ reason: 'tenant-inactive' })
   })
 
-  it('prices 20 units at R$150 each and sends the same quantity to Stripe', async () => {
+  it('allows a package to be a customer\'s first purchase', async () => {
     const result = await openGenCodePackageCheckout(checkoutInput)
 
     expect(result.totalAmount).toBe(3_000)
@@ -153,7 +149,9 @@ describe('openGenCodePackageCheckout', () => {
       data: expect.objectContaining({
         quantity: 20,
         currency: 'BRL',
-        partnerSubscriptionId: 'contract_1',
+        partnerSubscriptionId: null,
+        activationTrialMonths: 12,
+        activationTrialPlanCode: 'PREMIUM',
       }),
     }))
     const orderData = prismaMock.genCodeOrder.create.mock.calls[0][0].data
@@ -163,6 +161,91 @@ describe('openGenCodePackageCheckout', () => {
       mode: 'payment',
       line_items: [{ price: 'price_1', quantity: 20 }],
     }))
+  })
+
+  it('applies a 15% package coupon and snapshots the net order total', async () => {
+    prismaMock.discountCoupon.findFirst.mockResolvedValue({
+      id: 'coupon_15',
+      code: 'PACOTE15',
+      discountType: 'percent',
+      percentOff: 15,
+      amountOffUsd: null,
+      amountOffBrl: null,
+      amountOffMxn: null,
+      stripePromotionCodeId: 'promo_15',
+      appliesTo: [],
+      genCodePackages: [{ id: PACKAGE.id }],
+    })
+
+    const result = await openGenCodePackageCheckout({
+      ...checkoutInput,
+      discountCouponId: 'coupon_15',
+    })
+
+    expect(result).toEqual(expect.objectContaining({
+      subtotalAmount: 3_000,
+      discountAmount: 450,
+      discountCode: 'PACOTE15',
+      totalAmount: 2_550,
+    }))
+    expect(prismaMock.genCodeOrder.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        discountCouponId: 'coupon_15',
+        discountCode: 'PACOTE15',
+        discountAmount: 450,
+        totalAmount: 2_550,
+      }),
+    }))
+    expect(stripeMock.checkout.sessions.create).toHaveBeenCalledWith(expect.objectContaining({
+      discounts: [{ promotion_code: 'promo_15' }],
+    }))
+  })
+
+  it('rejects a coupon restricted to another product', async () => {
+    prismaMock.discountCoupon.findFirst.mockResolvedValue({
+      id: 'coupon_other',
+      code: 'OUTRO10',
+      discountType: 'percent',
+      percentOff: 10,
+      amountOffUsd: null,
+      amountOffBrl: null,
+      amountOffMxn: null,
+      stripePromotionCodeId: 'promo_other',
+      appliesTo: [],
+      genCodePackages: [{ id: 'pkg_other' }],
+    })
+
+    await expect(openGenCodePackageCheckout({
+      ...checkoutInput,
+      discountCouponId: 'coupon_other',
+    })).rejects.toMatchObject({ reason: 'coupon-not-applicable' })
+    expect(prismaMock.genCodeOrder.create).not.toHaveBeenCalled()
+  })
+
+  it('opens a zero-value Checkout for a 100% legacy-stock coupon', async () => {
+    prismaMock.discountCoupon.findFirst.mockResolvedValue({
+      id: 'coupon_100',
+      code: 'ESTOQUE100',
+      discountType: 'percent',
+      percentOff: 100,
+      amountOffUsd: null,
+      amountOffBrl: null,
+      amountOffMxn: null,
+      stripePromotionCodeId: 'promo_100',
+      appliesTo: [],
+      genCodePackages: [{ id: PACKAGE.id }],
+    })
+
+    const result = await openGenCodePackageCheckout({
+      ...checkoutInput,
+      discountCouponId: 'coupon_100',
+    })
+
+    expect(result.totalAmount).toBe(0)
+    expect(result.discountAmount).toBe(3_000)
+    const checkout = stripeMock.checkout.sessions.create.mock.calls[0][0]
+    expect(checkout.discounts).toEqual([{ promotion_code: 'promo_100' }])
+    expect(checkout).not.toHaveProperty('payment_intent_data')
   })
 
   it('allows repeated purchases for the same tenant', async () => {
@@ -182,13 +265,13 @@ describe('openGenCodePackageCheckout', () => {
 describe('fulfillGenCodePackageCheckout', () => {
   it('creates one TOPUP grant and exactly the purchased number of virtual codes', async () => {
     const before = Date.now()
-    const outcome = await fulfillGenCodePackageCheckout(checkoutSession())
+    const result = await fulfillGenCodePackageCheckout(checkoutSession())
 
-    expect(outcome).toBe('fulfilled')
+    expect(result).toEqual({ outcome: 'fulfilled', tenantId: 'tenant_1' })
     expect(txMock.creditGrant.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         tenantId: 'tenant_1',
-        subscriptionId: 'contract_1',
+        subscriptionId: null,
         source: 'TOPUP',
         grantedQty: 20,
         remainingQty: 20,
@@ -214,11 +297,15 @@ describe('fulfillGenCodePackageCheckout', () => {
   it('does not grant or mint again when Stripe replays a paid order', async () => {
     prismaMock.genCodeOrder.findUnique.mockResolvedValue({
       id: 'order_1',
+      tenantId: 'tenant_1',
       status: 'PAID',
       stripeCheckoutSessionId: 'cs_1',
     })
 
-    await expect(fulfillGenCodePackageCheckout(checkoutSession())).resolves.toBe('already-fulfilled')
+    await expect(fulfillGenCodePackageCheckout(checkoutSession())).resolves.toEqual({
+      outcome: 'already-fulfilled',
+      tenantId: 'tenant_1',
+    })
     expect(prismaMock.$transaction).not.toHaveBeenCalled()
     expect(txMock.creditGrant.create).not.toHaveBeenCalled()
     expect(txMock.genCode.createMany).not.toHaveBeenCalled()
@@ -226,8 +313,18 @@ describe('fulfillGenCodePackageCheckout', () => {
 
   it('waits for delayed payment confirmation', async () => {
     await expect(fulfillGenCodePackageCheckout(checkoutSession({ payment_status: 'unpaid' })))
-      .resolves.toBe('payment-pending')
+      .resolves.toEqual({ outcome: 'payment-pending' })
     expect(prismaMock.genCodeOrder.findUnique).not.toHaveBeenCalled()
+  })
+
+  it('fulfils a 100% coupon session that requires no payment', async () => {
+    await expect(fulfillGenCodePackageCheckout(checkoutSession({
+      payment_status: 'no_payment_required',
+      payment_intent: null,
+    }))).resolves.toEqual({ outcome: 'fulfilled', tenantId: 'tenant_1' })
+
+    expect(txMock.creditGrant.create).toHaveBeenCalledTimes(1)
+    expect(txMock.genCode.createMany).toHaveBeenCalledTimes(1)
   })
 })
 

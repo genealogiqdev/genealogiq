@@ -27,6 +27,12 @@ export function getColumns(t: Translator, locale: string): ColumnDef<GenCodeOrde
       cell: ({ row }) => row.original.tenant.name,
     },
     {
+      id: 'package',
+      accessorFn: (row) => row.package.name,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('table.product')} />,
+      cell: ({ row }) => row.original.package.name,
+    },
+    {
       accessorKey: 'quantity',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('table.quantity')} className="justify-end" />
@@ -44,6 +50,21 @@ export function getColumns(t: Translator, locale: string): ColumnDef<GenCodeOrde
           {money(row.original.unitPrice, row.original.currency)}
         </div>
       ),
+    },
+    {
+      id: 'discount',
+      accessorFn: (row) => row.discountAmount,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('table.discount')} className="justify-end" />
+      ),
+      cell: ({ row }) => row.original.discountAmount > 0 ? (
+        <div className="text-right tabular-nums">
+          <span>{money(row.original.discountAmount, row.original.currency)}</span>
+          {row.original.discountCode && (
+            <span className="block text-xs text-muted-foreground">{row.original.discountCode}</span>
+          )}
+        </div>
+      ) : <div className="text-right text-muted-foreground">—</div>,
     },
     {
       id: 'totalAmount',

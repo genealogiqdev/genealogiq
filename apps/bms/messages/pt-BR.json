@@ -54,7 +54,7 @@
       "accessNotProvisioned": "Este cliente ainda não tem acesso liberado — ele é criado com o primeiro pagamento.",
       "adminEmailInUse": "Este e-mail de administrador já está em uso",
       "createdAwaitingPayment": "Cliente cadastrado. O acesso ao Sequoia é liberado após o primeiro pagamento.",
-      "hasAppData": "Não é possível excluir: esta funerária ainda tem {count} memorial(is)/assinatura(s) no app que seriam destruídos.",
+      "hasAppData": "Não é possível excluir: este cliente ainda tem {count} memorial(is)/assinatura(s) no app que seriam destruídos.",
       "hasDependents": "Não é possível excluir: o cliente tem registros dependentes.",
       "hasSales": "Não é possível excluir um cliente com registros de vendas.",
       "noOwner": "Nenhum usuário proprietário encontrado para este cliente.",
@@ -70,6 +70,7 @@
       "deactivated": "Cupom desativado.",
       "descriptionUpdated": "Descrição atualizada.",
       "notFound": "Cupom não encontrado.",
+      "productNotSynced": "Todos os produtos selecionados precisam estar ativos e sincronizados com o Stripe.",
       "reactivated": "Cupom reativado.",
       "stripeOrphan": "O código \"{code}\" já está ativo no Stripe (resíduo de uma execução anterior com falha). Peça a um administrador para removê-lo.",
       "updateFailed": "Não foi possível atualizar o cupom."
@@ -84,8 +85,9 @@
       "updatedStripeCleared": "Preço atualizado — referências do Stripe zeradas. Sincronize com o Stripe de novo pra provisionar preços novos."
     },
     "gencodePackage": {
+      "couponNotApplicable": "Este cupom não está disponível para o pacote selecionado.",
       "invalidData": "Revise os dados da compra.",
-      "invalidQuantity": "Informe uma quantidade inteira de pelo menos 20 unidades.",
+      "invalidQuantity": "Informe uma quantidade inteira que respeite o mínimo do pacote selecionado.",
       "linkFailed": "Não foi possível gerar o link de pagamento: {message}",
       "linkSent": "Link de pagamento enviado para {email}.",
       "noCheckoutUrl": "O Stripe não retornou um link de pagamento.",
@@ -93,7 +95,7 @@
       "packageNotSynced": "Sincronize o Pacote de Gencodes com o Stripe antes de vender.",
       "stripeSyncFailed": "Falha na sincronização com o Stripe: {message}",
       "synced": "Pacote sincronizado com o Stripe.",
-      "tenantNotEligible": "O cliente precisa estar ativo e possuir um plano B2B com ciclo vigente.",
+      "tenantInactive": "O cliente não foi encontrado ou está desativado.",
       "tenantNotFound": "Cliente não encontrado.",
       "unknownError": "Erro desconhecido"
     },
@@ -365,6 +367,13 @@
       "resendEmail": "Reenviar e-mail"
     },
     "active": "Ativo?",
+    "businessSegment": {
+      "cemetery": "Cemitério",
+      "funeralHome": "Funerária",
+      "marbleShop": "Marmoraria",
+      "plaquePrinter": "Gráfica de placas (porcelana e similares)",
+      "urnManufacturer": "Indústria de urnas (caixão e cremação)"
+    },
     "create": "Criar cliente",
     "edit": "Editar cliente",
     "entityType": {
@@ -373,6 +382,7 @@
     },
     "fields": {
       "birthDate": "Data de nascimento",
+      "businessSegment": "Segmento Genealogiq",
       "cnpj": "CNPJ",
       "companyName": "Razão social",
       "countryCode": "DDI",
@@ -445,6 +455,7 @@
       "empty": "Nenhum cliente encontrado.",
       "name": "Nome",
       "status": "Status",
+      "segment": "Segmento",
       "type": "Tipo"
     },
     "title": "Clientes",
@@ -538,6 +549,10 @@
     "loadError": "Não foi possível carregar os cupons: {message}. Verifique os logs das funções na Vercel para mais detalhes.",
     "new": "Novo cupom",
     "packageMeta": "{quantity, plural, one {# unidade} other {# unidades}} · {price}",
+    "productKind": {
+      "gencodePackage": "Pacote de Gencodes",
+      "partnerPlan": "Plano B2B"
+    },
     "placeholders": {
       "code": "WELCOME10",
       "descriptionCreate": "Observação interna opcional",
@@ -622,14 +637,27 @@
     "title": "Preços de Extras"
   },
   "GenCodePackages": {
-    "description": "Venda Gencodes virtuais sob demanda para clientes com plano B2B ativo.",
+    "description": "Venda pacotes de Gencodes como produto independente, inclusive na primeira compra do cliente.",
     "form": {
+      "amountOff": "{value} de desconto",
       "cancel": "Cancelar",
+      "coupon": "Cupom de desconto",
+      "couponHint": "Cupons globais ou vinculados a este pacote podem ser aplicados pelo BMS.",
       "customer": "Cliente",
+      "customerStatus": {
+        "ACTIVE": "Contrato anual ativo",
+        "INACTIVE": "Contrato anual inativo",
+        "NEW": "Novo cliente — sem contrato anual"
+      },
+      "discount": "Desconto",
       "minimumHint": "Quantidade mínima: {count} unidades.",
-      "noCustomers": "Nenhum cliente com plano B2B ativo encontrado.",
+      "noCoupon": "Sem cupom",
+      "noCustomers": "Nenhum cliente ativo encontrado.",
       "paymentNote": "O cliente receberá um link de pagamento válido por 23 horas. Os Gencodes serão liberados automaticamente após a confirmação.",
       "pickCustomer": "Selecione um cliente",
+      "pickProduct": "Selecione um pacote",
+      "percentOff": "{value}% de desconto",
+      "product": "Pacote",
       "quantity": "Quantidade",
       "searchCustomer": "Buscar por nome ou CNPJ/CPF…",
       "send": "Enviar link de pagamento",
@@ -651,7 +679,7 @@
     },
     "product": {
       "active": "Ativo",
-      "description": "Compra única de Gencodes virtuais. Cada compra gera créditos válidos por 12 meses e não participa do rollover anual.",
+      "description": "Produto de compra única, disponível como primeira compra ou compra adicional. Gera créditos válidos por 12 meses e concede 12 meses de Premium na ativação.",
       "inactive": "Inativo",
       "minimum": "Compra mínima",
       "notSynced": "Não sincronizado",
@@ -673,7 +701,9 @@
     "table": {
       "createdAt": "Criado em",
       "customer": "Cliente",
+      "discount": "Desconto",
       "empty": "Nenhuma compra de Gencodes registrada.",
+      "product": "Pacote",
       "quantity": "Quantidade",
       "search": "Buscar cliente…",
       "status": "Status",
@@ -681,7 +711,7 @@
       "unitPrice": "Preço unitário",
       "validUntil": "Créditos válidos até"
     },
-    "title": "Pacote de Gencodes"
+    "title": "Pacotes de Gencodes"
   },
   "Feedback": {
     "dialog": {

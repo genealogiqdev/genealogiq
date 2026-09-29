@@ -1827,14 +1827,14 @@
   },
   "PartnerLanding": {
     "meta": {
-      "title": "Genealogiq for funeral home partners — digital memorials with GenCode",
+      "title": "Genealogiq partnerships for death-care businesses — digital memorials with GenCode",
       "description": "Offer families digital memorials with GenCode QR and track credits, sales, and activations in Genealogiq's partner portal."
     },
     "nav": {
       "label": "Partner navigation",
       "value": "The memorial",
       "gencode": "GenCode",
-      "model": "Plan ahead",
+      "model": "Revenue",
       "process": "How it works",
       "faq": "FAQs",
       "contact": "Contact us",
@@ -1842,19 +1842,20 @@
       "contactCta": "Talk about partnering"
     },
     "hero": {
-      "eyebrow": "A PARTNERSHIP FOR FUNERAL HOMES",
+      "eyebrow": "PARTNERSHIP FOR DEATH-CARE BUSINESSES",
       "titleLead": "Turn a farewell",
       "titleAccent": "into a living legacy.",
       "description": "Give families a place for biographies, photos, videos, and tributes in one digital memorial, reached with GenCode.",
-      "capacityOutputLabel": "Estimated capacity for 12 months",
-      "capacityAnnualUnit": "GenCodes per year",
-      "capacityLabel": "How many memorials does your team serve each month?",
-      "capacityNote": "Volume estimate using one GenCode per memorial. This is not a quote or demand guarantee.",
+      "capacityOutputLabel": "Estimated gross revenue over 12 months",
+      "capacityAnnualUnit": "per year",
+      "capacityLabel": "How many services or sales does your business make each month?",
+      "capacityNote": "Gross revenue estimate using one GenCode at {price} per service or sale. This is not a demand guarantee.",
+      "monthlyRevenue": "{amount} per month",
       "primaryCta": "Talk about partnering",
       "secondaryCta": "See how it works",
       "trust": {
         "codes": "Manage GenCodes in one portal",
-        "plans": "Credits that fit your operation",
+        "plans": "GenCode packages aligned with demand",
         "families": "Easy access for families"
       },
       "previewLabel": "PARTNER PORTAL",
@@ -1915,47 +1916,33 @@
       },
       "cta": "Learn about GenCode"
     },
-    "model": {
-      "eyebrow": "A CLEAR MODEL FOR YOUR BUSINESS",
-      "title": "A partner plan and codes to match demand.",
-      "description": "The operation combines a partner subscription with GenCode credits. Pricing and terms depend on the current commercial plan.",
-      "items": {
-        "subscription": {
-          "title": "A plan for your operation",
-          "description": "The subscription sets your partner terms and the annual credit allowance for activations."
-        },
-        "packages": {
-          "title": "Additional packages",
-          "description": "If demand grows, your business can order additional GenCode packages from the offers available."
-        },
-        "activation": {
-          "title": "One credit per memorial",
-          "description": "When a code is activated to create a memorial, its credit is used and the activity is recorded."
-        }
-      }
-    },
     "calculator": {
-      "eyebrow": "PLAN YOUR CAPACITY",
-      "title": "Turn a monthly estimate into an annual view.",
-      "description": "Set how many memorials your business expects to serve each month to estimate the codes you may need over a year.",
-      "monthlyLabel": "Memorials served per month",
+      "eyebrow": "ESTIMATE YOUR REVENUE",
+      "title": "Turn each service into a monthly and annual revenue estimate.",
+      "description": "See how much revenue your business could generate with Genealogiq GenCodes, based on your monthly and annual service or sales volume.",
+      "monthlyLabel": "Services or sales per month",
       "monthlyUnit": "per month",
-      "rangeLabel": "Estimated memorials per month",
-      "outputLabel": "Estimated codes for 12 months",
-      "annualUnit": "GenCodes per year",
-      "panelTitle": "Build your estimate",
-      "badge": "Estimate",
-      "formula": "A simple estimate: memorials per month × 12, allowing one GenCode per memorial.",
-      "caveat": "This is a capacity reference, not a quote or demand guarantee. Credits and pricing depend on your plan and commercial terms."
+      "rangeLabel": "Estimated services or sales per month",
+      "outputLabel": "Estimated gross revenue over 12 months",
+      "annualUnit": "per year",
+      "panelTitle": "Estimate your revenue",
+      "badge": "{price} per unit",
+      "formula": "Calculation: services or sales per month × {price}. The annual projection assumes 12 months.",
+      "caveat": "This estimates gross revenue, not profit, and is not a quote or sales guarantee. Actual results may vary with commercial terms.",
+      "monthlyRevenueLabel": "Monthly estimate",
+      "monthlyRevenueUnit": "per month",
+      "unitPrice": "{price} per GenCode",
+      "unitPriceLabel": "GenCode package price",
+      "unitPriceUnit": "per unit"
     },
     "how": {
       "eyebrow": "READY FOR YOUR TEAM",
       "title": "From the first conversation to the first memorial.",
-      "description": "The partnership fits your funeral home's workflow and keeps each step straightforward for your team and the family.",
+      "description": "The partnership fits your death-care business's workflow and keeps each step straightforward for your team and the family.",
       "steps": {
         "plan": {
           "title": "Find the right partnership model",
-          "description": "Talk with Genealogiq about your services, available plans, and expected code volume."
+          "description": "Talk with Genealogiq about your services, GenCode packages, and expected sales volume."
         },
         "prepare": {
           "title": "Organize your GenCodes",
@@ -1996,15 +1983,15 @@
       "items": {
         "who": {
           "question": "Who is the Genealogiq partnership for?",
-          "answer": "Funeral homes that want to offer families a digital way to preserve stories and access memorials by QR code."
+          "answer": "Death-care businesses — including funeral homes, cemeteries, crematories, and organizations dedicated to memory and farewell — that want to help families preserve stories digitally."
         },
         "what": {
           "question": "What does a family get with a GenCode?",
           "answer": "QR access to a Genealogiq digital memorial. The family can create an account and gather a biography, images, videos, tributes, and family relationships."
         },
         "credits": {
-          "question": "How do credits and packages work?",
-          "answer": "Each partner plan sets the credit allowance and rules for activations. If demand exceeds the plan, the business can order additional packages that are available."
+          "question": "How do GenCode packages work?",
+          "answer": "GenCodes are offered in packages at R$150.00 per unit. Your business chooses the quantity that fits demand and tracks sales and activations in the partner portal."
         },
         "families": {
           "question": "Does the family need to install an app to scan?",
@@ -2012,27 +1999,27 @@
         },
         "commercial": {
           "question": "Where can I check prices and commercial terms?",
-          "answer": "Pricing varies by plan, currency, and current offer. Contact Genealogiq for the terms that apply to your business; this page's estimate is not a quote."
+          "answer": "The calculator uses R$150.00 per GenCode to project gross revenue. Contact Genealogiq for the other terms that apply to your business; this estimate is not a quote."
         }
       }
     },
     "closing": {
       "eyebrow": "A NEW POSSIBILITY FOR YOUR BUSINESS",
       "title": "Bring more stories within every family's reach.",
-      "description": "Talk with Genealogiq about adding digital memorials and GenCodes to the experience your funeral home offers.",
+      "description": "Talk with Genealogiq about adding digital memorials and GenCodes to the experience your business offers.",
       "primaryCta": "Talk about partnering",
       "secondaryCta": "Already a partner? Access portal",
-      "contactNote": "Plans and commercial terms are arranged with the Genealogiq team."
+      "contactNote": "Packages and commercial terms are arranged with the Genealogiq team."
     },
     "footer": {
-      "tagline": "Digital memorials with GenCode, helping funeral homes and families preserve stories.",
+      "tagline": "Digital memorials with GenCode, helping death-care businesses and families preserve stories.",
       "cta": "Talk about partnering",
       "product": "The partnership",
       "account": "Access",
       "links": {
         "value": "What your business can offer",
         "gencode": "How GenCode works",
-        "model": "Plans and credits",
+        "model": "Revenue calculator",
         "how": "Partnership steps",
         "portal": "Sign in to partner portal",
         "contact": "Talk with Genealogiq"

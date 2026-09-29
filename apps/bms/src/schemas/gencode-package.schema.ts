@@ -5,9 +5,10 @@ export function getGenCodePackageOrderSchema(t: Translator) {
   return z.object({
     packageId: z.string().min(1, t('required')),
     tenantId: z.string().min(1, t('required')),
+    discountCouponId: z.string().min(1, t('required')).optional().nullable(),
     quantity: z.number()
       .int(t('wholeNumber'))
-      .min(20, t('minQuantity', { count: 20 })),
+      .positive(t('greaterThanZero')),
   })
 }
 

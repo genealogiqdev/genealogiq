@@ -19,7 +19,7 @@ export interface LinkPlan {
   currency: string; annualCashAmount: number
   installmentCount: number | null; installmentAmount: number | null
 }
-export interface LinkCoupon { id: string; code: string; discountType: string; value: number; packageIds: string[] }
+export interface LinkCoupon { id: string; code: string; discountType: string; value: number; productIds: string[] }
 
 /**
  * The operator-driven half of subscribing a partner.
@@ -49,7 +49,7 @@ export function SendPlanLinkForm({
   // A coupon restricted to other plans must not be offerable here — Stripe
   // would reject it at checkout, after the link had already gone out.
   const eligibleCoupons = useMemo(
-    () => coupons.filter((c) => c.packageIds.length === 0 || (planId && c.packageIds.includes(planId))),
+    () => coupons.filter((c) => c.productIds.length === 0 || (planId && c.productIds.includes(planId))),
     [coupons, planId],
   )
 
@@ -75,7 +75,7 @@ export function SendPlanLinkForm({
         <Field>
           <FieldLabel>{t('link.partner')}</FieldLabel>
           {/* Typed search rather than a plain select: the customer list grows
-              without bound, and scrolling four hundred funeral homes to find one
+              without bound, and scrolling four hundred customers to find one
               is not a thing anyone should have to do.
               The label is `name` — the person's given name or the company's
               legal name. The tax id rides along underneath, because that is what

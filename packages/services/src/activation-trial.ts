@@ -42,7 +42,7 @@ export async function grantActivationTrial(
   })
   if (!plan) return { granted: false, reason: 'plan-not-found' }
 
-  // One per guardian, ever. A funeral home that sells a family three plaques
+  // One per guardian, ever. A partner that sells a family three plaques
   // must not hand out three overlapping trials, and extending an existing one
   // would quietly turn a twelve-month gift into an unbounded subscription.
   const existing = await tx.appSale.findFirst({

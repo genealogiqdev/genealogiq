@@ -53,17 +53,40 @@ export async function createDiscountCoupon(
   })
   if (dbDup) return fail(t('discountCoupon.codeExists'))
 
-  // Resolve PartnerPlan ids → Stripe Product ids for Stripe's applies_to.
-  // The product id lives on the plan's price rows (one product per plan, shared
-  // by every currency), so any live row answers it — hence the dedupe.
+  // Resolve both shelf products (annual plans and one-time GenCode packages)
+  // to Stripe Product ids. Unknown or unsynced ids must fail closed: silently
+  // dropping one would turn a restricted coupon into a global coupon.
   let stripeProductIds: string[] = []
+  let partnerPlanIds: string[] = []
+  let genCodePackageIds: string[] = []
   if (input.appliesTo.length > 0) {
-    const prices = await prisma.planPrice.findMany({
-      where:  { partnerPlanId: { in: input.appliesTo }, isActive: true, effectiveTo: null },
-      select: { stripeProductId: true },
-    })
+    const requested = [...new Set(input.appliesTo)]
+    const [prices, packages] = await Promise.all([
+      prisma.planPrice.findMany({
+        where: {
+          partnerPlanId: { in: requested },
+          isActive: true,
+          effectiveTo: null,
+          stripeProductId: { not: null },
+        },
+        select: { partnerPlanId: true, stripeProductId: true },
+      }),
+      prisma.genCodePackage.findMany({
+        where: { id: { in: requested }, isActive: true, stripeProductId: { not: null } },
+        select: { id: true, stripeProductId: true },
+      }),
+    ])
+    partnerPlanIds = [...new Set(prices.map((p) => p.partnerPlanId).filter((id): id is string => !!id))]
+    genCodePackageIds = packages.map((p) => p.id)
+    const resolvedIds = new Set([...partnerPlanIds, ...genCodePackageIds])
+    if (requested.some((id) => !resolvedIds.has(id))) {
+      return fail(t('discountCoupon.productNotSynced'))
+    }
     stripeProductIds = [...new Set(
-      prices.map((p) => p.stripeProductId).filter((id): id is string => !!id),
+      [
+        ...prices.map((p) => p.stripeProductId),
+        ...packages.map((p) => p.stripeProductId),
+      ].filter((id): id is string => !!id),
     )]
   }
 
@@ -121,8 +144,11 @@ export async function createDiscountCoupon(
         durationInMonths:      input.duration === 'repeating' ? input.durationInMonths : null,
         maxRedemptions:        input.maxRedemptions ?? null,
         redeemBy:              input.redeemBy ?? null,
-        appliesTo:             input.appliesTo.length > 0
-          ? { connect: input.appliesTo.map((id) => ({ id })) }
+        appliesTo:             partnerPlanIds.length > 0
+          ? { connect: partnerPlanIds.map((id) => ({ id })) }
+          : undefined,
+        genCodePackages:       genCodePackageIds.length > 0
+          ? { connect: genCodePackageIds.map((id) => ({ id })) }
           : undefined,
         stripeCouponId:        stripeCoupon.id,
         stripePromotionCodeId: promo.id,

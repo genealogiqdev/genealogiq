@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const { prismaMock, txMock } = vi.hoisted(() => ({
   prismaMock: {
-    creditGrant:         { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
+    creditGrant:         { findMany: vi.fn(), findFirst: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
     creditReservation:   { findFirst: vi.fn(), findUnique: vi.fn(), upsert: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     creditTransaction:   { findUnique: vi.fn(), create: vi.fn() },
     partnerSubscription: { findFirst: vi.fn() },
@@ -12,6 +12,7 @@ const { prismaMock, txMock } = vi.hoisted(() => ({
     creditGrant:       { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
     creditReservation: { findUnique: vi.fn(), upsert: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     creditTransaction: { findUnique: vi.fn(), create: vi.fn() },
+    partnerSubscription: { findFirst: vi.fn() },
     $queryRaw:         vi.fn(),
   },
 }))
@@ -40,6 +41,8 @@ beforeEach(() => {
   txMock.creditTransaction.findUnique.mockResolvedValue(null)
   txMock.creditTransaction.create.mockResolvedValue({ id: 'ctx_1' })
   txMock.creditReservation.findUnique.mockResolvedValue(null)
+  txMock.partnerSubscription.findFirst.mockResolvedValue({ id: 'ps1' })
+  prismaMock.creditGrant.findFirst.mockResolvedValue(null)
 })
 
 describe('getCreditBalance', () => {
@@ -86,6 +89,25 @@ describe('canActivate', () => {
     await expect(canActivate('t1', 'gc1')).resolves.toBe(false)
   })
 
+  it('allows a live standalone package credit without an annual contract', async () => {
+    prismaMock.creditReservation.findFirst.mockResolvedValue(null)
+    prismaMock.partnerSubscription.findFirst.mockResolvedValue(null)
+    prismaMock.creditGrant.findFirst.mockResolvedValue({ id: 'g_topup' })
+
+    await expect(canActivate('t1', 'gc1')).resolves.toBe(true)
+
+    expect(prismaMock.creditGrant.findFirst).toHaveBeenCalledWith({
+      where: {
+        tenantId: 't1',
+        source: 'TOPUP',
+        status: 'ACTIVE',
+        remainingQty: { gt: 0 },
+        OR: [{ expiresAt: null }, { expiresAt: { gt: expect.any(Date) } }],
+      },
+      select: { id: true },
+    })
+  })
+
   it('refuses when the contract is active but the allowance is spent', async () => {
     prismaMock.creditReservation.findFirst.mockResolvedValue(null)
     prismaMock.partnerSubscription.findFirst.mockResolvedValue({ id: 'ps1' })
@@ -118,6 +140,16 @@ describe('reserveCreditForSale', () => {
     await expect(
       reserveCreditForSale({ tenantId: 't1', genCodeId: 'gc1', committed: false, committedMonths: 0 }),
     ).rejects.toBeInstanceOf(InsufficientCreditsError)
+  })
+
+  it('reserves only TOPUP stock when the partner has no annual contract', async () => {
+    txMock.partnerSubscription.findFirst.mockResolvedValue(null)
+
+    await reserveCreditForSale({
+      tenantId: 't1', genCodeId: 'gc1', committed: false, committedMonths: 0,
+    })
+
+    expect(txMock.$queryRaw.mock.calls[0]).toContain(true)
   })
 
   // A manual write-off records only a typed name. Committing it would let a
@@ -224,6 +256,17 @@ describe('consumeCreditForActivation', () => {
 
     expect(txMock.creditGrant.update.mock.calls[0][0].where).toEqual({ id: 'g_rollover' })
     expect(txMock.creditReservation.update).not.toHaveBeenCalled()
+  })
+
+  it('spends only TOPUP credit when the partner has no annual contract', async () => {
+    txMock.partnerSubscription.findFirst.mockResolvedValue(null)
+    txMock.$queryRaw.mockResolvedValue([{ id: 'g_topup', remainingQty: 5, expiresAt: future(30) }])
+
+    await consumeCreditForActivation(txMock as never, { tenantId: 't1', genCodeId: 'gc1' })
+
+    expect(txMock.creditGrant.update.mock.calls[0][0].where).toEqual({ id: 'g_topup' })
+    const queryArgs = txMock.$queryRaw.mock.calls[0]
+    expect(queryArgs).toContain(true)
   })
 
   it('throws InsufficientCredits rather than creating a memorial nobody paid for', async () => {

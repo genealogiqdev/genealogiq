@@ -11,7 +11,8 @@ const { prismaMock, stripeMock, PrismaKnownError } = vi.hoisted(() => {
   return {
     prismaMock: {
       discountCoupon: { findFirst: vi.fn(), create: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
-      package:        { findMany: vi.fn() },
+      planPrice:      { findMany: vi.fn() },
+      genCodePackage: { findMany: vi.fn() },
     },
     stripeMock: {
       coupons:        { create: vi.fn(), del: vi.fn() },
@@ -55,7 +56,8 @@ beforeEach(() => {
   vi.mocked(verifyAdmin).mockResolvedValue({ user: { id: "admin-1" } } as never)
   prismaMock.discountCoupon.findFirst.mockResolvedValue(null)
   prismaMock.discountCoupon.create.mockResolvedValue({ id: "c1", code: "FFB2026" })
-  prismaMock.package.findMany.mockResolvedValue([])
+  prismaMock.planPrice.findMany.mockResolvedValue([])
+  prismaMock.genCodePackage.findMany.mockResolvedValue([])
   stripeMock.promotionCodes.list.mockResolvedValue({ data: [] })
   stripeMock.coupons.create.mockResolvedValue({ id: "coup_1" })
   stripeMock.promotionCodes.create.mockResolvedValue({ id: "promo_1" })
@@ -87,6 +89,32 @@ describe("createDiscountCoupon — percentage", () => {
   it("rejects a percentage above 100", async () => {
     const res = await createDiscountCoupon({ ...base, percentOff: 150 })
     expect(res.ok).toBe(false)
+    expect(stripeMock.coupons.create).not.toHaveBeenCalled()
+  })
+
+  it("restricts a package coupon to the package's Stripe product", async () => {
+    prismaMock.genCodePackage.findMany.mockResolvedValue([{
+      id: "gcp_1",
+      stripeProductId: "prod_gcp_1",
+    }])
+
+    const result = await createDiscountCoupon({ ...base, appliesTo: ["gcp_1"] })
+
+    expect(result.ok).toBe(true)
+    expect(stripeMock.coupons.create).toHaveBeenCalledWith(expect.objectContaining({
+      applies_to: { products: ["prod_gcp_1"] },
+    }))
+    expect(prismaMock.discountCoupon.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        genCodePackages: { connect: [{ id: "gcp_1" }] },
+      }),
+    }))
+  })
+
+  it("fails closed when a selected product is missing or not synced", async () => {
+    const result = await createDiscountCoupon({ ...base, appliesTo: ["missing"] })
+
+    expect(result).toEqual({ ok: false, message: "discountCoupon.productNotSynced" })
     expect(stripeMock.coupons.create).not.toHaveBeenCalled()
   })
 })

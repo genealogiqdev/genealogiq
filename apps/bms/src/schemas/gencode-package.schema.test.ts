@@ -6,8 +6,9 @@ const schema = getGenCodePackageOrderSchema(identityTranslator)
 const base = { packageId: 'pkg_1', tenantId: 'tenant_1' }
 
 describe('getGenCodePackageOrderSchema', () => {
-  it('rejects quantities below 20', () => {
-    expect(schema.safeParse({ ...base, quantity: 19 }).success).toBe(false)
+  it('accepts any positive whole quantity so the selected product can enforce its minimum', () => {
+    expect(schema.safeParse({ ...base, quantity: 1 }).success).toBe(true)
+    expect(schema.safeParse({ ...base, quantity: 19 }).success).toBe(true)
   })
 
   it('accepts 20 and any greater whole quantity', () => {
@@ -17,6 +18,11 @@ describe('getGenCodePackageOrderSchema', () => {
 
   it('rejects fractional quantities', () => {
     expect(schema.safeParse({ ...base, quantity: 20.5 }).success).toBe(false)
+  })
+
+  it('rejects zero and negative quantities', () => {
+    expect(schema.safeParse({ ...base, quantity: 0 }).success).toBe(false)
+    expect(schema.safeParse({ ...base, quantity: -1 }).success).toBe(false)
   })
 })
 

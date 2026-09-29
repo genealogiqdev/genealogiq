@@ -1827,14 +1827,14 @@
   },
   "PartnerLanding": {
     "meta": {
-      "title": "Alianzas Genealogiq para funerarias — memoriales digitales con GenCode",
+      "title": "Alianzas Genealogiq para empresas de death care — memoriales digitales con GenCode",
       "description": "Ofrece a las familias memoriales digitales con GenCode QR y consulta créditos, ventas y activaciones en el portal de socios de Genealogiq."
     },
     "nav": {
       "label": "Navegación para socios",
       "value": "El memorial",
       "gencode": "GenCode",
-      "model": "Planifica",
+      "model": "Facturación",
       "process": "Cómo funciona",
       "faq": "Preguntas frecuentes",
       "contact": "Contáctanos",
@@ -1842,19 +1842,20 @@
       "contactCta": "Conoce la alianza"
     },
     "hero": {
-      "eyebrow": "UNA ALIANZA PARA FUNERARIAS",
+      "eyebrow": "ALIANZA CON EMPRESAS DE DEATH CARE",
       "titleLead": "Transforma la despedida",
       "titleAccent": "en un legado vivo.",
       "description": "Ofrece a las familias un espacio para reunir biografías, fotos, videos y homenajes en un memorial digital, accesible con GenCode.",
-      "capacityOutputLabel": "Capacidad estimada para 12 meses",
-      "capacityAnnualUnit": "GenCodes al año",
-      "capacityLabel": "¿Cuántos memoriales atiende tu equipo al mes?",
-      "capacityNote": "Estimación de volumen con un GenCode por memorial. No es una cotización ni una garantía de demanda.",
+      "capacityOutputLabel": "Facturación bruta estimada en 12 meses",
+      "capacityAnnualUnit": "al año",
+      "capacityLabel": "¿Cuántas atenciones o ventas realiza tu empresa al mes?",
+      "capacityNote": "Estimación de facturación bruta con un GenCode a {price} por atención o venta. No garantiza la demanda.",
+      "monthlyRevenue": "{amount} al mes",
       "primaryCta": "Conoce la alianza",
       "secondaryCta": "Así funciona",
       "trust": {
         "codes": "Administra GenCodes en un portal",
-        "plans": "Créditos según tu operación",
+        "plans": "Paquetes de GenCodes según tu demanda",
         "families": "Acceso sencillo para las familias"
       },
       "previewLabel": "PORTAL DE SOCIOS",
@@ -1915,47 +1916,33 @@
       },
       "cta": "Conoce GenCode"
     },
-    "model": {
-      "eyebrow": "UN MODELO CLARO PARA TU EMPRESA",
-      "title": "Un plan para socios y códigos según la demanda.",
-      "description": "La operación combina una suscripción para socios con créditos GenCode. Los precios y condiciones dependen del plan comercial vigente.",
-      "items": {
-        "subscription": {
-          "title": "Un plan para tu operación",
-          "description": "La suscripción define las condiciones de socio y la cantidad anual de créditos para activaciones."
-        },
-        "packages": {
-          "title": "Paquetes adicionales",
-          "description": "Si aumenta la demanda, tu empresa puede contratar paquetes adicionales de GenCodes según la oferta disponible."
-        },
-        "activation": {
-          "title": "Un crédito por memorial",
-          "description": "Cuando se activa un código para crear un memorial, se consume el crédito correspondiente y queda registrada la actividad."
-        }
-      }
-    },
     "calculator": {
-      "eyebrow": "PLANEA LA CAPACIDAD",
-      "title": "De una estimación mensual a una vista anual.",
-      "description": "Ajusta cuántos memoriales espera atender tu empresa cada mes para estimar los códigos que podría necesitar durante un año.",
-      "monthlyLabel": "Memoriales atendidos al mes",
+      "eyebrow": "SIMULA TU FACTURACIÓN",
+      "title": "De cada atención a una estimación mensual y anual.",
+      "description": "Descubre cuánto puede facturar tu empresa con los GenCodes Genealogiq según el número de atenciones o ventas mensuales y anuales.",
+      "monthlyLabel": "Atenciones o ventas al mes",
       "monthlyUnit": "al mes",
-      "rangeLabel": "Cantidad estimada de memoriales al mes",
-      "outputLabel": "Códigos estimados para 12 meses",
-      "annualUnit": "GenCodes al año",
-      "panelTitle": "Arma tu escenario",
-      "badge": "Estimación",
-      "formula": "Estimación sencilla: memoriales al mes × 12, considerando un GenCode por memorial.",
-      "caveat": "Es una referencia de capacidad, no una cotización ni una garantía de demanda. Los créditos y precios dependen del plan y de las condiciones comerciales."
+      "rangeLabel": "Cantidad estimada de atenciones o ventas al mes",
+      "outputLabel": "Facturación bruta estimada en 12 meses",
+      "annualUnit": "al año",
+      "panelTitle": "Simula tu facturación",
+      "badge": "{price} por unidad",
+      "formula": "Cálculo: atenciones o ventas al mes × {price}. La proyección anual considera 12 meses.",
+      "caveat": "Esta es una estimación de facturación bruta, no de utilidad, y no representa una cotización ni una garantía de ventas. Los resultados reales pueden variar según las condiciones comerciales.",
+      "monthlyRevenueLabel": "Estimación mensual",
+      "monthlyRevenueUnit": "al mes",
+      "unitPrice": "{price} por GenCode",
+      "unitPriceLabel": "Precio del GenCode en el paquete",
+      "unitPriceUnit": "por unidad"
     },
     "how": {
       "eyebrow": "LISTA PARA TU EQUIPO",
       "title": "De la primera conversación al primer memorial.",
-      "description": "La alianza se adapta a la rutina de tu funeraria y mantiene cada paso sencillo para tu equipo y para la familia.",
+      "description": "La alianza se adapta a la rutina de tu empresa de death care y mantiene cada paso sencillo para tu equipo y para la familia.",
       "steps": {
         "plan": {
           "title": "Define el modelo de alianza",
-          "description": "Habla con Genealogiq sobre los servicios de tu empresa, los planes disponibles y el volumen previsto de códigos."
+          "description": "Habla con Genealogiq sobre los servicios de tu empresa, los paquetes de GenCodes y el volumen previsto de ventas."
         },
         "prepare": {
           "title": "Organiza tus GenCodes",
@@ -1996,15 +1983,15 @@
       "items": {
         "who": {
           "question": "¿Para quién es la alianza Genealogiq?",
-          "answer": "Para funerarias que quieren ofrecer a las familias una forma digital de conservar historias y acceder a memoriales mediante un código QR."
+          "answer": "Para empresas del sector death care —como funerarias, cementerios, crematorios y negocios dedicados a la memoria y la despedida— que quieren ayudar a las familias a conservar historias de forma digital."
         },
         "what": {
           "question": "¿Qué recibe una familia con GenCode?",
           "answer": "Acceso por QR a un memorial digital Genealogiq. La familia puede crear una cuenta y reunir biografía, imágenes, videos, homenajes y relaciones familiares."
         },
         "credits": {
-          "question": "¿Cómo funcionan los créditos y paquetes?",
-          "answer": "Cada plan de socio define la cantidad y las reglas de créditos para activaciones. Si la demanda supera el plan, la empresa puede contratar paquetes adicionales disponibles."
+          "question": "¿Cómo funcionan los paquetes de GenCodes?",
+          "answer": "Los GenCodes se ofrecen en paquetes a R$150.00 por unidad. Tu empresa elige la cantidad adecuada para la demanda y consulta ventas y activaciones en el portal de socios."
         },
         "families": {
           "question": "¿La familia necesita instalar una app para escanear?",
@@ -2012,27 +1999,27 @@
         },
         "commercial": {
           "question": "¿Dónde consulto precios y condiciones comerciales?",
-          "answer": "Los precios varían según el plan, la moneda y la oferta vigente. Contacta a Genealogiq para conocer las condiciones aplicables a tu empresa; la estimación de esta página no es una cotización."
+          "answer": "El simulador usa R$150.00 por GenCode para proyectar la facturación bruta. Contacta a Genealogiq para conocer las demás condiciones aplicables a tu empresa; la estimación no es una cotización."
         }
       }
     },
     "closing": {
       "eyebrow": "UNA NUEVA POSIBILIDAD PARA TU EMPRESA",
       "title": "¿Llevamos más historias al alcance de cada familia?",
-      "description": "Habla con Genealogiq para agregar memoriales digitales y GenCodes a la experiencia que ofrece tu funeraria.",
+      "description": "Habla con Genealogiq para agregar memoriales digitales y GenCodes a la experiencia que ofrece tu empresa.",
       "primaryCta": "Hablar sobre la alianza",
       "secondaryCta": "¿Ya eres socio? Accede al portal",
-      "contactNote": "Los planes y las condiciones comerciales se acuerdan con el equipo de Genealogiq."
+      "contactNote": "Los paquetes y las condiciones comerciales se acuerdan con el equipo de Genealogiq."
     },
     "footer": {
-      "tagline": "Memoriales digitales con GenCode para que funerarias y familias conserven historias.",
+      "tagline": "Memoriales digitales con GenCode para que empresas de death care y familias conserven historias.",
       "cta": "Hablar sobre la alianza",
       "product": "La alianza",
       "account": "Acceso",
       "links": {
         "value": "Qué puede ofrecer tu empresa",
         "gencode": "Cómo funciona GenCode",
-        "model": "Planes y créditos",
+        "model": "Simulador de facturación",
         "how": "Etapas de la alianza",
         "portal": "Entrar al portal de socios",
         "contact": "Hablar con Genealogiq"

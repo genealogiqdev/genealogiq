@@ -54,7 +54,7 @@
       "accessNotProvisioned": "This customer has no access yet — it is created with the first payment.",
       "adminEmailInUse": "This administrator email is already in use",
       "createdAwaitingPayment": "Customer registered. Sequoia access is granted after the first payment.",
-      "hasAppData": "Cannot delete: this funeral home still has {count} app memorial(s)/subscription(s) that would be destroyed.",
+      "hasAppData": "Cannot delete: this customer still has {count} app memorial(s)/subscription(s) that would be destroyed.",
       "hasDependents": "Cannot delete: customer has dependent records.",
       "hasSales": "Cannot delete a customer with existing sales records.",
       "noOwner": "No owner user found for this customer.",
@@ -70,6 +70,7 @@
       "deactivated": "Coupon deactivated.",
       "descriptionUpdated": "Description updated.",
       "notFound": "Coupon not found.",
+      "productNotSynced": "Every selected product must be active and synced with Stripe.",
       "reactivated": "Coupon reactivated.",
       "stripeOrphan": "Code \"{code}\" is already active in Stripe (orphan from a failed previous run). Ask an admin to clean it up.",
       "updateFailed": "Could not update coupon."
@@ -84,8 +85,9 @@
       "updatedStripeCleared": "Price updated — Stripe references cleared. Sync with Stripe again to provision fresh prices."
     },
     "gencodePackage": {
+      "couponNotApplicable": "This coupon is not available for the selected package.",
       "invalidData": "Review the purchase details.",
-      "invalidQuantity": "Enter a whole quantity of at least 20 units.",
+      "invalidQuantity": "Enter a whole quantity that meets the selected package minimum.",
       "linkFailed": "Could not generate the payment link: {message}",
       "linkSent": "Payment link sent to {email}.",
       "noCheckoutUrl": "Stripe did not return a payment link.",
@@ -93,7 +95,7 @@
       "packageNotSynced": "Sync the GenCode package with Stripe before selling it.",
       "stripeSyncFailed": "Stripe sync failed: {message}",
       "synced": "Package synced with Stripe.",
-      "tenantNotEligible": "The customer must be active and have a B2B plan with a current cycle.",
+      "tenantInactive": "The customer was not found or is deactivated.",
       "tenantNotFound": "Customer not found.",
       "unknownError": "Unknown error"
     },
@@ -365,6 +367,13 @@
       "resendEmail": "Resend email"
     },
     "active": "Active?",
+    "businessSegment": {
+      "cemetery": "Cemetery",
+      "funeralHome": "Funeral home",
+      "marbleShop": "Monument and stone company",
+      "plaquePrinter": "Memorial plaque printer",
+      "urnManufacturer": "Casket and cremation urn manufacturer"
+    },
     "create": "Create customer",
     "edit": "Edit customer",
     "entityType": {
@@ -373,6 +382,7 @@
     },
     "fields": {
       "birthDate": "Date of Birth",
+      "businessSegment": "Genealogiq business segment",
       "cnpj": "CNPJ",
       "companyName": "Company Name",
       "countryCode": "IDD",
@@ -445,6 +455,7 @@
       "empty": "No customers found.",
       "name": "Name",
       "status": "Status",
+      "segment": "Segment",
       "type": "Type"
     },
     "title": "Customers",
@@ -538,6 +549,10 @@
     "loadError": "Could not load coupons: {message}. Check Vercel function logs for details.",
     "new": "New coupon",
     "packageMeta": "{quantity, plural, one {# unit} other {# units}} · {price}",
+    "productKind": {
+      "gencodePackage": "GenCode package",
+      "partnerPlan": "B2B plan"
+    },
     "placeholders": {
       "code": "WELCOME10",
       "descriptionCreate": "Optional internal note",
@@ -622,14 +637,27 @@
     "title": "Extra Unit Prices"
   },
   "GenCodePackages": {
-    "description": "Sell virtual GenCodes on demand to customers with an active B2B plan.",
+    "description": "Sell GenCode packages as standalone products, including as a customer's first purchase.",
     "form": {
+      "amountOff": "{value} off",
       "cancel": "Cancel",
+      "coupon": "Discount coupon",
+      "couponHint": "BMS can apply global coupons or coupons assigned to this package.",
       "customer": "Customer",
+      "customerStatus": {
+        "ACTIVE": "Active annual contract",
+        "INACTIVE": "Inactive annual contract",
+        "NEW": "New customer — no annual contract"
+      },
+      "discount": "Discount",
       "minimumHint": "Minimum quantity: {count} units.",
-      "noCustomers": "No customer with an active B2B plan was found.",
+      "noCoupon": "No coupon",
+      "noCustomers": "No active customer was found.",
       "paymentNote": "The customer will receive a payment link valid for 23 hours. GenCodes are released automatically after confirmation.",
       "pickCustomer": "Select a customer",
+      "pickProduct": "Select a package",
+      "percentOff": "{value}% off",
+      "product": "Package",
       "quantity": "Quantity",
       "searchCustomer": "Search by name or tax ID…",
       "send": "Send payment link",
@@ -651,7 +679,7 @@
     },
     "product": {
       "active": "Active",
-      "description": "One-time purchase of virtual GenCodes. Each purchase grants credits valid for 12 months and does not participate in annual rollover.",
+      "description": "Standalone one-time product available as a first or additional purchase. Credits last 12 months and activation grants 12 months of Premium.",
       "inactive": "Inactive",
       "minimum": "Minimum purchase",
       "notSynced": "Not synced",
@@ -673,7 +701,9 @@
     "table": {
       "createdAt": "Created",
       "customer": "Customer",
+      "discount": "Discount",
       "empty": "No GenCode purchase has been recorded.",
+      "product": "Package",
       "quantity": "Quantity",
       "search": "Search customer…",
       "status": "Status",
@@ -681,7 +711,7 @@
       "unitPrice": "Unit price",
       "validUntil": "Credits valid until"
     },
-    "title": "GenCode Package"
+    "title": "GenCode Packages"
   },
   "Feedback": {
     "dialog": {

@@ -58,9 +58,20 @@ export async function sendPartnerPlanLink(
         id: discountCouponId, isActive: true, stripePromotionCodeId: { not: null },
         OR: [{ redeemBy: null }, { redeemBy: { gt: new Date() } }],
       },
-      select: { stripePromotionCodeId: true },
+      select: {
+        stripePromotionCodeId: true,
+        appliesTo: { select: { id: true } },
+        genCodePackages: { select: { id: true } },
+      },
     })
     if (!coupon) return fail(t('sale.couponNotApplicable'))
+    const restrictedProductIds = [
+      ...coupon.appliesTo.map((product) => product.id),
+      ...coupon.genCodePackages.map((product) => product.id),
+    ]
+    if (restrictedProductIds.length > 0 && !restrictedProductIds.includes(planId)) {
+      return fail(t('sale.couponNotApplicable'))
+    }
     promotionCodeId = coupon.stripePromotionCodeId
   }
 

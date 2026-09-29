@@ -4,6 +4,13 @@ import { validateCpf, validateCnpj } from '@/lib/masks'
 import type { Translator } from './i18n'
 
 export const ENTITY_TYPES = ['INDIVIDUAL', 'COMPANY'] as const
+export const PARTNER_SEGMENTS = [
+  'FUNERAL_HOME',
+  'MARBLE_SHOP',
+  'CEMETERY',
+  'URN_MANUFACTURER',
+  'PLAQUE_PRINTER',
+] as const
 
 function makeTaxIdRefine(t: Translator) {
   return (data: { entityType: string; taxId: string }, ctx: z.RefinementCtx) => {
@@ -22,6 +29,7 @@ function makeTaxIdRefine(t: Translator) {
 function makeCustomerBaseSchema(t: Translator) {
   return z.object({
     entityType:            z.enum(ENTITY_TYPES),
+    businessSegment:       z.enum(PARTNER_SEGMENTS),
     name:                  z.string().min(2, t('minChars', { count: 2 })),
     tradeName:             z.string().min(2, t('minChars', { count: 2 })),
     taxId:                 z.string().min(1, t('required')),
@@ -76,6 +84,7 @@ export const ownerDefaultValues: OwnerFormValues = {
 
 export const customerDefaultValues: CustomerFormValues = {
   entityType:            'COMPANY',
+  businessSegment:       'FUNERAL_HOME',
   name:                  '',
   tradeName:             '',
   taxId:                 '',

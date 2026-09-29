@@ -80,7 +80,8 @@ export async function sendGenCodePackageLink(
         'package-not-found': 'packageNotFound',
         'package-not-synced': 'packageNotSynced',
         'invalid-quantity': 'invalidQuantity',
-        'tenant-not-eligible': 'tenantNotEligible',
+        'tenant-inactive': 'tenantInactive',
+        'coupon-not-applicable': 'couponNotApplicable',
         'no-url': 'noCheckoutUrl',
       } as const
       return fail(t(`gencodePackage.${keyByReason[error.reason]}`))

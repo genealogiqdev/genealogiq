@@ -10,9 +10,18 @@ import { toggleCustomerActive, deleteCustomer, resendCustomerEmail } from '@/act
 // The caller (customers-data-table) passes useTranslations('Customers').
 type Translator = (key: string, values?: Record<string, string | number | Date>) => string
 
+const SEGMENT_KEY: Record<string, string> = {
+  FUNERAL_HOME: 'funeralHome',
+  MARBLE_SHOP: 'marbleShop',
+  CEMETERY: 'cemetery',
+  URN_MANUFACTURER: 'urnManufacturer',
+  PLAQUE_PRINTER: 'plaquePrinter',
+}
+
 export type CustomerRow = {
   id: string
   entityType: string
+  businessSegment: string
   name: string
   email: string
   isActive: boolean
@@ -63,6 +72,11 @@ export function getColumns(currentUserRole: string, t: Translator, locale: strin
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('table.type')} />,
       cell: ({ row }) =>
         row.original.entityType === 'INDIVIDUAL' ? t('entityType.individual') : t('entityType.company'),
+    },
+    {
+      accessorKey: 'businessSegment',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('table.segment')} />,
+      cell: ({ row }) => t(`businessSegment.${SEGMENT_KEY[row.original.businessSegment] ?? 'funeralHome'}`),
     },
     {
       accessorKey: 'email',

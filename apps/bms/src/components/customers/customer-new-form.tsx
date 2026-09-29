@@ -46,7 +46,7 @@ const STEP_KEYS = [
 type StepIndex = 0 | 1 | 2 | 3 | 4
 
 const STEP_FIELDS: Record<StepIndex, (keyof CustomerCreateFormValues | string)[]> = {
-  0: ['entityType', 'name', 'tradeName', 'taxId', 'stateRegistration', 'municipalRegistration', 'birthDate'],
+  0: ['entityType', 'businessSegment', 'name', 'tradeName', 'taxId', 'stateRegistration', 'municipalRegistration', 'birthDate'],
   1: ['email', 'phoneCountryCode', 'phone'],
   2: [],
   3: ['owner.firstName', 'owner.lastName', 'owner.email'],
@@ -196,6 +196,25 @@ export function CustomerNewForm() {
                           <SelectContent>
                             <SelectItem value="COMPANY">{t('entityType.company')}</SelectItem>
                             <SelectItem value="INDIVIDUAL">{t('entityType.individual')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    )}
+                  />
+                  <Controller
+                    name="businessSegment"
+                    control={control}
+                    render={({ field }) => (
+                      <Field>
+                        <FieldLabel>{t('fields.businessSegment')}</FieldLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="FUNERAL_HOME">{t('businessSegment.funeralHome')}</SelectItem>
+                            <SelectItem value="MARBLE_SHOP">{t('businessSegment.marbleShop')}</SelectItem>
+                            <SelectItem value="CEMETERY">{t('businessSegment.cemetery')}</SelectItem>
+                            <SelectItem value="URN_MANUFACTURER">{t('businessSegment.urnManufacturer')}</SelectItem>
+                            <SelectItem value="PLAQUE_PRINTER">{t('businessSegment.plaquePrinter')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </Field>

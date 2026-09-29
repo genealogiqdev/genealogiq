@@ -70,7 +70,11 @@ export function GenCodePackageCard({ packageRow }: { packageRow: GenCodePackageR
               {syncing ? t('product.syncing') : t('product.sync')}
             </Button>
             {packageRow.isActive && isSynced ? (
-              <Button asChild><Link href="/gencodes/new">{t('newOrder')}</Link></Button>
+              <Button asChild>
+                <Link href={`/gencodes/new?packageId=${encodeURIComponent(packageRow.id)}`}>
+                  {t('newOrder')}
+                </Link>
+              </Button>
             ) : (
               <Button disabled>{t('newOrder')}</Button>
             )}

@@ -25,7 +25,11 @@ const { creditsMock } = vi.hoisted(() => ({
     InsufficientCreditsError:   class extends Error {},
   },
 }))
+const { activationTrialMock } = vi.hoisted(() => ({ activationTrialMock: vi.fn() }))
 vi.mock("@genealogiq/services/credits", () => creditsMock)
+vi.mock("@genealogiq/services/activation-trial", () => ({
+  grantActivationTrial: activationTrialMock,
+}))
 vi.mock("@genealogiq/services/media-storage", () => ({ isAuthorizedMediaReference: vi.fn(() => true) }))
 // The action localizes its business messages via getTranslations('Actions').
 // Stub it to echo the key so assertions can pin the exact message source.
@@ -50,6 +54,7 @@ beforeEach(() => {
   txMock.appUser.create.mockResolvedValue({ id: "memo-1" })
   txMock.appUserGuardian.create.mockResolvedValue({})
   txMock.genCode.update.mockResolvedValue({})
+  activationTrialMock.mockResolvedValue({ granted: true })
 })
 
 // A paid, non-reversed sale with no term and no subscription — the window is
@@ -94,6 +99,52 @@ describe("activateGenCode", () => {
         data: expect.objectContaining({ status: "ACTIVATED", appUserId: "memo-1" }),
       }),
     )
+  })
+
+  it("grants the package's snapshotted Premium benefit for 12 months", async () => {
+    prismaMock.genCode.findUnique.mockResolvedValue({
+      id: "lic-1",
+      status: "AVAILABLE",
+      tenantId: "tenant-1",
+      mintedInOrder: {
+        activationTrialMonths: 12,
+        activationTrialPlanCode: "PREMIUM",
+      },
+      mintedInCycle: null,
+      tenant: { partnerSubscriptions: [] },
+    })
+
+    await activateGenCode("GENCODE", MEMORIAL)
+
+    expect(activationTrialMock).toHaveBeenCalledWith(txMock, {
+      guardianId: "guardian-1",
+      tenantId: "tenant-1",
+      months: 12,
+      planCode: "PREMIUM",
+    })
+  })
+
+  it("uses the annual cycle snapshot after the originating contract becomes inactive", async () => {
+    prismaMock.genCode.findUnique.mockResolvedValue({
+      id: "lic-1",
+      status: "AVAILABLE",
+      tenantId: "tenant-1",
+      mintedInOrder: null,
+      mintedInCycle: {
+        planSnapshot: {
+          activationTrialMonths: 12,
+          activationTrialPlanCode: "PREMIUM",
+        },
+      },
+      tenant: { partnerSubscriptions: [] },
+    })
+
+    await activateGenCode("GENCODE", MEMORIAL)
+
+    expect(activationTrialMock).toHaveBeenCalledWith(txMock, expect.objectContaining({
+      months: 12,
+      planCode: "PREMIUM",
+    }))
   })
 
   // The window gates ACTIVATION ONLY. These four cases are the whole product

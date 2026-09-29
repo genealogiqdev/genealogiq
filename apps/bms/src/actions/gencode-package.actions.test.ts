@@ -49,6 +49,9 @@ beforeEach(() => {
     orderId: 'order_1',
     packageName: 'Pacote de Gencodes',
     quantity: 20,
+    subtotalAmount: 3_000,
+    discountAmount: 0,
+    discountCode: null,
     totalAmount: 3_000,
     currency: 'BRL',
     expiresAt: new Date('2026-09-22T12:00:00Z'),
@@ -56,10 +59,34 @@ beforeEach(() => {
 })
 
 describe('sendGenCodePackageLink', () => {
-  it('rejects a quantity below 20 before opening checkout', async () => {
+  it('lets the selected package enforce its own minimum quantity', async () => {
     const result = await sendGenCodePackageLink({ ...valid, quantity: 19 })
-    expect(result).toEqual({ ok: false, message: 'gencodePackage.invalidData' })
-    expect(checkoutMock).not.toHaveBeenCalled()
+    expect(result.ok).toBe(true)
+    expect(checkoutMock).toHaveBeenCalledWith(expect.objectContaining({ quantity: 19 }))
+  })
+
+  it('passes a selected coupon through and emails the discounted total', async () => {
+    checkoutMock.mockResolvedValueOnce({
+      url: 'https://checkout.stripe.test/cs_2',
+      orderId: 'order_2',
+      packageName: 'Pacote de Gencodes',
+      quantity: 20,
+      subtotalAmount: 3_000,
+      discountAmount: 450,
+      discountCode: 'PACOTE15',
+      totalAmount: 2_550,
+      currency: 'BRL',
+      expiresAt: new Date('2026-09-22T12:00:00Z'),
+    })
+
+    await sendGenCodePackageLink({ ...valid, discountCouponId: 'coupon_15' })
+
+    expect(checkoutMock).toHaveBeenCalledWith(expect.objectContaining({
+      discountCouponId: 'coupon_15',
+    }))
+    expect(emailMock).toHaveBeenCalledWith(expect.objectContaining({
+      amount: expect.stringMatching(/2[.\s]?550,00/),
+    }))
   })
 
   it('opens checkout as the authenticated operator and emails the exact total', async () => {

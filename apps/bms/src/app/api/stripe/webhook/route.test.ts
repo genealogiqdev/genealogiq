@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NextRequest } from 'next/server'
 
-const { stripeMock, packageMock } = vi.hoisted(() => ({
+const { stripeMock, packageMock, provisionMock } = vi.hoisted(() => ({
   stripeMock: {
     webhooks: { constructEvent: vi.fn() },
     subscriptions: { retrieve: vi.fn() },
@@ -11,6 +11,7 @@ const { stripeMock, packageMock } = vi.hoisted(() => ({
     fulfillGenCodePackageCheckout: vi.fn(),
     closeGenCodePackageCheckout: vi.fn(),
   },
+  provisionMock: vi.fn(),
 }))
 
 vi.mock('@/lib/stripe', () => ({ stripe: stripeMock }))
@@ -21,7 +22,7 @@ vi.mock('@/lib/prisma', () => ({
     $transaction: vi.fn(),
   },
 }))
-vi.mock('@/lib/billing', () => ({ provisionTenantAccess: vi.fn() }))
+vi.mock('@/lib/billing', () => ({ provisionTenantAccess: provisionMock }))
 vi.mock('@genealogiq/services/partner-billing', () => ({
   applyPartnerInvoicePaid: vi.fn(),
   linkPartnerSubscription: vi.fn(),
@@ -57,7 +58,10 @@ beforeEach(() => {
   vi.clearAllMocks()
   process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test'
   packageMock.isGenCodePackageCheckout.mockReturnValue(true)
-  packageMock.fulfillGenCodePackageCheckout.mockResolvedValue('fulfilled')
+  packageMock.fulfillGenCodePackageCheckout.mockResolvedValue({
+    outcome: 'fulfilled',
+    tenantId: 'tenant_1',
+  })
   packageMock.closeGenCodePackageCheckout.mockResolvedValue(true)
 })
 
@@ -71,7 +75,21 @@ describe('BMS Stripe webhook — GenCode packages', () => {
     expect(response.status).toBe(200)
     expect(packageMock.fulfillGenCodePackageCheckout)
       .toHaveBeenCalledWith(checkoutEvent.data.object)
+    expect(provisionMock).toHaveBeenCalledWith('tenant_1')
     expect(packageMock.closeGenCodePackageCheckout).not.toHaveBeenCalled()
+  })
+
+  it('retries access provisioning on an idempotent webhook replay', async () => {
+    packageMock.fulfillGenCodePackageCheckout.mockResolvedValue({
+      outcome: 'already-fulfilled',
+      tenantId: 'tenant_1',
+    })
+    stripeMock.webhooks.constructEvent.mockReturnValue(event('checkout.session.completed'))
+
+    const response = await POST(request())
+
+    expect(response.status).toBe(200)
+    expect(provisionMock).toHaveBeenCalledWith('tenant_1')
   })
 
   it('marks an expired checkout without granting credits', async () => {
@@ -84,6 +102,7 @@ describe('BMS Stripe webhook — GenCode packages', () => {
     expect(packageMock.closeGenCodePackageCheckout)
       .toHaveBeenCalledWith(checkoutEvent.data.object, 'EXPIRED')
     expect(packageMock.fulfillGenCodePackageCheckout).not.toHaveBeenCalled()
+    expect(provisionMock).not.toHaveBeenCalled()
   })
 
   it('ignores checkout sessions that do not belong to this product', async () => {
@@ -96,6 +115,7 @@ describe('BMS Stripe webhook — GenCode packages', () => {
     expect(response.status).toBe(200)
     expect(body.ignored).toBe('not a GenCode package checkout')
     expect(packageMock.fulfillGenCodePackageCheckout).not.toHaveBeenCalled()
+    expect(provisionMock).not.toHaveBeenCalled()
   })
 })
 

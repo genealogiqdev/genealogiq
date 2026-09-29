@@ -1,4 +1,3 @@
-
 import 'server-only'
 
 import { prisma } from '@/lib/prisma'
@@ -58,35 +57,78 @@ export async function getDiscountCoupon(id: string) {
 }
 
 /**
- * Plans a coupon can be restricted to, priced in the operator's currency.
+ * Products a coupon can be restricted to, priced in the operator's currency.
  *
  * Restriction is by Stripe PRODUCT, which is one object across every currency —
  * so a coupon limited to Semente covers it wherever Semente sells. The amount
  * shown here is only a label to help the operator recognise the row.
  */
-export async function getActivePlansForSelect(currency: AppCurrency) {
+export async function getActiveProductsForSelect(currency: AppCurrency) {
   await verifySession()
 
-  const rows = await prisma.partnerPlan.findMany({
-    where:   { isActive: true, prices: { some: { isActive: true, effectiveTo: null, currency: currency.toUpperCase() } } },
-    orderBy: { annualAllowance: 'asc' },
-    select:  {
-      id: true, name: true, annualAllowance: true,
-      prices: {
-        where:  { isActive: true, effectiveTo: null, currency: currency.toUpperCase() },
-        select: { annualCashAmount: true, stripeProductId: true },
-        take:   1,
+  const [plans, packages] = await Promise.all([
+    prisma.partnerPlan.findMany({
+      where: {
+        isActive: true,
+        prices: {
+          some: {
+            isActive: true,
+            effectiveTo: null,
+            currency: currency.toUpperCase(),
+            stripeProductId: { not: null },
+          },
+        },
       },
-    },
-  })
+      orderBy: { annualAllowance: 'asc' },
+      select:  {
+        id: true, name: true, annualAllowance: true,
+        prices: {
+          where: {
+            isActive: true,
+            effectiveTo: null,
+            currency: currency.toUpperCase(),
+            stripeProductId: { not: null },
+          },
+          select: { annualCashAmount: true, stripeProductId: true },
+          take: 1,
+        },
+      },
+    }),
+    prisma.genCodePackage.findMany({
+      where: {
+        isActive: true,
+        currency: currency.toUpperCase(),
+        stripeProductId: { not: null },
+      },
+      orderBy: [{ minimumQuantity: 'asc' }, { name: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        minimumQuantity: true,
+        unitPrice: true,
+        currency: true,
+      },
+    }),
+  ])
 
-  return rows.map((r) => ({
-    id:              r.id,
-    name:            r.name,
-    quantity:        r.annualAllowance,
-    stripeProductId: r.prices[0]?.stripeProductId ?? null,
-    price:           Number(r.prices[0]?.annualCashAmount ?? 0),
-  }))
+  return [
+    ...plans.map((r) => ({
+      kind:            'partner-plan' as const,
+      id:              r.id,
+      name:            r.name,
+      quantity:        r.annualAllowance,
+      price:           Number(r.prices[0]?.annualCashAmount ?? 0),
+      currency:        currency.toUpperCase(),
+    })),
+    ...packages.map((r) => ({
+      kind:            'gencode-package' as const,
+      id:              r.id,
+      name:            r.name,
+      quantity:        r.minimumQuantity,
+      price:           Number(r.unitPrice),
+      currency:        r.currency,
+    })),
+  ]
 }
 
 /**
@@ -112,8 +154,8 @@ export async function getActivePlansForSelect(currency: AppCurrency) {
  *   is a coupon in reais — falling out of the data rather than being enforced
  *   separately.
  *
- * An empty `packageIds` means every product — that is how createDiscountCoupon
- * writes it, sending Stripe an `applies_to` only when the list is non-empty.
+ * An empty `productIds` means every product — that is how createDiscountCoupon
+ * writes it, sending Stripe an `applies_to` only when neither relation has rows.
  *
  * This is a convenience for the form, never an authority: createSalePaymentLink
  * re-resolves the coupon server-side, because a page left open can offer one
@@ -146,6 +188,7 @@ export async function getSelectableCoupons(currency: AppCurrency) {
       amountOffBrl:  true,
       amountOffMxn:  true,
       appliesTo:     { select: { id: true } },
+      genCodePackages: { select: { id: true } },
     },
     orderBy: { code: 'asc' },
   })
@@ -159,6 +202,11 @@ export async function getSelectableCoupons(currency: AppCurrency) {
     value: c.discountType === 'percent'
       ? Number(c.percentOff ?? 0)
       : Number(c[AMOUNT_BY_CURRENCY[currency]] ?? 0),
-    packageIds: c.appliesTo.map((p) => p.id),
+    productIds: [
+      ...c.appliesTo.map((p) => p.id),
+      ...c.genCodePackages.map((p) => p.id),
+    ],
   }))
 }
+
+export type SelectableCoupon = Awaited<ReturnType<typeof getSelectableCoupons>>[number]

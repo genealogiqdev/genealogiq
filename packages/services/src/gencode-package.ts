@@ -2,19 +2,19 @@ import 'server-only'
 
 import type Stripe from 'stripe'
 import { generateGenCode } from '@genealogiq/core'
-import { prisma, Prisma, type GenCodeOrderStatus } from '@genealogiq/db'
+import { prisma, type GenCodeOrderStatus } from '@genealogiq/db'
 import { CHECKOUT_TTL_HOURS, CHECKOUT_ORIGINS, type CheckoutOrigin } from './partner-checkout'
 import { ensureTenantStripeCustomer } from './stripe-customer'
 import { stripe } from './stripe'
 
-export const GENCODE_PACKAGE_CODE = 'GENCODE_VIRTUAL_BRL'
 export const GENCODE_PACKAGE_CREDIT_MONTHS = 12
 
 export type GenCodePackageCheckoutErrorReason =
   | 'package-not-found'
   | 'package-not-synced'
   | 'invalid-quantity'
-  | 'tenant-not-eligible'
+  | 'tenant-inactive'
+  | 'coupon-not-applicable'
   | 'no-url'
 
 export class GenCodePackageCheckoutError extends Error {
@@ -28,6 +28,7 @@ export interface GenCodePackageCheckoutInput {
   packageId: string
   tenantId: string
   quantity: number
+  discountCouponId?: string | null
   createdById: string
   origin: CheckoutOrigin
   successUrl: string
@@ -39,6 +40,9 @@ export interface GenCodePackageCheckoutResult {
   orderId: string
   packageName: string
   quantity: number
+  subtotalAmount: number
+  discountAmount: number
+  discountCode: string | null
   totalAmount: number
   currency: string
   expiresAt: Date
@@ -87,7 +91,8 @@ export async function syncGenCodePackage(packageId: string): Promise<void> {
 }
 
 /**
- * Opens a one-time checkout for a tenant whose paid annual contract is active.
+ * Opens a one-time checkout for any active Genealogiq partner. A package is a
+ * standalone shelf product and may be the tenant's first purchase.
  * The order is created first so every live Stripe session has a local audit row.
  */
 export async function openGenCodePackageCheckout(
@@ -109,54 +114,45 @@ export async function openGenCodePackageCheckout(
     throw new GenCodePackageCheckoutError('package-not-synced', 'GenCode package is not synced with Stripe')
   }
 
-  const now = new Date()
   const tenant = await prisma.tenant.findFirst({
-    where: {
-      id: input.tenantId,
-      isActive: true,
-      partnerSubscriptions: {
-        some: {
-          status: 'ACTIVE',
-          currentCycle: { is: { status: 'ACTIVE', startAt: { lte: now }, endAt: { gt: now } } },
-        },
-      },
-    },
-    select: {
-      id: true,
-      partnerSubscriptions: {
-        where: {
-          status: 'ACTIVE',
-          currentCycle: { is: { status: 'ACTIVE', startAt: { lte: now }, endAt: { gt: now } } },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 1,
-        select: { id: true },
-      },
-    },
+    where: { id: input.tenantId, isActive: true },
+    select: { id: true },
   })
-  const contract = tenant?.partnerSubscriptions[0]
-  if (!tenant || !contract) {
+  if (!tenant) {
     throw new GenCodePackageCheckoutError(
-      'tenant-not-eligible',
-      'Tenant must have an active B2B contract and cycle',
+      'tenant-inactive',
+      'Tenant not found or inactive',
     )
   }
 
+  const coupon = input.discountCouponId
+    ? await resolveCoupon(input.discountCouponId, packageRow.id, packageRow.currency)
+    : null
+
   const customer = await ensureTenantStripeCustomer(tenant.id)
-  const unitPrice = new Prisma.Decimal(packageRow.unitPrice)
-  const totalAmount = unitPrice.mul(input.quantity)
+  const unitPrice = Number(packageRow.unitPrice)
+  const subtotalCents = Math.round(unitPrice * 100) * input.quantity
+  const discountCents = coupon ? discountInCents(coupon, packageRow.currency, subtotalCents) : 0
+  const subtotalAmount = subtotalCents / 100
+  const discountAmount = discountCents / 100
+  const totalAmount = (subtotalCents - discountCents) / 100
   const expiresAt = new Date(Date.now() + CHECKOUT_TTL_HOURS * 60 * 60 * 1000)
 
   const order = await prisma.genCodeOrder.create({
     data: {
       packageId: packageRow.id,
       tenantId: tenant.id,
-      partnerSubscriptionId: contract.id,
+      partnerSubscriptionId: null,
+      discountCouponId: coupon?.id ?? null,
+      discountCode: coupon?.code ?? null,
       createdById: input.createdById,
       quantity: input.quantity,
       currency: packageRow.currency,
       unitPrice,
+      discountAmount,
       totalAmount,
+      activationTrialMonths: packageRow.activationTrialMonths,
+      activationTrialPlanCode: packageRow.activationTrialPlanCode,
       checkoutExpiresAt: expiresAt,
     },
     select: { id: true },
@@ -169,14 +165,19 @@ export async function openGenCodePackageCheckout(
       genCodePackageId: packageRow.id,
       tenantId: tenant.id,
       quantity: String(input.quantity),
+      ...(coupon && { discountCouponId: coupon.id, discountCode: coupon.code }),
     }
     const checkout = await stripe.checkout.sessions.create({
       mode: 'payment',
       customer,
       line_items: [{ price: packageRow.stripePriceId, quantity: input.quantity }],
+      ...(coupon && { discounts: [{ promotion_code: coupon.stripePromotionCodeId }] }),
       client_reference_id: tenant.id,
       metadata,
-      payment_intent_data: { metadata },
+      // A 100% coupon produces no PaymentIntent. Session metadata is enough to
+      // fulfil those no-payment-required checkouts, while paid sessions also
+      // keep the same audit metadata on their PaymentIntent.
+      ...(totalAmount > 0 && { payment_intent_data: { metadata } }),
       expires_at: Math.floor(expiresAt.getTime() / 1000),
       success_url: input.successUrl,
       cancel_url: input.cancelUrl,
@@ -196,7 +197,10 @@ export async function openGenCodePackageCheckout(
       orderId: order.id,
       packageName: packageRow.name,
       quantity: input.quantity,
-      totalAmount: Number(totalAmount),
+      subtotalAmount,
+      discountAmount,
+      discountCode: coupon?.code ?? null,
+      totalAmount,
       currency: packageRow.currency,
       expiresAt,
     }
@@ -212,6 +216,11 @@ export type GenCodePackageFulfillmentOutcome =
   | 'payment-pending'
   | 'ignored'
 
+export interface GenCodePackageFulfillmentResult {
+  outcome: GenCodePackageFulfillmentOutcome
+  tenantId?: string
+}
+
 /**
  * Applies a paid package Checkout Session exactly once.
  *
@@ -221,25 +230,31 @@ export type GenCodePackageFulfillmentOutcome =
  */
 export async function fulfillGenCodePackageCheckout(
   session: Stripe.Checkout.Session,
-): Promise<GenCodePackageFulfillmentOutcome> {
+): Promise<GenCodePackageFulfillmentResult> {
   const orderId = session.metadata?.genCodeOrderId
-  if (!orderId) return 'ignored'
-  if (session.payment_status !== 'paid') return 'payment-pending'
+  if (!orderId) return { outcome: 'ignored' }
+  if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
+    return { outcome: 'payment-pending' }
+  }
 
   const existing = await prisma.genCodeOrder.findUnique({
     where: { id: orderId },
-    select: { id: true, status: true, stripeCheckoutSessionId: true },
+    select: { id: true, tenantId: true, status: true, stripeCheckoutSessionId: true },
   })
-  if (!existing) return 'ignored'
-  if (existing.stripeCheckoutSessionId && existing.stripeCheckoutSessionId !== session.id) return 'ignored'
-  if (existing.status === 'PAID') return 'already-fulfilled'
-  if (existing.status !== 'PENDING') return 'ignored'
+  if (!existing) return { outcome: 'ignored' }
+  if (existing.stripeCheckoutSessionId && existing.stripeCheckoutSessionId !== session.id) {
+    return { outcome: 'ignored' }
+  }
+  if (existing.status === 'PAID') {
+    return { outcome: 'already-fulfilled', tenantId: existing.tenantId }
+  }
+  if (existing.status !== 'PENDING') return { outcome: 'ignored' }
 
   const paidAt = new Date()
   const creditExpiresAt = addMonths(paidAt, GENCODE_PACKAGE_CREDIT_MONTHS)
   const paymentIntentId = stripeReferenceId(session.payment_intent)
 
-  return prisma.$transaction(async (tx) => {
+  const outcome = await prisma.$transaction(async (tx) => {
     const claimed = await tx.genCodeOrder.updateMany({
       where: { id: orderId, status: 'PENDING' },
       data: {
@@ -250,7 +265,7 @@ export async function fulfillGenCodePackageCheckout(
         creditExpiresAt,
       },
     })
-    if (claimed.count === 0) return 'already-fulfilled'
+    if (claimed.count === 0) return 'already-fulfilled' as const
 
     const order = await tx.genCodeOrder.findUnique({
       where: { id: orderId },
@@ -272,7 +287,7 @@ export async function fulfillGenCodePackageCheckout(
         grantedQty: order.quantity,
         remainingQty: order.quantity,
         expiresAt: creditExpiresAt,
-        // A top-up has its own 12-month term and never participates in rollover.
+        // A standalone package has its own 12-month term and never participates in rollover.
         rolloverGeneration: 1,
         createdById: order.createdById,
         reason: `One-time GenCode package order ${order.id}`,
@@ -306,8 +321,10 @@ export async function fulfillGenCodePackageCheckout(
       data: { creditGrantId: grant.id },
     })
 
-    return 'fulfilled'
+    return 'fulfilled' as const
   })
+
+  return { outcome, tenantId: existing.tenantId }
 }
 
 /** Mirrors a terminal unpaid Checkout state without touching credits or codes. */
@@ -347,4 +364,79 @@ function addMonths(from: Date, months: number): Date {
 function stripeReferenceId(reference: string | { id: string } | null): string | null {
   if (typeof reference === 'string') return reference
   return reference?.id ?? null
+}
+
+type ResolvedCoupon = {
+  id: string
+  code: string
+  discountType: string
+  percentOff: unknown
+  amountOffUsd: unknown
+  amountOffBrl: unknown
+  amountOffMxn: unknown
+  stripePromotionCodeId: string
+}
+
+async function resolveCoupon(
+  discountCouponId: string,
+  packageId: string,
+  currency: string,
+): Promise<ResolvedCoupon> {
+  const coupon = await prisma.discountCoupon.findFirst({
+    where: {
+      id: discountCouponId,
+      isActive: true,
+      stripePromotionCodeId: { not: null },
+      OR: [{ redeemBy: null }, { redeemBy: { gt: new Date() } }],
+    },
+    select: {
+      id: true,
+      code: true,
+      discountType: true,
+      percentOff: true,
+      amountOffUsd: true,
+      amountOffBrl: true,
+      amountOffMxn: true,
+      stripePromotionCodeId: true,
+      appliesTo: { select: { id: true } },
+      genCodePackages: { select: { id: true } },
+    },
+  })
+
+  const restrictedProductIds = coupon
+    ? [
+        ...coupon.appliesTo.map((product) => product.id),
+        ...coupon.genCodePackages.map((product) => product.id),
+      ]
+    : []
+  const applicable = coupon
+    && (restrictedProductIds.length === 0 || restrictedProductIds.includes(packageId))
+    && couponValue(coupon, currency) > 0
+
+  if (!applicable || !coupon.stripePromotionCodeId) {
+    throw new GenCodePackageCheckoutError(
+      'coupon-not-applicable',
+      'Coupon is inactive, expired, unavailable in this currency, or restricted to another product',
+    )
+  }
+
+  return { ...coupon, stripePromotionCodeId: coupon.stripePromotionCodeId }
+}
+
+function discountInCents(coupon: ResolvedCoupon, currency: string, subtotalCents: number): number {
+  const raw = coupon.discountType === 'percent'
+    ? Math.round(subtotalCents * couponValue(coupon, currency) / 100)
+    : Math.round(couponValue(coupon, currency) * 100)
+  return Math.min(subtotalCents, raw)
+}
+
+function couponValue(
+  coupon: Pick<ResolvedCoupon, 'discountType' | 'percentOff' | 'amountOffUsd' | 'amountOffBrl' | 'amountOffMxn'>,
+  currency: string,
+): number {
+  if (coupon.discountType === 'percent') return Number(coupon.percentOff ?? 0)
+  if (currency === 'BRL') return Number(coupon.amountOffBrl ?? 0)
+  if (currency === 'MXN') return Number(coupon.amountOffMxn ?? 0)
+  if (currency === 'USD') return Number(coupon.amountOffUsd ?? 0)
+  return 0
 }

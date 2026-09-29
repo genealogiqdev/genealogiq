@@ -34,6 +34,7 @@ infra/*.json
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+/tmp/pdfs/
 
 # E2E secrets / auth state
 .env.e2e

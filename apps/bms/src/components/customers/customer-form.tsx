@@ -129,6 +129,25 @@ export function CustomerForm({ id, defaultValues }: CustomerFormProps) {
                           </Field>
                         )}
                       />
+                      <Controller
+                        name="businessSegment"
+                        control={control}
+                        render={({ field }) => (
+                          <Field>
+                            <FieldLabel>{t('fields.businessSegment')}</FieldLabel>
+                            <Select value={field.value} onValueChange={field.onChange}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="FUNERAL_HOME">{t('businessSegment.funeralHome')}</SelectItem>
+                                <SelectItem value="MARBLE_SHOP">{t('businessSegment.marbleShop')}</SelectItem>
+                                <SelectItem value="CEMETERY">{t('businessSegment.cemetery')}</SelectItem>
+                                <SelectItem value="URN_MANUFACTURER">{t('businessSegment.urnManufacturer')}</SelectItem>
+                                <SelectItem value="PLAQUE_PRINTER">{t('businessSegment.plaquePrinter')}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </Field>
+                        )}
+                      />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

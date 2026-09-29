@@ -2,26 +2,29 @@ import 'server-only'
 
 import { prisma } from '@/lib/prisma'
 import { verifySession } from '@/lib/dal'
-import { GENCODE_PACKAGE_CODE } from '@genealogiq/services/gencode-package'
 
-export async function getGenCodePackage() {
+export async function getGenCodePackages(options: { sellableOnly?: boolean } = {}) {
   await verifySession()
-  const row = await prisma.genCodePackage.findUnique({
-    where: { code: GENCODE_PACKAGE_CODE },
+  const rows = await prisma.genCodePackage.findMany({
+    where: options.sellableOnly
+      ? { isActive: true, stripeProductId: { not: null }, stripePriceId: { not: null } }
+      : undefined,
+    orderBy: [{ minimumQuantity: 'asc' }, { name: 'asc' }],
   })
-  if (!row) return null
 
-  return {
+  return rows.map((row) => ({
     id: row.id,
     code: row.code,
     name: row.name,
     unitPrice: Number(row.unitPrice),
     currency: row.currency,
     minimumQuantity: row.minimumQuantity,
+    activationTrialMonths: row.activationTrialMonths,
+    activationTrialPlanCode: row.activationTrialPlanCode,
     isActive: row.isActive,
     stripeProductId: row.stripeProductId,
     stripePriceId: row.stripePriceId,
-  }
+  }))
 }
 
 export async function getGenCodeOrders() {
@@ -33,11 +36,14 @@ export async function getGenCodeOrders() {
       quantity: true,
       currency: true,
       unitPrice: true,
+      discountCode: true,
+      discountAmount: true,
       totalAmount: true,
       checkoutExpiresAt: true,
       paidAt: true,
       creditExpiresAt: true,
       createdAt: true,
+      package: { select: { id: true, name: true } },
       tenant: { select: { id: true, name: true } },
       createdBy: { select: { firstName: true, lastName: true } },
     },
@@ -47,6 +53,7 @@ export async function getGenCodeOrders() {
   return rows.map((row) => ({
     ...row,
     unitPrice: Number(row.unitPrice),
+    discountAmount: Number(row.discountAmount),
     totalAmount: Number(row.totalAmount),
     createdBy: row.createdBy
       ? `${row.createdBy.firstName} ${row.createdBy.lastName}`.trim()
@@ -54,32 +61,48 @@ export async function getGenCodeOrders() {
   }))
 }
 
-export async function getEligibleGenCodeCustomers() {
+export async function getGenCodeCustomers() {
   await verifySession()
   const now = new Date()
 
-  return prisma.tenant.findMany({
-    where: {
-      isActive: true,
+  const rows = await prisma.tenant.findMany({
+    where: { isActive: true },
+    select: {
+      id: true,
+      name: true,
+      taxId: true,
+      businessSegment: true,
       partnerSubscriptions: {
-        some: {
-          status: 'ACTIVE',
+        select: {
+          status: true,
           currentCycle: {
-            is: {
-              status: 'ACTIVE',
-              startAt: { lte: now },
-              endAt: { gt: now },
-            },
+            select: { status: true, startAt: true, endAt: true },
           },
         },
       },
     },
-    select: { id: true, name: true, taxId: true },
     orderBy: { name: 'asc' },
+  })
+
+  return rows.map(({ partnerSubscriptions, ...customer }) => {
+    const hasCurrentContract = partnerSubscriptions.some((subscription) =>
+      subscription.status === 'ACTIVE'
+      && subscription.currentCycle?.status === 'ACTIVE'
+      && subscription.currentCycle.startAt <= now
+      && subscription.currentCycle.endAt > now,
+    )
+
+    return {
+      ...customer,
+      contractStatus: hasCurrentContract
+        ? 'ACTIVE' as const
+        : partnerSubscriptions.length > 0
+          ? 'INACTIVE' as const
+          : 'NEW' as const,
+    }
   })
 }
 
-export type GenCodePackageRow = NonNullable<Awaited<ReturnType<typeof getGenCodePackage>>>
+export type GenCodePackageRow = Awaited<ReturnType<typeof getGenCodePackages>>[number]
 export type GenCodeOrderRow = Awaited<ReturnType<typeof getGenCodeOrders>>[number]
-export type EligibleGenCodeCustomer = Awaited<ReturnType<typeof getEligibleGenCodeCustomers>>[number]
-
+export type GenCodeCustomer = Awaited<ReturnType<typeof getGenCodeCustomers>>[number]

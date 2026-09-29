@@ -21,6 +21,7 @@ export async function getCustomers() {
     select: {
       id:         true,
       entityType: true,
+      businessSegment: true,
       name:       true,
       email:      true,
       isActive:   true,
@@ -38,6 +39,7 @@ export async function getCustomer(id: string) {
     select: {
       id:                    true,
       entityType:            true,
+      businessSegment:       true,
       name:                  true,
       tradeName:             true,
       taxId:                 true,

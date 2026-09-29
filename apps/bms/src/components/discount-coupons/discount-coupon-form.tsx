@@ -19,15 +19,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@genealogiq/ui/checkbox'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@genealogiq/ui/field'
 
-interface PackageOption {
+interface ProductOption {
   id:       string
   name:     string
   price:    number
   quantity: number
+  currency: string
+  kind:     'partner-plan' | 'gencode-package'
 }
 
 interface DiscountCouponFormProps {
-  packages: PackageOption[]
+  products: ProductOption[]
 }
 
 function AmountField({
@@ -66,12 +68,13 @@ function AmountField({
   )
 }
 
-export function DiscountCouponForm({ packages }: DiscountCouponFormProps) {
+export function DiscountCouponForm({ products }: DiscountCouponFormProps) {
   const t    = useTranslations('DiscountCoupons')
   const tc   = useTranslations('Common')
   const tErr = useTranslations('Errors')
   const locale = useLocale()
-  const usd = new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' })
+  const money = (value: number, currency: string) =>
+    new Intl.NumberFormat(locale, { style: 'currency', currency }).format(value)
   const [serverError, setServerError] = useState<string | null>(null)
   const router = useRouter()
 
@@ -268,7 +271,7 @@ export function DiscountCouponForm({ packages }: DiscountCouponFormProps) {
           />
         </div>
 
-        {packages.length > 0 && (
+        {products.length > 0 && (
           <Controller
             name="appliesTo"
             control={control}
@@ -277,7 +280,7 @@ export function DiscountCouponForm({ packages }: DiscountCouponFormProps) {
                 <FieldLabel>{t('fields.appliesTo')}</FieldLabel>
                 <p className="text-xs text-muted-foreground">{t('hints.appliesTo')}</p>
                 <div className="flex flex-col gap-2 mt-1">
-                  {packages.map((p) => {
+                  {products.map((p) => {
                     const checked = field.value.includes(p.id)
                     return (
                       <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -291,8 +294,8 @@ export function DiscountCouponForm({ packages }: DiscountCouponFormProps) {
                           }}
                         />
                         <span>
-                          {p.name}
-                          <span className="text-muted-foreground"> — {t('packageMeta', { quantity: p.quantity, price: usd.format(p.price) })}</span>
+                          {t(`productKind.${p.kind === 'partner-plan' ? 'partnerPlan' : 'gencodePackage'}`)}: {p.name}
+                          <span className="text-muted-foreground"> — {t('packageMeta', { quantity: p.quantity, price: money(p.price, p.currency) })}</span>
                         </span>
                       </label>
                     )

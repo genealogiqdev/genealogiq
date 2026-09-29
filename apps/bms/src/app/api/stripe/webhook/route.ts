@@ -83,8 +83,19 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ received: true, outcome: changed ? 'expired' : 'ignored' })
       }
 
-      const outcome = await fulfillGenCodePackageCheckout(checkout)
-      return NextResponse.json({ received: true, outcome })
+      const result = await fulfillGenCodePackageCheckout(checkout)
+
+      // A package may be the partner's first purchase. Provision on both the
+      // first fulfillment and a replay so a transient email failure can heal
+      // without minting credits or codes twice.
+      if (
+        result.tenantId
+        && (result.outcome === 'fulfilled' || result.outcome === 'already-fulfilled')
+      ) {
+        await provisionTenantAccess(result.tenantId)
+      }
+
+      return NextResponse.json({ received: true, outcome: result.outcome })
     } catch (err) {
       console.error('[bms-stripe-webhook] GenCode package checkout failed', err)
       return NextResponse.json({ error: 'internal' }, { status: 500 })

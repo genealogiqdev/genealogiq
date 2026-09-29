@@ -14,6 +14,7 @@ export default async function EditCustomerPage({ params }: { params: Promise<{ i
       id={id}
       defaultValues={{
         entityType:            customer.entityType as 'INDIVIDUAL' | 'COMPANY',
+        businessSegment:       customer.businessSegment,
         name:                  customer.name,
         tradeName:             customer.tradeName,
         taxId:                 customer.taxId,

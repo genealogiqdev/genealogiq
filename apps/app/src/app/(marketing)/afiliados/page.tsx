@@ -119,7 +119,7 @@ export default async function PartnerLandingPage() {
           <div>
             <SectionHeading eyebrow={t("how.eyebrow")} title={t("how.title")} description={t("how.description")} align="left" />
             <ol className="mt-8 space-y-5">
-              {PARTNER_STEPS.map(({ key, icon: Icon }, index) => (
+              {PARTNER_STEPS.map(({ key, icon: Icon }) => (
                 <li key={key} className="flex gap-4">
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#e0e5e1] bg-white text-[#607236]">
                     <Icon className="h-4 w-4" />

@@ -1,16 +1,30 @@
 import { notFound } from 'next/navigation'
 import { verifyAdmin } from '@/lib/dal'
-import { getEligibleGenCodeCustomers, getGenCodePackage } from '@/queries/gencode-packages'
+import { getGenCodeCustomers, getGenCodePackages } from '@/queries/gencode-packages'
+import { getSelectableCoupons } from '@/queries/discount-coupons'
 import { NewGenCodeOrderForm } from '@/components/gencode-packages/new-order-form'
 
-export default async function NewGenCodeOrderPage() {
+export default async function NewGenCodeOrderPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ packageId?: string | string[] }>
+}) {
   await verifyAdmin()
-  const [packageRow, customers] = await Promise.all([
-    getGenCodePackage(),
-    getEligibleGenCodeCustomers(),
+  const [packages, customers, coupons, query] = await Promise.all([
+    getGenCodePackages({ sellableOnly: true }),
+    getGenCodeCustomers(),
+    getSelectableCoupons('brl'),
+    searchParams,
   ])
-  if (!packageRow || !packageRow.isActive || !packageRow.stripePriceId) notFound()
+  if (packages.length === 0) notFound()
 
-  return <NewGenCodeOrderForm packageRow={packageRow} customers={customers} />
+  return (
+    <NewGenCodeOrderForm
+      packages={packages}
+      customers={customers}
+      coupons={coupons}
+      initialPackageId={typeof query.packageId === 'string' ? query.packageId : undefined}
+    />
+  )
 }
 

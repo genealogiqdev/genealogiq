@@ -26,6 +26,12 @@ export async function activateGenCode(
     where: { genCode },
     select: {
       id: true, status: true, tenantId: true,
+      mintedInOrder: {
+        select: { activationTrialMonths: true, activationTrialPlanCode: true },
+      },
+      mintedInCycle: {
+        select: { planSnapshot: true },
+      },
       tenant: {
         select: {
           partnerSubscriptions: {
@@ -95,7 +101,9 @@ export async function activateGenCode(
       // partner plan's trial tier instead of dropping them straight to FREE.
       // Inside the same transaction, because a memorial that exists without the
       // trial it was sold with is a support ticket nobody can reconstruct.
-      const trial = license.tenant?.partnerSubscriptions[0]?.plan
+      const trial = license.mintedInOrder
+        ?? activationTrialFromSnapshot(license.mintedInCycle?.planSnapshot)
+        ?? license.tenant?.partnerSubscriptions[0]?.plan
       if (trial) {
         await grantActivationTrial(tx, {
           guardianId: session.user.id,
@@ -119,5 +127,23 @@ export async function activateGenCode(
       return fail(t("gencode.raceRetry"))
     }
     throw err
+  }
+}
+
+function activationTrialFromSnapshot(value: unknown): {
+  activationTrialMonths: number
+  activationTrialPlanCode: string | null
+} | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const snapshot = value as Record<string, unknown>
+  if (typeof snapshot.activationTrialMonths !== 'number') return null
+  if (
+    snapshot.activationTrialPlanCode !== null
+    && typeof snapshot.activationTrialPlanCode !== 'string'
+  ) return null
+
+  return {
+    activationTrialMonths: snapshot.activationTrialMonths,
+    activationTrialPlanCode: snapshot.activationTrialPlanCode,
   }
 }
