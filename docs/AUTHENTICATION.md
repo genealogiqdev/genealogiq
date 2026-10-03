@@ -60,6 +60,15 @@ Column mappings, keys, enums, deletes and nullability are authoritative in [sche
 | AUTH_URL / AUTH_TRUST_HOST | app-local URL / false unless configured | NextAuth | Canonical localhost origin is required for cookies during local QA. |
 | GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET | absent | googleCredentialsFromEnv | Provider only exists when both values are configured; local-qa disables it. |
 
+Production canonical `AUTH_URL` values are `https://genealogiq.com.br`,
+`https://bms.genealogiq.com.br`, and `https://sequoia.genealogiq.com.br`.
+The APP `www` alias uses the apex callback origin. The DNS-gated
+[cutover runbook](AZURE-DEPLOYMENT.md#dns-and-managed-tls) waits for managed TLS
+and latest-revision readiness; external Google OAuth redirects require separate
+provider configuration. [Live evidence](audits/AZURE-DOMAINS-2026-10-03.md)
+verified Credentials callback origins and anonymous sign-in walls, not a
+production login or Google authorization.
+
 ## How to test it (AI-runnable)
 
 Run commands from the repository root `C:/Users/Tiger/Desktop/dev/personal/genealogiq`. Install workspace dependencies first.
@@ -132,6 +141,7 @@ Follow [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for exact setup/start/readiness
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | pass for the baseline: independent Credentials sign-in in all three apps, one scoped save/reload per staff app, and anonymous protected-route checks. OAuth, reset email, cross-tenant IDs and active-session revocation were not exercised. | Only the named exercised behavior is verified. |
+| 2026-10-03 | `7d267f7` + domain configuration | Azure CLI, HTTP and production browser | Latest revisions ready; Credentials callbacks use the three new canonical origins, www uses apex; anonymous protected routes render sign-in on the new domains. [Cutover audit](audits/AZURE-DOMAINS-2026-10-03.md) | Google was absent from live provider discovery; production sign-in/OAuth and tenant mutations remain unverified. |
 
 ## Related
 

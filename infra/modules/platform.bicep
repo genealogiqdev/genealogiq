@@ -15,6 +15,12 @@ param bmsSentryDsn string
 param seqSentryDsn string
 param vapidPublicKey string
 param turnstileSiteKey string
+param appUrl string
+param bmsUrl string
+param sequoiaUrl string
+param appCustomDomains array
+param bmsCustomDomains array
+param sequoiaCustomDomains array
 
 var tags = {
   application: 'genealogiq'
@@ -212,6 +218,10 @@ resource mediaBlobService 'Microsoft.Storage/storageAccounts/blobServices@2023-0
             'PUT'
           ]
           allowedOrigins: [
+            'https://genealogiq.com.br'
+            'https://www.genealogiq.com.br'
+            'https://bms.genealogiq.com.br'
+            'https://sequoia.genealogiq.com.br'
             'https://genealogiq.app'
             'https://bms.genealogiq.app'
             'https://sequoia.rip'
@@ -606,15 +616,15 @@ resource postgresCpuAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = if (!em
 var commonPlainEnvironment = [
   {
     name: 'APP_URL'
-    value: 'https://genealogiq.app'
+    value: appUrl
   }
   {
     name: 'BMS_URL'
-    value: 'https://bms.genealogiq.app'
+    value: bmsUrl
   }
   {
     name: 'SEQUOIA_URL'
-    value: 'https://sequoia.rip'
+    value: sequoiaUrl
   }
   {
     name: 'AUTH_TRUST_HOST'
@@ -779,6 +789,7 @@ module consumerApp './container-app.bicep' = if (deployApplications) {
   params: {
     location: location
     name: 'ca-genealogiq-app-${environmentName}'
+    customDomains: appCustomDomains
     environmentId: containerAppsEnvironment.id
     registryServer: registry.properties.loginServer
     identityResourceId: identity.id
@@ -792,7 +803,7 @@ module consumerApp './container-app.bicep' = if (deployApplications) {
     plainEnvironment: concat(commonPlainEnvironment, [
       {
         name: 'AUTH_URL'
-        value: 'https://genealogiq.app'
+        value: appUrl
       }
       {
         name: 'NEXT_PUBLIC_SENTRY_DSN'
@@ -827,6 +838,7 @@ module bmsApp './container-app.bicep' = if (deployApplications) {
   params: {
     location: location
     name: 'ca-genealogiq-bms-${environmentName}'
+    customDomains: bmsCustomDomains
     environmentId: containerAppsEnvironment.id
     registryServer: registry.properties.loginServer
     identityResourceId: identity.id
@@ -840,7 +852,7 @@ module bmsApp './container-app.bicep' = if (deployApplications) {
     plainEnvironment: concat(commonPlainEnvironment, [
       {
         name: 'AUTH_URL'
-        value: 'https://bms.genealogiq.app'
+        value: bmsUrl
       }
       {
         name: 'NEXT_PUBLIC_SENTRY_DSN'
@@ -863,6 +875,7 @@ module seqApp './container-app.bicep' = if (deployApplications) {
   params: {
     location: location
     name: 'ca-genealogiq-seq-${environmentName}'
+    customDomains: sequoiaCustomDomains
     environmentId: containerAppsEnvironment.id
     registryServer: registry.properties.loginServer
     identityResourceId: identity.id
@@ -876,7 +889,7 @@ module seqApp './container-app.bicep' = if (deployApplications) {
     plainEnvironment: concat(commonPlainEnvironment, [
       {
         name: 'AUTH_URL'
-        value: 'https://sequoia.rip'
+        value: sequoiaUrl
       }
       {
         name: 'NEXT_PUBLIC_SENTRY_DSN'

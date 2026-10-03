@@ -252,8 +252,11 @@ and transfer jobs immediately after use.
 
 ## DNS and managed certificates
 
-The public zones are hosted by Vercel DNS, not Azure DNS. The Azure CLI cannot
-change those records without a separate authenticated Vercel session.
+The planned `genealogiq.com.br` zone is managed at Hostinger, not Azure DNS.
+The Azure CLI cannot complete domain registration or change Hostinger DNS
+records. Follow the Hostinger record table and external-integration checklist
+in `docs/AZURE-DEPLOYMENT.md`. Legacy `genealogiq.app` and `sequoia.rip`
+origins remain active until the cutover completes.
 
 Generate the required records:
 
@@ -267,15 +270,24 @@ After the records resolve publicly:
 ./scripts/azure/configure-domains.ps1 -Apply
 ```
 
-This binds:
+This validates all records before writing, previews the targeted changes with
+`infra/custom-domain-cutover.bicep`, and binds:
 
-- `genealogiq.app`
-- `bms.genealogiq.app`
-- `sequoia.rip`
+- `genealogiq.com.br`
+- `www.genealogiq.com.br`
+- `bms.genealogiq.com.br`
+- `sequoia.genealogiq.com.br`
 
 Do not remove old routing until all managed certificates are ready and HTTPS
-health checks pass on the custom domains. Google OAuth and Stripe callback URLs
-remain unchanged because the public hostnames remain unchanged.
+health checks pass on the custom domains. The script changes runtime origins
+only after these checks. Google OAuth redirects, Stripe webhooks, Turnstile
+allowlists, and hardcoded browser links require separate updates.
+`deploy-applications.ps1` preserves the live origins and certificate bindings
+when redeploying Bicep; image-only CI updates preserve them as well.
+Also retain the new origins in the media Blob CORS allowlist; the scoped
+`infra/custom-domain-media-cors.bicep` template previews/deploys that setting
+without changing retention, versioning, or blob data. Configuration-only
+origin updates reuse immutable images and do not replay database migrations.
 
 ## Verification and observability
 
@@ -338,7 +350,8 @@ For a failed migration:
 5. Never edit `_prisma_migrations` manually unless the exact Prisma recovery
    procedure has been reviewed.
 
-For a DNS cutover failure, restore the previous Vercel DNS records first; do
+For a DNS cutover failure, restore the previous records at the authoritative
+DNS provider first; do
 not delete healthy Azure revisions.
 
 ## Agent handoff format

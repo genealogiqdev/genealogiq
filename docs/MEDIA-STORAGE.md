@@ -31,6 +31,13 @@ The enforcing files are linked above. Test names and literal assertions below re
 
 ## Contracts and data
 
+Production browser PUTs require Blob service CORS for the caller origin.
+The `genealogiq.com.br`, `www`, `bms`, and `sequoia` origins are explicitly
+allowed alongside legacy/local origins in `infra/modules/platform.bicep`.
+The scoped `infra/custom-domain-media-cors.bicep` template preserves other
+Blob service properties. CORS permits browser transport only; it does not
+replace the create-only scoped SAS or server authorization/signature checks.
+
 The upload body has authorize/complete stages. Server policy controls path prefix, allowed content type and size; authorize yields a create-only SAS lasting ten minutes for a private staging blob. Completion checks actual bytes/signature, promotes to media and removes staging. Stored-reference authorization permits an unchanged legacy URL but new URLs must match the owner/profile prefix.
 
 Inputs, defaults and output types live in the linked schema/actions/query files. APP/BMS/SEQ actions generally return [ActionResult (`done`/`ok`/`fail`)](../packages/core/src/result.ts); redirects/forbidden errors propagate from the DAL. Shared helpers retain their declared return types.
@@ -123,6 +130,7 @@ Follow [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for exact setup/start/readiness
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | pass for the SDK/storage runtime fixture: scoped SAS upload, overwrite rejection, promotion, public 200 and deleted-object 404 in Azurite. Browser upload forms and production managed identity remain n/a. | Only the named exercised behavior is verified. |
+| 2026-10-03 | `7d267f7` + domain configuration changes | Azure CLI and HTTP preflight | `genealogiq-domain-media-cors` succeeded; four new origins returned 200 with matching Allow-Origin for PUT; unrelated origin returned 403 | No production upload/write was exercised; SAS and form validation remain separate scenarios |
 
 ## Related
 

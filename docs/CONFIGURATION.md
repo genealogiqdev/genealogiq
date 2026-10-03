@@ -59,6 +59,17 @@ The seed supplies one Premium consumer identity and independent BMS/SEQ staff re
 
 ## Restart and recheck
 
+### Production domain cutovers
+
+[AZURE-DEPLOYMENT](AZURE-DEPLOYMENT.md#dns-and-managed-tls) owns the Hostinger
+record table and DNS-gated Azure CLI cutover. The per-app `AUTH_URL` and shared
+`APP_URL`, `BMS_URL`, `SEQUOIA_URL` change only after managed TLS and HTTPS
+health checks succeed for every new hostname. `deploy-applications.ps1`
+preserves live origins and certificate bindings in subsequent Bicep updates.
+Blob CORS must allow the four new website origins while retaining legacy/local
+origins. Browser bundles, persisted links, Google redirects and Stripe
+webhooks do not change automatically with runtime environment variables.
+
 1. Read the owning reader and turbo.globalEnv when changing a setting. Verify the absence/default path as well as the configured path.
 2. Restart the local launcher after server secrets/provider/DB settings change. Sign in again after its ephemeral AUTH_SECRET changes.
 3. Rebuild after NEXT_PUBLIC settings change; stop dev servers first so .next is not overwritten while in use.
@@ -81,6 +92,7 @@ The seed supplies one Premium consumer identity and independent BMS/SEQ staff re
 | --- | --- | --- | --- |
 | 2026-10-03 | 6e06634 + working changes | Source | Readers/defaults, turbo environment and local child overlay checked. |
 | 2026-10-03 | Same | Runtime/UI | Credentials/DB and Azurite mode exercised; no payment/mail/OAuth/push/production identity proof. |
+| 2026-10-03 | `7d267f7` + domain changes | Azure runtime/browser | All three latest revisions `--0000007` ready; shared public origins and per-app AUTH_URL checked against literal new URLs; four custom HTTPS hosts and canonical Credentials callbacks verified. [Audit](audits/AZURE-DOMAINS-2026-10-03.md) records external-provider and browser-bundle limits. |
 
 ## Related
 

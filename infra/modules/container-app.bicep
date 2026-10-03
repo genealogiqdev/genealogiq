@@ -8,6 +8,7 @@ param image string
 param keyVaultUri string
 param plainEnvironment array
 param secretEnvironment array
+param customDomains array = []
 param minReplicas int = 1
 param maxReplicas int = 2
 param cpu string = '0.5'
@@ -58,6 +59,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
     configuration: {
       activeRevisionsMode: 'Single'
       ingress: {
+        customDomains: customDomains
         external: true
         allowInsecure: false
         targetPort: 3000

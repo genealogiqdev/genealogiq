@@ -22,6 +22,31 @@ if ([string]::IsNullOrWhiteSpace($ImageTag)) {
 }
 
 $outputs = Get-Content ".azure/outputs.json" -Raw | ConvertFrom-Json
+$activeApps = az containerapp list `
+  --resource-group $outputs.resourceGroupName.value `
+  --query '[].{name:name,customDomains:properties.configuration.ingress.customDomains,authUrl:properties.template.containers[0].env[?name==`AUTH_URL`] | [0].value}' `
+  --output json | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0) { throw "Unable to read active application domains and origins." }
+
+$domainParameters = @{}
+$domainDefinitions = @(
+  @{ name = "ca-genealogiq-app-prod"; urlParameter = "appUrl"; domainsParameter = "appCustomDomains"; fallbackUrl = "https://genealogiq.app" },
+  @{ name = "ca-genealogiq-bms-prod"; urlParameter = "bmsUrl"; domainsParameter = "bmsCustomDomains"; fallbackUrl = "https://bms.genealogiq.app" },
+  @{ name = "ca-genealogiq-seq-prod"; urlParameter = "sequoiaUrl"; domainsParameter = "sequoiaCustomDomains"; fallbackUrl = "https://sequoia.rip" }
+)
+foreach ($definition in $domainDefinitions) {
+  $activeApp = $activeApps | Where-Object { $_.name -eq $definition.name } | Select-Object -First 1
+  $url = $definition.fallbackUrl
+  $customDomains = @()
+  if ($activeApp) {
+    if (-not [string]::IsNullOrWhiteSpace($activeApp.authUrl)) { $url = $activeApp.authUrl }
+    $customDomains = @($activeApp.customDomains | Where-Object { $_ })
+  }
+  $domainParameters[$definition.urlParameter] = @{ value = $url }
+  $domainParameters[$definition.domainsParameter] = @{ value = $customDomains }
+}
+$domainParameters | ConvertTo-Json -Depth 12 | Set-Content ".azure/application-domains.parameters.json" -Encoding UTF8
+
 $vaultName = $outputs.keyVaultName.value
 $postgresPassword = (
   az keyvault secret show `
@@ -48,6 +73,7 @@ $transferImageTag = if (Test-Path ".azure/transfer-image-tag.txt") {
 }
 
 $parameters = @(
+  "@.azure/application-domains.parameters.json",
   "location=$Location",
   "environmentName=prod",
   "deployApplications=true",

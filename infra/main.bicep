@@ -46,6 +46,24 @@ param vapidPublicKey string = ''
 @description('Public Turnstile site key compiled into the consumer app.')
 param turnstileSiteKey string = ''
 
+@description('Canonical consumer origin. Preserve the active origin during DNS cutovers.')
+param appUrl string = 'https://genealogiq.app'
+
+@description('Canonical BMS origin.')
+param bmsUrl string = 'https://bms.genealogiq.app'
+
+@description('Canonical Sequoia origin.')
+param sequoiaUrl string = 'https://sequoia.rip'
+
+@description('Existing consumer custom-domain bindings, including certificate IDs.')
+param appCustomDomains array = []
+
+@description('Existing BMS custom-domain bindings, including certificate IDs.')
+param bmsCustomDomains array = []
+
+@description('Existing Sequoia custom-domain bindings, including certificate IDs.')
+param sequoiaCustomDomains array = []
+
 var baseName = 'genealogiq'
 var resourceGroupName = 'rg-${baseName}-${environmentName}'
 var uniqueSuffix = take(uniqueString(subscription().id, environmentName), 8)
@@ -80,6 +98,12 @@ module platform './modules/platform.bicep' = {
     seqSentryDsn: seqSentryDsn
     vapidPublicKey: vapidPublicKey
     turnstileSiteKey: turnstileSiteKey
+    appUrl: appUrl
+    bmsUrl: bmsUrl
+    sequoiaUrl: sequoiaUrl
+    appCustomDomains: appCustomDomains
+    bmsCustomDomains: bmsCustomDomains
+    sequoiaCustomDomains: sequoiaCustomDomains
   }
 }
 

@@ -69,9 +69,14 @@ The app indexes contain 18 APP, nine BMS and seven SEQ feature documents; the fi
 | [HISTORY](docs/HISTORY.md) | Original memory, incident preservation and approved migration table |
 | [Dated audit](docs/audits/AGENT-MEMORY-2026-10-03.md) | This bootstrap's expected/observed evidence and limits |
 | [Azure operational guide](docs/AZURE-AGENT-RUNBOOK.md) | Existing deployment/database/media operational constraints |
+| [Domain cutover](docs/AZURE-DEPLOYMENT.md#dns-and-managed-tls) | Hostinger DNS, Azure managed TLS, canonical origins and media CORS |
 
 ## Self-learning memory
 
 Use `node scripts/check-docs.mjs` to validate indexes, links, feature paths/symbols and required sections. Use `rg "Status:\*\* open" docs apps/app/docs apps/bms/docs apps/seq/docs` to find permanent open entries. Never delete a fixed gap; add its resolution, regression test and commit. Historical docs are explicitly labeled and linked, not treated as current live-resource evidence.
 
 **Last source verification:** 2026-10-03 at `6e06634`, including this task's uncommitted docs, launcher and tests. Runtime/UI evidence has its own dated audit.
+
+**Domain configuration verification:** 2026-10-03 at `7d267f7` plus domain changes;
+[cutover audit](docs/audits/AZURE-DOMAINS-2026-10-03.md) separates source/tests,
+live Azure/HTTPS/browser evidence, local baseline, cleanup and provider limits.
