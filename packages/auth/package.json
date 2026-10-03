@@ -19,11 +19,11 @@
   "dependencies": {
     "@genealogiq/services": "workspace:*",
     "bcryptjs": "^3.0.3",
-    "zod": "^4.3.6",
+    "zod": "^4.6.5",
     "server-only": "^0.0.1"
   },
   "peerDependencies": {
-    "next": "16.3.1",
+    "next": "16.3.7",
     "next-auth": "^5.0.0-beta.32",
     "react": "^19"
   },
@@ -32,9 +32,9 @@
     "@types/node": "^20.19.43",
     "@types/bcryptjs": "^2.4.6",
     "@types/react": "^19",
-    "next": "16.3.1",
+    "next": "16.3.7",
     "next-auth": "^5.0.0-beta.32",
-    "react": "19.2.8",
+    "react": "19.3.0",
     "vitest": "^3.2.7"
   }
 }
