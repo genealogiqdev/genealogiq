@@ -1,11 +1,8 @@
-// Seeds the e2e admin into the Neon `development` branch. Run:
-//
-//   pnpm seed:e2e
-//
-// Loads .env.e2e BEFORE importing @genealogiq/db (which reads DATABASE_URL at
-// module init), so it always targets the dev branch — never prod. Idempotent
-// (upserts by email). The dev branch already carries the schema (copy of prod),
-// so no migration is needed here.
+// Seeds the E2E admin into the configured database: pnpm seed:e2e.
+// This legacy helper checks URL presence only and does not enforce isolation.
+// Existing process environment wins over dotenv's .env.e2e values. Use only a
+// verified disposable database with an existing schema; see docs/TESTING.md.
+// The guarded seed:local path is used for the documented three-app baseline.
 import { config } from "dotenv"
 import bcrypt from "bcryptjs"
 import { E2E_USER } from "./test-user"

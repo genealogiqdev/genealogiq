@@ -14,7 +14,7 @@ test.describe("BMS sign-in (public smoke)", () => {
   })
 
   test("localizes the UI via the `locale` cookie (pt-BR)", async ({ page, context }) => {
-    await context.addCookies([{ name: "locale", value: "pt-BR", url: "http://localhost:3000" }])
+    await context.addCookies([{ name: "locale", value: "pt-BR", url: "http://localhost:3001" }])
     await page.goto("/sign-in")
     // The submit button text must come from pt-BR, not en-US.
     await expect(page.getByRole("button", { name: pt.Auth.signIn })).toBeVisible()

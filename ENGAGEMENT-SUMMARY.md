@@ -1,3 +1,5 @@
+> **Historical memory — retained on 2026-10-03.** This document records earlier intent, incidents or migration work. Current source/runtime contracts are in [AGENTS.md](AGENTS.md) and [HISTORY](docs/HISTORY.md). Commands, live resources, old statuses and numeric claims below are unverified as current behavior; do not replay historical cloud/data operations without checking the current code and task scope. Original content follows intact.
+
 # Genealogiq — Engagement Summary
 
 _Hardening and consolidation of the Genealogiq platform — security, architecture, and maintainability._

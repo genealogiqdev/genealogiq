@@ -1,5 +1,7 @@
 # App conventions (this app's instantiation of the suite's patterns)
 
+> **Last verified against code:** 2026-10-03 at `6e06634` plus current docs/tests/launcher changes. Current feature contracts live in [AGENTS.md](../AGENTS.md). The full original is preserved in [history/CONVENTIONS-2026-10-03.md](history/CONVENTIONS-2026-10-03.md).
+
 Compact reference of the *choices already made* in this codebase, so future entity slices
 read this instead of re-deriving conventions from scratch or from ledger prose. This is a
 pre-existing, hand-built app (not scaffolded fresh by the nextjs-crud-suite) — several
@@ -13,19 +15,16 @@ implementation of a profile-owned, guardian-manageable, publicly-gated sub-resou
 
 ## Identity & timestamps (schema)
 
-- **IDs are `cuid()`, not `uuid(7)`.** Every model in `packages/db/prisma/schema.prisma`
-  uses `@id @default(cuid())`. Do not switch a new model to UUIDv7 — it would be the only
-  model in the schema shaped differently.
+- **New profile-content IDs follow existing `cuid()` conventions.** The shared schema also contains autoincrement and composite-primary-key models (Favorite/PetOwnership), so it is not universally cuid. Do not change established identifiers solely to match a generic template.
 - **Timestamps**: `createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)`
   and `updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)`
   (note: `@default(now())` is present on `updatedAt` too, not just `@updatedAt` — matches
-  every recent model).
+  GeoPlace; other models differ, so inspect their declarations).
 - **FK naming**: `<entity>Id String @map("<entity>_id") @db.VarChar` + explicit
   `map: "<table>_<entity>_id_fkey"` on the relation, `onDelete: Cascade, onUpdate: NoAction`
   for a profile-owned child row (the row has no meaning once the `AppUser` is gone).
-- **Every FK indexed**: `@@index([ownerField], map: "<table>_<entity>_id_idx")`.
-- **Table mapping**: `@@map("app_<plural>")` — the `app_` prefix is universal (shared DB
-  with BMS/SEQ).
+- **GeoPlace owner FK indexed**: `@@index([ownerField], map: "<table>_<entity>_id_idx")`.
+- **Table mapping**: `@@map("app_<plural>")` — this prefix applies to the profile-content reference slice; shared BMS/SEQ tables use their own mappings.
 
 ## Schema location: ONE shared file, not mirrored per app
 
@@ -37,13 +36,11 @@ dirs exist).
 
 ## Migrations: hand-authored, idempotent SQL
 
-Every migration is hand-written raw SQL (not `prisma migrate dev`'s auto-diff), using:
+The reference GeoPlace migrations use hand-authored, guarded SQL. Follow the existing migration conventions for new changes; the historical tree also contains unguarded statements and is not universally idempotent. The reference pattern uses:
 `CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`, and a
 `DO $$ BEGIN ALTER TABLE ... ADD CONSTRAINT ...; EXCEPTION WHEN duplicate_object THEN NULL; END $$;`
 wrapper for FKs (re-runnable without erroring). Folder name:
-`YYYYMMDDHHMMSS_snake_case_description`. **The agent authors the migration file and runs
-`prisma generate` + `prisma validate` only — `prisma migrate deploy` against the live Neon
-DB is a separate, human-triggered step**, never run by an agent in this repo.
+`YYYYMMDDHHMMSS_snake_case_description`. **Author schema/migration changes and validate against disposable local data.** Deployed migration work uses the existing Azure jobs/private-database runbook and the task’s explicit authorization; ordinary merge does not auto-run the current workflow_dispatch migration job. See [DATABASE](../../../docs/DATABASE.md) and [AZURE-AGENT-RUNBOOK](../../../docs/AZURE-AGENT-RUNBOOK.md).
 
 ## `ActionResult` shape (differs from generic Carlos gold)
 
@@ -66,8 +63,7 @@ return something the caller consumes (e.g. a checkout URL).
 - `verifySession()` from `@/lib/dal` — session guard, redirects if absent (next-auth v5).
 - `canManageProfile(profile, sessionUserId)` from `@/lib/profile` — the ONE ownership rule
   for every profile-scoped mutation: `profile.id === sessionUserId` OR an **ACCEPTED**
-  guardian (`guardedBy.some(g => g.guardianId === sessionUserId && g.status === "ACCEPTED")`,
-  written defensively against PENDING/REJECTED rows even if the caller forgot to pre-filter).
+  guardian. The current helper explicitly rejects PENDING/REJECTED and accepts the legacy missing-status shape; it also accepts unexpected status strings. [MEMORIALS-GUARDIANS](MEMORIALS-GUARDIANS.md) records that mismatch with the older exact-ACCEPTED claim.
 - Mutating actions guard shape, always in this order: `verifySession()` →
   `getProfileById(profileId)` + `canManageProfile` check (→ `fail(t("<ns>.notAuthorized"))`) →
   `getXSchema(identityTranslator).safeParse(data)` (→ `fail(t("common.invalidData"))`) → the
@@ -118,13 +114,8 @@ flag. **Both flags are gone.** Quotas are always enforced now.
   per request) resolves the plan: for a living profile, its own live paid `AppSale` (as buyer);
   for a memorial (`APP_MEMO`) or pet (`APP_PET`), **any `ACCEPTED` guardian's own live paid sale
   cascades** (one guardian's subscription covers every memorial they manage; richest plan wins
-  when co-guardians differ), else a legacy `AppSale` assigned directly to the profile
-  (pre-existing BMS/SEQ bulk-slot sales); otherwise the `FREE` row, which must exist.
-- **A redeemed GenCode grants no tier.** It delivers a memorial; that memorial then resolves
-  like any other profile — `FREE` for a fresh guardian. The plaque is the product, the plan is
-  sold separately in the APP. Activation still bypasses `memorialsMax` so the memorial sits
-  outside the guardian's quota (nobody pays twice for the same slot). Covered by
-  `src/lib/subscription.test.ts`.
+  when co-guardians differ), otherwise the `FREE` row, which must exist. The old directly assigned memorial/bulk-slot sale fallback was removed in a0aa99b; `getMemorialFeatures` reads live guardian/living sales and current Subscription quotas. Activation may first grant a configured guardian trial; see [GENCODE-ACTIVATION](GENCODE-ACTIVATION.md).
+- **A redeemed GenCode is not itself a Subscription tier.** The current activation action may grant a configured guardian trial from order/cycle/plan snapshots; entitlement then resolves through the guardian sale. Physical QR ownership separately unlocks that profile’s QR. Activation bypasses the ordinary memorial cap so the paid physical slot is not charged twice. See [GENCODE-ACTIVATION](GENCODE-ACTIVATION.md) and [BILLING-QUOTAS](BILLING-QUOTAS.md).
 - **Combined media pool**: `mediaMaxImages`/`mediaMaxVideos` are ONE shared budget spent across
   Bio's own image, every Gallery item, and every `GeoPlace.photos` entry — computed live via
   `getCombinedMediaUsage(profileId)` (`@/queries/media-usage`), no persisted running total.
@@ -133,19 +124,8 @@ flag. **Both flags are gone.** Quotas are always enforced now.
   and checks the new submission against what's left (`effectiveMaxImages` in each edit form).
 - **Memorial-creation limit**: one shared `getMemorialCreationStatus(guardianId)`
   (`@/lib/memorial-quota`) — do not reintroduce a hardcoded constant or a bespoke count
-  elsewhere. It is deliberately separate from the pre-existing paid-slot-BINDING logic
-  (`nextSale`/`maxProfiles` in `memorial.actions.ts`, which decides whether a specific new
-  memorial attaches to a legacy bulk sale) — that logic still runs, just no longer gates
-  whether creation is *allowed* at all.
-- **QR Code quota**: no persisted count exists (access was always a per-profile boolean —
-  `physicalQrLicense`/a directly-assigned `appSaleId`). This is now the ONLY place a
-  `physicalQrLicense` affects entitlement, and it is correct: the plaque IS that memorial's QR
-  code, so it cannot be rank-gated. `getQrQuotaStatus(guardianId, profileId)`
-  (`@/lib/qr-quota`) ranks {guardian's own profile} ∪ {their `ACCEPTED` memorials} by
-  `createdAt`; the first `qrCodeMax` are free, EXCEPT a profile with its own dedicated paid
-  slot (`physicalQrLicense` or a live directly-assigned `AppSale` — see `isSaleLive`, exported
-  from `@/lib/subscription`) is always unlocked regardless of rank. Documented as an initial
-  approximation — "which QR counts as free" isn't a sticky/persisted choice yet.
+  elsewhere. Creation is independent of the removed `nextSale`/`maxProfiles` bulk-slot binding (2498328, a0aa99b). That binding is historical and no longer runs.
+- **QR Code quota**: `getQrQuotaStatus` ranks the guardian’s own profile and accepted memorials by createdAt against qrCodeMax plus purchased extra units. A target with its own GenCode bypasses rank; the old `physicalQrLicense`/direct AppSale binding is removed. “Which QR is free” remains a nonpersistent rank heuristic. See `src/lib/qr-quota.ts` and its tests.
 - **`LimitReachedDialog`** (`@/components/limit-reached-dialog`) is the one reactive UI for
   "you hit your plan's limit" — an `AlertDialog` (mirrors the pre-existing `GeolocationGate`
   pattern), controlled via `open`/`onOpenChange` (not `AlertDialogTrigger` — the calling
@@ -167,11 +147,11 @@ flag. **Both flags are gone.** Quotas are always enforced now.
 ## Caching model: no Cache Components, plain `revalidatePath`
 
 This app does **not** use Next 16 Cache Components / `cacheTag` / `updateTag`. Mutating
-actions call `revalidatePath(<the list route>)` (see CLAUDE.md's ARCHITECTURE RULES). Public
+actions call `revalidatePath(<the list route>)` (see the current [AGENTS.md](../AGENTS.md) and feature docs). Public
 profile sub-pages read `auth()` per-request and are naturally dynamic — no `force-dynamic`
 export is used or needed anywhere in `(public)/profile/[id]/**`.
 
-## Form placement: ALWAYS a routed page, never a dialog — regardless of field count
+## Form placement: routed profile-content forms, with existing tree dialogs
 
 Every profile sub-resource form in this app (Places, Bio, Geolocation, Memorial) is a
 **routed page** (`.../new/page.tsx`, `.../[id]/edit/page.tsx`) rendered inside
@@ -179,7 +159,7 @@ Every profile sub-resource form in this app (Places, Bio, Geolocation, Memorial)
 app does not use the suite's "≤8 fields → dialog" threshold** — Places has 8 fields
 (title/categories/description/lat/lon/photos/startDate/endDate) and still gets full routed
 pages, matching Bio/Geolocation/Memorial. Declared deviation from `shad-form-builder`'s
-dialog-below-8 default: **always route, never dialog**, for this app's profile-content forms.
+dialog-below-8 default: **always route, never dialog**, for the established profile-content forms. Family-tree/pet editing also has deliberate node/pet sheets/dialogs; preserve those flows rather than apply this convention to every interaction.
 
 ## List UI: a custom `*-client.tsx` component, not Tatiana's TanStack table
 
@@ -270,20 +250,26 @@ node scripts/check-schema-parity.mjs         # N/A now — single shared schema.
                                               # for history, need not be run for new entities
 ```
 
-`corepack pnpm` is required on this machine — bare `pnpm` is not on `PATH`.
+The verified machine has `pnpm` 9.15.0 on PATH. Use the packageManager-pinned version; Corepack activation is a fallback if absent.
 
 ## Deviations from suite gold (accepted, do not re-litigate)
 
-- **IDs**: `cuid()`, not `uuid(7)` (Priscilla's fixed convention) — whole schema is cuid.
+- **IDs**: preserve existing cuid, autoincrement and composite-key shapes; new profile-content entities follow cuid.
 - **`ActionResult`**: 3-helper `done`/`ok`/`fail` contract from `@genealogiq/core` with an
   optional `data` payload, not the 2-helper `ok(id)`/`fail(message)` shape in Carlos's gold.
 - **No RBAC/rate-limiting layer** (Ana's `requireRole`/`requireWithinRateLimit`) on profile
   sub-resource actions — ownership (`canManageProfile`) is the only gate. Add rate limiting
   only if a slice explicitly calls for it on a specific action.
 - **Caching**: plain `revalidatePath`, not Cache Components' `cacheTag`/`updateTag`.
-- **Form placement**: always a routed page, never a dialog, regardless of field count.
+- **Form placement**: routed profile-content forms; existing family-tree/pet dialogs are intentional exceptions.
 - **No TanStack table for public content lists**: a custom `*-client.tsx` grid/list
   component instead of `tatiana-table-generator`'s table (that skill's pattern is reserved
   for — if this app ever grows one — an internal/admin CRUD table; none exists yet).
 - **No per-segment boundary files** under `profile/[id]/**` — the `(public)` group-level
   ones cover every sub-route.
+
+## Verification log
+
+| Date | Revision | Scope | Mismatch / action |
+| --- | --- | --- | --- |
+| 2026-10-03 | 6e06634 + working changes | Source + available checks | Corrected universal-ID/table assertions, guardian status, removed bulk-sale/QR fields, activation trial, form exceptions, schema gate and pnpm PATH. Tests/runtime/UI remain scoped by feature docs. |

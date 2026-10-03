@@ -1,13 +1,13 @@
 import { defineConfig, devices } from "@playwright/test"
 import { config as loadEnv } from "dotenv"
 
-// Load .env.e2e (the Neon `development` branch + auth secret). These are forced
-// onto the BMS dev server below so e2e runs against the dev branch, NEVER prod.
+// Load explicit overrides for a disposable test environment. This legacy config
+// does not validate DB locality and may reuse an existing server; see docs/TESTING.md.
 // Next.js's @next/env never overrides values already present in process.env, so
 // passing them through `webServer.env` wins over apps/bms/.env.
 const e2eEnv = loadEnv({ path: ".env.e2e" }).parsed ?? {}
 
-const PORT = 3000
+const PORT = 3001
 const baseURL = `http://localhost:${PORT}`
 const STORAGE = "e2e/.auth/user.json"
 
@@ -46,7 +46,7 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-    // .env.e2e wins over the app's own .env (forces the dev DB + auth secret).
+    // Explicit .env.e2e keys override inherited values; missing keys are not isolated.
     env: { ...process.env, ...e2eEnv } as Record<string, string>,
   },
 })

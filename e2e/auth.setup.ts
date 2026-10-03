@@ -18,7 +18,7 @@ setup("authenticate", async ({ page }) => {
 
   // Dismiss the cookie-consent banner so it never overlays clickable elements.
   await page.context().addCookies([
-    { name: "cookie_consent", value: "accepted", url: "http://localhost:3000" },
+    { name: "cookie_consent", value: "accepted", url: "http://localhost:3001" },
   ])
 
   await page.context().storageState({ path: authFile })

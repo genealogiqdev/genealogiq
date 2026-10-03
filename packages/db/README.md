@@ -1,3 +1,11 @@
+# @genealogiq/db — current entry
+
+The canonical schema/client is shared by all three apps. Read [DATABASE](../../docs/DATABASE.md) for model/migration provenance and [LOCAL-DEVELOPMENT](../../docs/LOCAL-DEVELOPMENT.md) for disposable loopback db push/generation/seed. Deployed migrations now use the manual Azure workflow_dispatch job in [migrate.yml](../../.github/workflows/migrate.yml) and [AZURE-AGENT-RUNBOOK](../../docs/AZURE-AGENT-RUNBOOK.md); ordinary merges do not automatically run migrations.
+
+**Source verification:** 2026-10-03 at `6e06634` + working documentation/test/launcher changes. The older GitHub/Neon/Vercel guidance below is preserved historical memory. Its resource/secret/status claims and operational commands are unverified for the current deployment; it is not the current procedure.
+
+---
+
 # @genealogiq/db
 
 The one canonical Prisma schema. All three apps (`app`, `bms`, `seq`) read and

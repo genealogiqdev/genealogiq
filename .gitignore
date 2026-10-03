@@ -40,3 +40,6 @@ infra/*.json
 # E2E secrets / auth state
 .env.e2e
 e2e/.auth/
+
+# Local QA logs and private browser evidence (summaries live in docs/audits).
+.local-qa/

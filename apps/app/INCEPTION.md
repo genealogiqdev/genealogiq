@@ -1,3 +1,5 @@
+> **Historical memory — retained on 2026-10-03.** This document records earlier intent, incidents or migration work. Current source/runtime contracts are in [AGENTS.md](../../AGENTS.md) and [HISTORY](../../docs/HISTORY.md). Commands, live resources, old statuses and numeric claims below are unverified as current behavior; do not replay historical cloud/data operations without checking the current code and task scope. Original content follows intact.
+
 # Genealogiq — Histórico Completo da Conversa
 
 > Conversa completa entre o usuário e o Lovable AI durante o desenvolvimento do app **Genealogiq**
@@ -1385,4 +1387,3 @@ Não está perfeito mas melhorou muito. Depois pensamos mais. Agora quero saber 
 Gerando este arquivo markdown completo da conversa.
 
 ---
-
