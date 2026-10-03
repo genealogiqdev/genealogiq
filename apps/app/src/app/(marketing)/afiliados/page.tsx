@@ -135,16 +135,36 @@ export default async function PartnerLandingPage() {
               <a href={PARTNER_CONTACT_HREF}>{t("how.cta")}<ArrowRight className="h-4 w-4" /></a>
             </Button>
           </div>
-          <div className="relative overflow-hidden rounded-[1.5rem] border border-[#dfe4e1] bg-white p-3 shadow-[0_24px_70px_rgba(35,43,38,0.08)] sm:rounded-[1.8rem] sm:p-4">
-            <div className="relative aspect-[1.28/1] overflow-hidden rounded-[1.15rem] bg-[#edf0ec]">
-              <Image src="/landing/family-memorial.png" alt={t("how.imageAlt")} fill sizes="(max-width: 1024px) 100vw, 600px" className="object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#151b19]/65 via-transparent to-transparent" />
-            <p className="absolute bottom-5 left-5 max-w-[62%] text-sm font-medium leading-relaxed text-white sm:bottom-7 sm:left-7 sm:max-w-[360px] sm:text-base">{t("how.imageCaption")}</p>
-          </div>
-            <div className="absolute right-5 top-5 flex items-center gap-3 rounded-xl border border-[#e3e8e4] bg-white p-3 shadow-[0_10px_28px_rgba(30,40,34,0.12)] sm:right-7 sm:top-7 sm:p-4">
-              <span className="grid h-10 w-10 place-items-center rounded-lg bg-[#f1f5ed] text-[#61793b]"><QrCode className="h-5 w-5" /></span>
-              <span><span className="block text-xs font-semibold text-[#303638]">GenCode</span><span className="mt-1 block text-[10px] text-[#7c8586]">{t("gencode.scanLabel")}</span></span>
+          <figure className="overflow-hidden rounded-[1.5rem] border border-[#dfe4e1] bg-white p-3 shadow-[0_24px_70px_rgba(35,43,38,0.08)] sm:rounded-[1.8rem] sm:p-4">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-[1.15rem] bg-[#edf0ec]">
+              <Image src="/landing/clients/partner-team.webp" alt={t("how.imageAlt")} fill sizes="(max-width: 1024px) 100vw, 600px" className="object-cover" />
             </div>
+            <figcaption className="flex items-center gap-3 px-2 pb-1 pt-4 text-sm leading-relaxed text-[#697773] sm:px-3 sm:pb-2 sm:pt-5">
+              <HeartHandshake aria-hidden className="h-5 w-5 shrink-0 text-[#789344]" />
+              {t("how.imageCaption")}
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section id="partners" className="scroll-mt-24 px-6 pb-20 pt-4 sm:px-8 sm:pb-28">
+        <div className="mx-auto max-w-[1120px]">
+          <SectionHeading eyebrow={t("partners.eyebrow")} title={t("partners.title")} description={t("partners.description")} align="left" />
+          <div className="mt-9 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-[1fr_1.4fr_1fr]">
+            <figure className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-[#dfe4e1] bg-[#edf0ec] sm:rounded-[1.4rem]">
+              <Image src="/landing/clients/sao-luiz-visit.webp" alt={t("partners.images.visit")} fill sizes="(max-width: 1023px) 50vw, 320px" className="object-cover" />
+            </figure>
+            <div className="order-last col-span-2 grid grid-cols-2 gap-3 sm:gap-4 lg:order-none lg:col-span-1 lg:grid-cols-1 lg:grid-rows-2">
+              <figure className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-[#dfe4e1] bg-[#edf0ec] sm:rounded-[1.4rem] lg:aspect-auto">
+                <Image src="/landing/clients/crematorium-visit.webp" alt={t("partners.images.crematorium")} fill sizes="(max-width: 1023px) 50vw, 448px" className="object-cover" />
+              </figure>
+              <figure className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-[#dfe4e1] bg-[#edf0ec] sm:rounded-[1.4rem] lg:aspect-auto">
+                <Image src="/landing/clients/partner-meeting.webp" alt={t("partners.images.meeting")} fill sizes="(max-width: 1023px) 50vw, 448px" className="object-cover object-[50%_25%]" />
+              </figure>
+            </div>
+            <figure className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-[#dfe4e1] bg-[#edf0ec] sm:rounded-[1.4rem]">
+              <Image src="/landing/clients/gencode-event.webp" alt={t("partners.images.event")} fill sizes="(max-width: 1023px) 50vw, 320px" className="object-cover" />
+            </figure>
           </div>
         </div>
       </section>

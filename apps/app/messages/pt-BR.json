@@ -1849,7 +1849,7 @@
       "capacityOutputLabel": "Faturamento bruto estimado em 12 meses",
       "capacityAnnualUnit": "por ano",
       "capacityLabel": "Quantos atendimentos ou vendas sua empresa realiza por mês?",
-      "capacityNote": "Estimativa de faturamento bruto com um GenCode a {price} por atendimento ou venda. Não é garantia de demanda.",
+      "capacityNote": "Estimativa com um GenCode por atendimento ou venda, considerando o preço mínimo de venda de {price}. Não é garantia de demanda.",
       "monthlyRevenue": "{amount} por mês",
       "primaryCta": "Conversar sobre parceria",
       "secondaryCta": "Veja como funciona",
@@ -1926,14 +1926,14 @@
       "outputLabel": "Faturamento bruto estimado em 12 meses",
       "annualUnit": "por ano",
       "panelTitle": "Simule seu faturamento",
-      "badge": "{price} por unidade",
-      "formula": "Cálculo: atendimentos ou vendas por mês × {price}. A projeção anual considera 12 meses.",
+      "badge": "Venda a partir de {price}",
+      "formula": "Cálculo: atendimentos ou vendas por mês × {price}, o preço mínimo de venda por GenCode. A projeção anual considera 12 meses.",
       "caveat": "Esta é uma estimativa de faturamento bruto, não de lucro, e não representa cotação ou garantia de vendas. Os resultados reais podem variar conforme as condições comerciais.",
       "monthlyRevenueLabel": "Estimativa mensal",
       "monthlyRevenueUnit": "por mês",
-      "unitPrice": "{price} por GenCode",
-      "unitPriceLabel": "Preço do GenCode no pacote",
-      "unitPriceUnit": "por unidade"
+      "unitPrice": "Venda a partir de {price} por GenCode",
+      "unitPriceLabel": "Preço mínimo de venda",
+      "unitPriceUnit": "por GenCode"
     },
     "how": {
       "eyebrow": "PRONTA PARA SUA EQUIPE",
@@ -1954,8 +1954,19 @@
         }
       },
       "cta": "Quero conversar com a Genealogiq",
-      "imageAlt": "Família reunida em um memorial com acesso ao memorial digital Genealogiq",
-      "imageCaption": "O GenCode aproxima uma homenagem física das histórias que a família deseja preservar."
+      "imageAlt": "Equipe de uma empresa parceira reunida com a Genealogiq durante uma visita",
+      "imageCaption": "A Genealogiq junto às equipes que levam cuidado e memória às famílias."
+    },
+    "partners": {
+      "eyebrow": "CLIENTES E PARCEIROS",
+      "title": "Ao lado de quem cuida.",
+      "description": "Visitas, encontros e histórias compartilhadas com empresas do setor de death care.",
+      "images": {
+        "visit": "Visita à Floricultura e Funerária São Luiz, com apresentação das placas GenCode",
+        "crematorium": "Encontro com parceiros na entrada de um crematório",
+        "meeting": "Representantes da Genealogiq e de uma empresa parceira em um encontro presencial",
+        "event": "Apresentação de um GenCode em um evento, com o painel da Genealogiq ao fundo"
+      }
     },
     "portal": {
       "eyebrow": "TUDO NO PORTAL PARCEIRO",
@@ -1991,7 +2002,7 @@
         },
         "credits": {
           "question": "Como funcionam os pacotes de GenCodes?",
-          "answer": "Os GenCodes são oferecidos em pacotes a R$ 150,00 por unidade. Sua empresa escolhe a quantidade adequada à demanda e acompanha vendas e ativações no portal parceiro."
+          "answer": "Sua empresa compra GenCodes em pacotes a R$ 150,00 por unidade e os vende por pelo menos R$ 300,00 cada. As vendas e ativações são acompanhadas no portal parceiro."
         },
         "families": {
           "question": "A família precisa instalar um aplicativo para escanear?",
@@ -1999,7 +2010,7 @@
         },
         "commercial": {
           "question": "Onde consulto preços e condições comerciais?",
-          "answer": "O simulador usa o valor de R$ 150,00 por GenCode para projetar o faturamento bruto. Fale com a Genealogiq para conhecer as demais condições aplicáveis à sua empresa; a estimativa não representa uma cotação."
+          "answer": "O simulador considera o preço mínimo de venda de R$ 300,00 por GenCode para projetar o faturamento bruto. Fale com a Genealogiq para conhecer as demais condições aplicáveis à sua empresa; a estimativa não representa uma cotação."
         }
       }
     },

@@ -1849,7 +1849,7 @@
       "capacityOutputLabel": "Facturación bruta estimada en 12 meses",
       "capacityAnnualUnit": "al año",
       "capacityLabel": "¿Cuántas atenciones o ventas realiza tu empresa al mes?",
-      "capacityNote": "Estimación de facturación bruta con un GenCode a {price} por atención o venta. No garantiza la demanda.",
+      "capacityNote": "Estimación con un GenCode por atención o venta, considerando un precio mínimo de venta de {price}. No garantiza la demanda.",
       "monthlyRevenue": "{amount} al mes",
       "primaryCta": "Conoce la alianza",
       "secondaryCta": "Así funciona",
@@ -1926,14 +1926,14 @@
       "outputLabel": "Facturación bruta estimada en 12 meses",
       "annualUnit": "al año",
       "panelTitle": "Simula tu facturación",
-      "badge": "{price} por unidad",
-      "formula": "Cálculo: atenciones o ventas al mes × {price}. La proyección anual considera 12 meses.",
+      "badge": "Venta desde {price}",
+      "formula": "Cálculo: atenciones o ventas al mes × {price}, el precio mínimo de venta por GenCode. La proyección anual considera 12 meses.",
       "caveat": "Esta es una estimación de facturación bruta, no de utilidad, y no representa una cotización ni una garantía de ventas. Los resultados reales pueden variar según las condiciones comerciales.",
       "monthlyRevenueLabel": "Estimación mensual",
       "monthlyRevenueUnit": "al mes",
-      "unitPrice": "{price} por GenCode",
-      "unitPriceLabel": "Precio del GenCode en el paquete",
-      "unitPriceUnit": "por unidad"
+      "unitPrice": "Venta desde {price} por GenCode",
+      "unitPriceLabel": "Precio mínimo de venta",
+      "unitPriceUnit": "por GenCode"
     },
     "how": {
       "eyebrow": "LISTA PARA TU EQUIPO",
@@ -1954,8 +1954,19 @@
         }
       },
       "cta": "Habla con Genealogiq",
-      "imageAlt": "Familia en un memorial con acceso a un memorial digital Genealogiq",
-      "imageCaption": "GenCode conecta un homenaje presencial con las historias que la familia quiere conservar."
+      "imageAlt": "Equipo de una empresa socia reunido con Genealogiq durante una visita",
+      "imageCaption": "Genealogiq junto a los equipos que brindan cuidado y memoria a las familias."
+    },
+    "partners": {
+      "eyebrow": "CLIENTES Y SOCIOS",
+      "title": "Junto a quienes cuidan.",
+      "description": "Visitas, encuentros e historias compartidas con empresas del sector de death care.",
+      "images": {
+        "visit": "Visita a Floricultura e Funerária São Luiz, con presentación de placas GenCode",
+        "crematorium": "Encuentro con socios en la entrada de un crematorio",
+        "meeting": "Representantes de Genealogiq y de una empresa socia en un encuentro presencial",
+        "event": "Presentación de un GenCode en un evento, con el panel de Genealogiq al fondo"
+      }
     },
     "portal": {
       "eyebrow": "TODO EN EL PORTAL DE SOCIOS",
@@ -1991,7 +2002,7 @@
         },
         "credits": {
           "question": "¿Cómo funcionan los paquetes de GenCodes?",
-          "answer": "Los GenCodes se ofrecen en paquetes a R$150.00 por unidad. Tu empresa elige la cantidad adecuada para la demanda y consulta ventas y activaciones en el portal de socios."
+          "answer": "Tu empresa compra GenCodes en paquetes a R$150.00 por unidad y los vende por al menos R$300.00 cada uno. Las ventas y activaciones se consultan en el portal de socios."
         },
         "families": {
           "question": "¿La familia necesita instalar una app para escanear?",
@@ -1999,7 +2010,7 @@
         },
         "commercial": {
           "question": "¿Dónde consulto precios y condiciones comerciales?",
-          "answer": "El simulador usa R$150.00 por GenCode para proyectar la facturación bruta. Contacta a Genealogiq para conocer las demás condiciones aplicables a tu empresa; la estimación no es una cotización."
+          "answer": "El simulador considera un precio mínimo de venta de R$300.00 por GenCode para proyectar la facturación bruta. Contacta a Genealogiq para conocer las demás condiciones aplicables a tu empresa; la estimación no es una cotización."
         }
       }
     },

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { PARTNER_CONTACT_HREF } from "@/components/marketing/partner-links"
 
 const MAX_MONTHLY_VOLUME = 1000
-const GENCODE_UNIT_PRICE_BRL = 150
+const GENCODE_MIN_SALE_PRICE_BRL = 300
 
 function useRevenueEstimate() {
   const [monthlyVolume, setMonthlyVolume] = useState(20)
@@ -28,8 +28,8 @@ function useRevenueEstimate() {
   })
 
   return {
-    annualRevenue: monthlyVolume * 12 * GENCODE_UNIT_PRICE_BRL,
-    monthlyRevenue: monthlyVolume * GENCODE_UNIT_PRICE_BRL,
+    annualRevenue: monthlyVolume * 12 * GENCODE_MIN_SALE_PRICE_BRL,
+    monthlyRevenue: monthlyVolume * GENCODE_MIN_SALE_PRICE_BRL,
     monthlyVolume,
     number,
     revenue,
@@ -88,14 +88,14 @@ export function PartnerHeroEstimator() {
   return (
     <div className="mx-auto mt-7 w-full max-w-[590px]">
       <p className="text-sm text-[#697375]">{t("hero.capacityOutputLabel")}</p>
-      <div className="mt-1 flex items-end justify-center gap-3 text-[#171a1c]">
-        <span className="partner-highlight text-[clamp(2.7rem,6.8vw,4.35rem)] font-semibold leading-none tracking-[-0.075em] tabular-nums" aria-live="polite">{revenue.format(annualRevenue)}</span>
+      <div className="mt-1 flex flex-wrap items-end justify-center gap-x-3 gap-y-1 text-[#171a1c]">
+        <span className="partner-highlight whitespace-nowrap text-[clamp(2.25rem,6.8vw,4.35rem)] font-semibold leading-none tracking-[-0.075em] tabular-nums" aria-live="polite">{revenue.format(annualRevenue)}</span>
         <span className="mb-1 text-sm text-[#6c7477]">{t("hero.capacityAnnualUnit")}</span>
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-[#737d7e]">
         <span>{t("hero.monthlyRevenue", { amount: revenue.format(monthlyRevenue) })}</span>
         <span aria-hidden className="text-[#b2b9b6]">•</span>
-        <span>{t("calculator.unitPrice", { price: unitPrice.format(GENCODE_UNIT_PRICE_BRL) })}</span>
+        <span>{t("calculator.unitPrice", { price: unitPrice.format(GENCODE_MIN_SALE_PRICE_BRL) })}</span>
       </div>
       <div className="mt-5 rounded-[1.1rem] border border-[#e0e5e2] bg-[#f0f4ee] px-4 py-4 sm:px-6 sm:py-5">
         <CapacityRange
@@ -107,7 +107,7 @@ export function PartnerHeroEstimator() {
           setMonthlyVolume={setMonthlyVolume}
         />
       </div>
-      <p className="mt-2 text-[11px] leading-relaxed text-[#90989a]">{t("hero.capacityNote", { price: unitPrice.format(GENCODE_UNIT_PRICE_BRL) })}</p>
+      <p className="mt-2 text-[11px] leading-relaxed text-[#90989a]">{t("hero.capacityNote", { price: unitPrice.format(GENCODE_MIN_SALE_PRICE_BRL) })}</p>
       <div className="mt-5 flex flex-col justify-center gap-2.5 sm:flex-row">
         <Button asChild className="h-11 rounded-full bg-[#b9f000] px-6 text-sm font-semibold text-[#1b2115] shadow-none hover:bg-[#a9dd00]">
           <a href={PARTNER_CONTACT_HREF}>{t("hero.primaryCta")}<ArrowRight className="h-4 w-4" /></a>
@@ -137,9 +137,9 @@ export function PartnerCapacityCalculator() {
 
         <div className="mt-10 grid overflow-hidden rounded-[1.5rem] border border-[#dce2de] bg-white shadow-[0_24px_70px_rgba(38,48,40,0.06)] lg:grid-cols-[0.95fr_1.05fr]">
           <div className="p-6 sm:p-8 lg:p-10">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-semibold text-[#343b3e]">{t("calculator.panelTitle")}</p>
-              <span className="rounded-full border border-[#e1e6e2] px-3 py-1 text-[10px] text-[#7f8986]">{t("calculator.badge", { price: unitPrice.format(GENCODE_UNIT_PRICE_BRL) })}</span>
+              <span className="rounded-full border border-[#e1e6e2] px-3 py-1 text-[10px] text-[#7f8986]">{t("calculator.badge", { price: unitPrice.format(GENCODE_MIN_SALE_PRICE_BRL) })}</span>
             </div>
             <div className="mt-9">
               <CapacityRange
@@ -152,15 +152,15 @@ export function PartnerCapacityCalculator() {
               />
             </div>
             <div className="mt-8 border-t border-[#edf0ed] pt-6">
-              <p className="text-xs leading-relaxed text-[#81898a]">{t("calculator.formula", { price: unitPrice.format(GENCODE_UNIT_PRICE_BRL) })}</p>
+              <p className="text-xs leading-relaxed text-[#81898a]">{t("calculator.formula", { price: unitPrice.format(GENCODE_MIN_SALE_PRICE_BRL) })}</p>
               <p className="mt-3 text-[11px] leading-relaxed text-[#9ba2a1]">{t("calculator.caveat")}</p>
             </div>
           </div>
 
-          <div className="flex flex-col justify-between bg-[#f3f6ef] p-6 sm:p-8 lg:p-10">
+          <div className="@container flex min-w-0 flex-col justify-between bg-[#f3f6ef] p-6 sm:p-8 lg:p-10">
             <div>
               <p className="text-sm text-[#6f7975]">{t("calculator.outputLabel")}</p>
-              <p className="mt-3 text-[clamp(2.7rem,7vw,5.3rem)] font-semibold leading-none tracking-[-0.075em] tabular-nums text-[#171a1c]" aria-live="polite">
+              <p className="mt-3 whitespace-nowrap text-[clamp(1.875rem,12cqw,5.3rem)] font-semibold leading-none tracking-[-0.075em] tabular-nums text-[#171a1c]" aria-live="polite">
                 {revenue.format(annualRevenue)}
               </p>
               <p className="mt-2 text-sm font-medium text-[#65715f]">{t("calculator.annualUnit")}</p>
@@ -173,7 +173,7 @@ export function PartnerCapacityCalculator() {
               </div>
               <div className="rounded-xl border border-[#e2e8df] bg-white/75 p-4">
                 <p className="text-xs font-medium text-[#6f7975]">{t("calculator.unitPriceLabel")}</p>
-                <p className="mt-2 text-xl font-semibold tracking-[-0.035em] tabular-nums text-[#242a27]">{unitPrice.format(GENCODE_UNIT_PRICE_BRL)}</p>
+                <p className="mt-2 text-xl font-semibold tracking-[-0.035em] tabular-nums text-[#242a27]">{unitPrice.format(GENCODE_MIN_SALE_PRICE_BRL)}</p>
                 <p className="mt-1 text-[11px] text-[#87908c]">{t("calculator.unitPriceUnit")}</p>
               </div>
             </div>

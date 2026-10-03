@@ -1849,7 +1849,7 @@
       "capacityOutputLabel": "Estimated gross revenue over 12 months",
       "capacityAnnualUnit": "per year",
       "capacityLabel": "How many services or sales does your business make each month?",
-      "capacityNote": "Gross revenue estimate using one GenCode at {price} per service or sale. This is not a demand guarantee.",
+      "capacityNote": "Estimate using one GenCode per service or sale at a minimum selling price of {price}. This is not a demand guarantee.",
       "monthlyRevenue": "{amount} per month",
       "primaryCta": "Talk about partnering",
       "secondaryCta": "See how it works",
@@ -1926,14 +1926,14 @@
       "outputLabel": "Estimated gross revenue over 12 months",
       "annualUnit": "per year",
       "panelTitle": "Estimate your revenue",
-      "badge": "{price} per unit",
-      "formula": "Calculation: services or sales per month × {price}. The annual projection assumes 12 months.",
+      "badge": "Sell from {price}",
+      "formula": "Calculation: services or sales per month × {price}, the minimum selling price per GenCode. The annual projection assumes 12 months.",
       "caveat": "This estimates gross revenue, not profit, and is not a quote or sales guarantee. Actual results may vary with commercial terms.",
       "monthlyRevenueLabel": "Monthly estimate",
       "monthlyRevenueUnit": "per month",
-      "unitPrice": "{price} per GenCode",
-      "unitPriceLabel": "GenCode package price",
-      "unitPriceUnit": "per unit"
+      "unitPrice": "Sell from {price} per GenCode",
+      "unitPriceLabel": "Minimum selling price",
+      "unitPriceUnit": "per GenCode"
     },
     "how": {
       "eyebrow": "READY FOR YOUR TEAM",
@@ -1954,8 +1954,19 @@
         }
       },
       "cta": "Talk with Genealogiq",
-      "imageAlt": "Family at a memorial with access to a Genealogiq digital memorial",
-      "imageCaption": "GenCode connects an in-person tribute with the stories a family wants to preserve."
+      "imageAlt": "A partner company's team meeting with Genealogiq during a visit",
+      "imageCaption": "Genealogiq alongside the teams bringing care and memories to families."
+    },
+    "partners": {
+      "eyebrow": "CLIENTS AND PARTNERS",
+      "title": "Alongside those who care.",
+      "description": "Visits, meetings, and stories shared with businesses in the death care sector.",
+      "images": {
+        "visit": "Visit to Floricultura e Funerária São Luiz, presenting GenCode plaques",
+        "crematorium": "Meeting with partners at the entrance to a crematorium",
+        "meeting": "Representatives of Genealogiq and a partner business at an in-person meeting",
+        "event": "Presenting a GenCode at an event, with the Genealogiq backdrop behind it"
+      }
     },
     "portal": {
       "eyebrow": "ALL IN THE PARTNER PORTAL",
@@ -1991,7 +2002,7 @@
         },
         "credits": {
           "question": "How do GenCode packages work?",
-          "answer": "GenCodes are offered in packages at R$150.00 per unit. Your business chooses the quantity that fits demand and tracks sales and activations in the partner portal."
+          "answer": "Your business buys GenCodes in packages at R$150.00 per unit and sells them for at least R$300.00 each. Sales and activations are tracked in the partner portal."
         },
         "families": {
           "question": "Does the family need to install an app to scan?",
@@ -1999,7 +2010,7 @@
         },
         "commercial": {
           "question": "Where can I check prices and commercial terms?",
-          "answer": "The calculator uses R$150.00 per GenCode to project gross revenue. Contact Genealogiq for the other terms that apply to your business; this estimate is not a quote."
+          "answer": "The calculator uses a minimum selling price of R$300.00 per GenCode to project gross revenue. Contact Genealogiq for the other terms that apply to your business; this estimate is not a quote."
         }
       }
     },
