@@ -3,7 +3,7 @@
 > **Code:** [src/actions/gencode.actions.ts](../src/actions/gencode.actions.ts) · [src/actions/qr-code.actions.ts](../src/actions/qr-code.actions.ts) · [src/queries/licenses.ts](../src/queries/licenses.ts) · [src/queries/credits.ts](../src/queries/credits.ts)
 > **Entry points:** `/inventory/activations` · `/inventory/activations/[genCode]`
 > **Depends on:** [PARTNER-CREDITS](../../../docs/PARTNER-CREDITS.md) · [GENCODE-ACTIVATION](../../app/docs/GENCODE-ACTIVATION.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-07 at `c3fd642` plus the immediate partner onboarding change. Source, tests, local runtime/UI and deployment evidence are separated in the onboarding audit linked below; earlier verification history is preserved.
+> **Last verified against code:** 2026-10-07 at `2632307` for the immediate partner onboarding change. Source, tests, local runtime/UI and deployment evidence are separated in the onboarding audit linked below; earlier verification history is preserved.
 
 The SEQ application supplies gencode sales, printing and installation. Tenant inventory operations check scope and eligibility, then reserve/release credits for manual or platform sales. Physical QR printed/installed flags are distinct from code sale/activation state. Identified sales carry customer binding and committed credits; anonymous holds follow the source grant window.
 
@@ -130,7 +130,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
-| 2026-10-07 | Immediate onboarding change after `c3fd642` | Source, deterministic tests, local PostgreSQL and browser | Generated-password login and persisted inventories with three and zero codes; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](../../../docs/audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
+| 2026-10-07 | `2632307` | Source, deterministic tests, local PostgreSQL and browser | Generated-password login and persisted inventories with three and zero codes; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](../../../docs/audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
 
 ## Related
 

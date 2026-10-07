@@ -3,7 +3,7 @@
 > **Code:** [src/actions/customer.actions.ts](../src/actions/customer.actions.ts) · [src/queries/customers.ts](../src/queries/customers.ts) · [src/schemas/customer.schema.ts](../src/schemas/customer.schema.ts)
 > **Entry points:** `/customers` · `/customers/new` · `/customers/[id]` · `/api/entity-name`
 > **Depends on:** [AUTHENTICATION](../../../docs/AUTHENTICATION.md) · [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-07 at `c3fd642` plus the immediate partner onboarding change. Source, tests, local runtime/UI and deployment evidence are separated in the onboarding audit linked below; earlier verification history is preserved.
+> **Last verified against code:** 2026-10-07 at `2632307` for the immediate partner onboarding change. Source, tests, local runtime/UI and deployment evidence are separated in the onboarding audit linked below; earlier verification history is preserved.
 
 The BMS application supplies partner registry and invitations. Customer forms describe a partner tenant and its contact/address fields; creation/invitation establishes SEQ staff access. Mutations check privileged BMS roles; taxId/email uniqueness is enforced by the Prisma schema and translated to form errors.
 
@@ -148,7 +148,7 @@ Current onboarding acceptance: create a partner with three initial GenCodes and 
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-10-07 | `218d5aa` + Gen2026 change | Action tests, real local state and SEQ browser | Coupon settlement now provisions first access; inactive OWNER rejected before, active OWNER signed in after; invitation-failure follow-up remained visible without repeating the sale. | [Audit](../../../docs/audits/GEN2026-2026-10-07.md); real mail delivery/password setup still requires its fixture. |
-| 2026-10-07 | Immediate onboarding change after `c3fd642` | Source, deterministic tests, local PostgreSQL and browser | Immediate active credentials, optional audited initial allowance, resend recovery and deletion guard; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](../../../docs/audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
+| 2026-10-07 | `2632307` | Source, deterministic tests, local PostgreSQL and browser | Immediate active credentials, optional audited initial allowance, resend recovery and deletion guard; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](../../../docs/audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
 
 ## Related
 

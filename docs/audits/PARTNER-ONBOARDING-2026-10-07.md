@@ -34,3 +34,13 @@ The owned launcher/mail service stopped after UI verification. Ports 5000/5001/5
 Deployment is explicitly authorized. The existing GitHub main workflow builds immutable images, runs the migration job once and updates the three Azure apps. This change needs no database migration. Confirmed Azure subscription `c710b26f-e3c7-4a45-9477-eaaf3bdcc329`. Deployment, readiness and owned-process cleanup evidence are appended when complete. Real recipient inbox delivery remains a provider scenario; local capture alone is not a production delivery pass.
 
 Before deployment, BMS served revision `0000009` with image `ddc79a255e2028772186be7aa54269045be2fd69`. Its Sequoia origin was `https://sequoia.genealogiq.com.br`, and the Resend setting referenced the existing `resend-api-key` secret. No secret value was changed. No production account or test sale is created for verification.
+
+## Completed release
+
+Code commit `2632307bc4b643bd07f06d318339a44c0a227d43` was pushed to the existing `main` branch. [CI](https://github.com/genealogiqdev/genealogiq/actions/runs/37662733049) passed its verification job and all three Linux container startup jobs. [Deploy Azure](https://github.com/genealogiqdev/genealogiq/actions/runs/37662733205) succeeded: all five images built, the migration step completed before rollout, and generated-host live/readiness checks passed.
+
+Independent Azure inspection confirmed APP, BMS and SEQ all use that exact image SHA. Each latest revision and latest ready revision is `0000010`, with 100% of traffic assigned to it. On the three canonical HTTPS origins, `/api/health/live` returned 200/ok, `/api/health/ready` returned 200/ready and `/sign-in` returned 200.
+
+Anonymous BMS `/customers/new` and SEQ `/inventory/activations` return Next.js streaming responses with the expected `NEXT_REDIRECT` digest and `/sign-in` refresh metadata; the initial HTTP-only check expected a 3xx status and was corrected after inspecting that response. Independent production browser navigation confirmed both routes end on their normal sign-in forms. No authenticated production feature or real recipient inbox delivery is claimed. All feature-specific account, quantity, delivery-failure and persistence acceptance remains the local evidence above.
+
+This final evidence update is documentation only and is committed with `[skip ci]`; it does not change or replace the deployed code. The owned test servers/mail capture and build processes have finished, and the disposable integration database is gone. Existing shared services, other local changes and the retained local QA ledger fixtures are preserved.
