@@ -1,7 +1,7 @@
 # Consumer billing and feature quotas
 
-> **Code:** [src/actions/billing.actions.ts](../src/actions/billing.actions.ts) · [src/actions/extra-units.actions.ts](../src/actions/extra-units.actions.ts) · [src/lib/subscription.ts](../src/lib/subscription.ts) · [src/lib/quota.ts](../src/lib/quota.ts) · [src/lib/plan-quotas.ts](../src/lib/plan-quotas.ts) · [src/lib/extra-units.ts](../src/lib/extra-units.ts) · [src/app/api/stripe/webhook/route.ts](../src/app/api/stripe/webhook/route.ts)
-> **Entry points:** `/subscriptions` · `/billing/qr-code` · `/api/stripe/webhook`
+> **Code:** [src/components/header.tsx](../src/components/header.tsx) · [src/actions/billing.actions.ts](../src/actions/billing.actions.ts) · [src/actions/extra-units.actions.ts](../src/actions/extra-units.actions.ts) · [src/lib/subscription.ts](../src/lib/subscription.ts) · [src/lib/quota.ts](../src/lib/quota.ts) · [src/lib/plan-quotas.ts](../src/lib/plan-quotas.ts) · [src/lib/extra-units.ts](../src/lib/extra-units.ts) · [src/app/api/stripe/webhook/route.ts](../src/app/api/stripe/webhook/route.ts)
+> **Entry points:** Authenticated header's **Assinaturas / Subscriptions / Suscripciones** button → `/subscriptions` · `/billing/qr-code` · `/api/stripe/webhook`
 > **Depends on:** [PARTNER-CREDITS](../../../docs/PARTNER-CREDITS.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
 > **Last verified against code:** 2026-10-03 at `6e06634`, including this task’s uncommitted documentation, launcher and test changes. Source verification is separate from runtime/UI below.
 
@@ -19,6 +19,7 @@ No LLM/model stage exists in this implementation.
 
 | Module | Main symbols | Job |
 | --- | --- | --- |
+| [src/components/header.tsx](../src/components/header.tsx) | `Header` | Visible subscription navigation on authenticated protected and public-profile pages |
 | [src/actions/billing.actions.ts](../src/actions/billing.actions.ts) | `createCheckoutSession`, `changeSubscription`, `createPortalSession` | Authenticated mutation orchestration |
 | [src/actions/extra-units.actions.ts](../src/actions/extra-units.actions.ts) | `createExtraUnitCheckoutSession` | Authenticated mutation orchestration |
 | [src/lib/subscription.ts](../src/lib/subscription.ts) | See exports/component in file | Shared policy or integration implementation |
@@ -31,6 +32,8 @@ No LLM/model stage exists in this implementation.
 
 getFreeQuotas throws when FREE is absent. Living paid sales and eligible guardian/trial memorial entitlements follow subscription.ts; 2498328 removed maxProfiles, e58ca97 allowed existing over-quota media to stay/shrink, 8ee8aa8 introduced price-book behavior. Signed Stripe events are deduplicated; do not infer renewal from the checkout redirect.
 
+Subscription discovery must not require opening the avatar menu. The authenticated header places a primary button before notifications on desktop and beside the mobile menu opener on small screens. Its translated text stays visible with the menu closed; only the decorative icon is hidden below `sm`, and the logo can shrink to keep the controls within a narrow viewport. The button remains available to existing subscribers so they can inspect or manage their plan. The old avatar-menu subscription item was moved to this button on 2026-10-07.
+
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
@@ -38,6 +41,8 @@ The enforcing files are linked above. Test names and literal assertions below re
 Zod parses checkout/currency inputs; getMemorialFeatures resolves current Subscription quota fields through a live living/guardian AppSale and ranks guardian plans by current USD PlanPrice. Extra-unit limits use purchased ExtraUnitPurchase quantities. Prices are versioned PlanPrice rows; do not trust UI amounts. The FREE fallback must exist. Subscription quota and price-book migrations own the dimensions; exact provenance is in DATABASE.md.
 
 Inputs, defaults and output types live in the linked schema/actions/query files. APP/BMS/SEQ actions generally return [ActionResult (`done`/`ok`/`fail`)](../../../packages/core/src/result.ts); redirects/forbidden errors propagate from the DAL. Shared helpers retain their declared return types.
+
+The header button is a normal localized `Link` to `/subscriptions`, closes the mobile menu on navigation, and marks the current subscriptions page with `aria-current="page"`. It uses the existing `Nav.subscriptions` translations. Anonymous public pages use `GuestHeader`; `/subscriptions` still requires `verifySession`. Opening the page does not itself start checkout or change the consumer's plan.
 
 | Prisma model | PostgreSQL table | Creation migration / provenance |
 | --- | --- | --- |
@@ -93,18 +98,21 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 2. **Boundary:** A FREE consumer at its cap must receive quota rejection with no inserted item; requires a FREE row and capped fixtures. Missing FREE is a setup failure, not a quota pass.
 3. **Persistence/cleanup:** independently query the feature-owned rows or downstream result. Restore temporary edits; retain ledger/audit history. Only delete disposable fixtures when authorized by the task.
 
+For changes to subscription navigation, sign in normally and start at `/home` with the avatar menu closed. Expect one visible **Assinaturas** button in the header, before notifications on desktop; click it and expect `/subscriptions` with the seeded Premium plan. Reload and confirm the destination and current-page marker. At 320px and 390px widths, expect the full label and mobile menu opener to fit without header overflow. Open the mobile menu, choose the subscription button, and confirm the menu collapses. Check the existing English/Spanish labels at a narrow width, then restore Portuguese. Sign out and revisit `/subscriptions`; expect the normal sign-in wall. Independently confirm the existing sale remains active and unchanged. This navigation scenario does not establish Stripe checkout or FREE quota coverage.
+
 ### QA evidence
 
 | Date / revision | Startup / identity | Expected versus observed | Result and limits | Evidence |
 | --- | --- | --- | --- | --- |
 | 2026-10-03, `6e06634` + working changes | `node scripts/local-qa.mjs`; normal separate Credentials sessions; scoped local roles | Expected scenario above; no complete feature-specific browser/runtime observation recorded in this audit. | n/a: A disposable feature dataset and the exact happy/boundary interaction have not been exercised. | [Dated audit](../../../docs/audits/AGENT-MEMORY-2026-10-03.md) |
+| 2026-10-07, `218d5aa` + subscription header changes | Identified shared local launcher on 3100, then an isolated source export with the same provider-disabled launcher on 3310; normal seeded Credentials form attempted | Expected navigation scenario above. The shared server restarted during sign-in; the isolated server started but did not finish compiling `/sign-in`, and HTTP/browser requests timed out. Available memory repeatedly fell to about 0.8 GiB of 15.9 GiB. Limiting Tailwind's scan to APP source in the temporary copy did not complete the run. | Runtime startup only; UI happy path, mobile fit, reload and anonymous boundary remain **n/a**, not passes. Retry the navigation scenario when local resources are available. No checkout was attempted. | Ignored `.local-qa/2026-10-07/subscriptions-header/` holds the lint log and runtime summary. |
 
 ## Runbooks
 
 ### Change or diagnose this feature
 
 1. Read this document and [the applicable AGENTS.md](../AGENTS.md); trace the linked entry through session, schema, query/action and integration.
-2. Recheck changes with `git log --oneline 6e06634..HEAD -- apps/app/src/actions/billing.actions.ts apps/app/src/actions/extra-units.actions.ts apps/app/src/lib/subscription.ts apps/app/src/lib/quota.ts apps/app/src/lib/plan-quotas.ts apps/app/src/lib/extra-units.ts apps/app/src/app/api/stripe/webhook/route.ts`. Reverify affected claims and carry relevant uncommitted changes into the log.
+2. Recheck changes with `git log --oneline 6e06634..HEAD -- apps/app/src/components/header.tsx 'apps/app/src/app/(protected)/subscriptions/page.tsx' apps/app/src/actions/billing.actions.ts apps/app/src/actions/extra-units.actions.ts apps/app/src/lib/subscription.ts apps/app/src/lib/quota.ts apps/app/src/lib/plan-quotas.ts apps/app/src/lib/extra-units.ts apps/app/src/app/api/stripe/webhook/route.ts`. Reverify affected claims and carry relevant uncommitted changes into the log.
 3. Run `pnpm test` and `node scripts/check-docs.mjs`. For schema/i18n changes run the additional commands in [TESTING](../../../docs/TESTING.md). Run generation/typecheck/lint/build sequentially to avoid generated-client races.
 4. Start the smallest local stack using [the local runbook](../../../docs/LOCAL-DEVELOPMENT.md), then perform the named happy and boundary scenario; verify persistence and record exact expected/observed results. Missing integration fixtures stay n/a.
 5. Update contract/rules/runbook and append a Verification log row in the same change. New gaps get a permanent `BILLING-QUOTAS-G<n>` ID; a fixed gap retains its original evidence and gains resolution/test/commit.
@@ -141,6 +149,10 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
+| 2026-10-07 | `218d5aa` + subscription header changes | Codex source trace | Source: traced protected/public layouts → `Header` → `/subscriptions` → session guard and existing plan/sale queries. Moved the existing translated subscription entry out of the avatar menu into a visible responsive button. | Navigation only; checkout, quotas, provider calls and database contracts are unchanged. |
+| 2026-10-07 | Same header changes | Local deterministic checks | Tests: `pnpm test` passed 840 tests in 101 files; one optional Azurite test skipped. APP typecheck passed; APP lint passed with zero errors and eight existing warnings. Documentation and whitespace checks passed. | Initial typecheck overlapped another session's dependency installation and reported missing modules; the completed rerun passed. Existing unit tests do not establish the button's visual behavior. |
+| 2026-10-07 | Same header changes | Local runtime/browser attempt | Runtime: isolated Next 16.3.1 started on 3310 with the canonical local DB and disabled external providers. UI: n/a; shared-server interruption and stalled isolated compilation prevented the navigation scenario. | Full production build and browser acceptance remain unverified. Temporary servers were stopped; pre-existing compose services and other sessions' processes were preserved. |
+| 2026-10-07 | Same header changes | Final shared-tree review | The seeded sale still reads `PREMIUM`, `active`, period end `2027-10-03 11:32:57.503`, with cancellation disabled. Final documentation check reported an unrelated concurrent `DOCUMENTS.md` link to the not-yet-created `APP-TEXT-ENCODING-2026-10-07.md` audit. | No sale mutation was made. Recheck documentation after the concurrent audit exists. Automatic approval review blocked deletion of the temporary source export; it was retained with the ignored QA logs. |
 
 ## Related
 

@@ -124,12 +124,6 @@ export function Header({ userName, userImage, unreadCount = 0 }: HeaderProps) {
               {t("myProfile")}
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/subscriptions" onClick={onAction} className="gap-2 cursor-pointer">
-              <SquareChartGantt className="h-4 w-4" />
-              {t("subscriptions")}
-            </Link>
-          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="gap-2 text-destructive focus:text-destructive cursor-pointer"
@@ -147,9 +141,9 @@ export function Header({ userName, userImage, unreadCount = 0 }: HeaderProps) {
     <header ref={headerRef} className="fixed top-0 inset-x-0 z-50">
       <div className="glass-strong glass-header border-x-0 border-t-0 rounded-none">
         <div className="container flex items-center justify-between gap-3 md:gap-4 h-16">
-          <Link href="/home" className="flex items-center group shrink-0" aria-label="Genealogiq">
-            <Image src="/logo-dark.png" alt="Genealogiq" width={162} height={28} quality={90} className="block dark:hidden" style={{ width: "auto", height: "auto" }} priority />
-            <Image src="/logo-light.png" alt="Genealogiq" width={162} height={28} quality={90} className="hidden dark:block" style={{ width: "auto", height: "auto" }} priority />
+          <Link href="/home" className="flex items-center group min-w-0 w-[162px]" aria-label="Genealogiq">
+            <Image src="/logo-dark.png" alt="Genealogiq" width={162} height={28} quality={90} className="block dark:hidden" style={{ width: "100%", height: "auto" }} priority />
+            <Image src="/logo-light.png" alt="Genealogiq" width={162} height={28} quality={90} className="hidden dark:block" style={{ width: "100%", height: "auto" }} priority />
           </Link>
 
           {showSearch && (
@@ -158,19 +152,32 @@ export function Header({ userName, userImage, unreadCount = 0 }: HeaderProps) {
             </div>
           )}
 
-          <div className="hidden md:flex items-center gap-2 shrink-0">{renderControls()}</div>
+          <div className="ml-auto flex items-center gap-2 shrink-0">
+            <Button asChild size="sm" className="h-9 rounded-full px-3">
+              <Link
+                href="/subscriptions"
+                onClick={() => setMobileOpen(false)}
+                aria-current={pathname === "/subscriptions" ? "page" : undefined}
+              >
+                <SquareChartGantt className="hidden sm:block h-4 w-4" aria-hidden="true" />
+                {t("subscriptions")}
+              </Link>
+            </Button>
 
-          {/* Only the opener: the menu closes by picking an item or tapping outside. */}
-          {!mobileOpen && (
-            <button
-              className="md:hidden rounded-full glass h-9 w-9 inline-flex items-center justify-center shrink-0"
-              onClick={() => setMobileOpen(true)}
-              aria-label={t("openMenu")}
-              aria-expanded={false}
-            >
-              <Menu className="h-4 w-4" />
-            </button>
-          )}
+            <div className="hidden md:flex items-center gap-2">{renderControls()}</div>
+
+            {/* Only the opener: the menu closes by picking an item or tapping outside. */}
+            {!mobileOpen && (
+              <button
+                className="md:hidden rounded-full glass h-9 w-9 inline-flex items-center justify-center shrink-0"
+                onClick={() => setMobileOpen(true)}
+                aria-label={t("openMenu")}
+                aria-expanded={false}
+              >
+                <Menu className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div
