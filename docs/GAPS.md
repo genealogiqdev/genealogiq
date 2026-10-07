@@ -27,6 +27,7 @@ Entries include fixed history; the linked **Status** is authoritative. SUPPLIERS
 | App / feature | Permanent entry | Evidence / remaining prerequisite |
 | --- | --- | --- |
 | APP / ACCOUNTS | [ACCOUNTS-G1: OAuth-only account management](../apps/app/docs/ACCOUNTS.md) | changePassword, requestEmailChange and deleteAccount require a stored password, while Google users may have password=null. |
+| APP / ACCOUNTS | [ACCOUNTS-G2: Profile form cancels email-change submission](../apps/app/docs/ACCOUNTS.md) | Fixed: the email dialog isolates submit propagation; real-portal regression and local browser/database/mail-capture evidence recorded on 2026-10-07. |
 | APP / PUBLIC-PROFILES | [PUBLIC-PROFILES-G1: Private profiles appear in authenticated search](../apps/app/docs/PUBLIC-PROFILES.md) | src/app/api/search/route.ts queries AppUser without filtering isPublicProfile. |
 | APP / MEMORIALS-GUARDIANS | [MEMORIALS-GUARDIANS-G1: Guard helper accepts unexpected status](../apps/app/docs/MEMORIALS-GUARDIANS.md) | canManageProfile in src/lib/profile.ts accepts any provided guardian status except PENDING/REJECTED, whereas old docs required exactly ACCEPTED. |
 | APP / FAMILY-TREE | [FAMILY-TREE-G1: Import provenance is not retained](../apps/app/docs/FAMILY-TREE.md) | WikiTree prefill is saved as ordinary profile fields without durable source attribution. |

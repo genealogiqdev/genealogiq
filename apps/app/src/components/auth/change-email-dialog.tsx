@@ -32,7 +32,13 @@ export function ChangeEmailDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <form action={dispatch} className="flex flex-col gap-4">
+        <form
+          action={dispatch}
+          // Submit events bubble through the React tree even across the dialog
+          // portal. Keep the profile form from cancelling this email action.
+          onSubmit={(event) => event.stopPropagation()}
+          className="flex flex-col gap-4"
+        >
           {state && !state.ok && (
             <p className="text-sm text-destructive">{state.message}</p>
           )}

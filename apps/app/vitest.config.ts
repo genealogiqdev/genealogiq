@@ -12,7 +12,7 @@ export default defineConfig({
   },
   test: {
     name: "app",
-    include: ["src/**/*.{test,spec}.ts"],
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
     environment: "node",
   },
 })
