@@ -101,6 +101,6 @@ jobs:
             --env DATABASE_URL=postgresql://user:pass@localhost:5432/db \
             --env AUTH_SECRET=ci-container-smoke-secret \
             genealogiq-${{ matrix.app }}:ci
-          trap 'docker stop smoke-${{ matrix.app }} || true' EXIT
-          curl --fail --retry 20 --retry-connrefused --retry-delay 2 \
+          trap 'docker logs smoke-${{ matrix.app }}; docker stop smoke-${{ matrix.app }} || true' EXIT
+          curl --fail --retry 20 --retry-all-errors --retry-delay 2 --max-time 10 \
             http://127.0.0.1:3000/api/health/live

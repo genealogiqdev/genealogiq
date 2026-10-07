@@ -363,7 +363,8 @@ resource githubFederatedCredential 'Microsoft.ManagedIdentity/userAssignedIdenti
       'api://AzureADTokenExchange'
     ]
     issuer: 'https://token.actions.githubusercontent.com'
-    subject: 'repo:genealogiqdev/genealogiq:ref:refs/heads/main'
+    // GitHub's immutable subject includes the owner and repository IDs.
+    subject: 'repo:genealogiqdev@324900489/genealogiq@1260779458:ref:refs/heads/main'
   }
 }
 

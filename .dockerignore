@@ -10,6 +10,7 @@
 
 **/node_modules
 **/.next
+**/.next-qa*
 **/.turbo
 **/dist
 **/out
@@ -27,3 +28,10 @@ e2e/.auth
 *.local
 *.dump
 *.sql.gz
+
+# Workstation credentials, private QA evidence and original source photos.
+.azure
+.local-qa
+github_token
+envs
+assets

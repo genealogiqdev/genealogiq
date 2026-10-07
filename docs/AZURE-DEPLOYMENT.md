@@ -8,6 +8,26 @@ Agents operating this environment must follow
 
 ## Deployed platform
 
+### GitHub delivery authentication and startup checks
+
+GitHub now issues this repository's OIDC subject with immutable owner/repository
+IDs: `repo:genealogiqdev@324900489/genealogiq@1260779458:ref:refs/heads/main`.
+The `github-main` federated credential must match it exactly. Verify with
+`gh api repos/genealogiqdev/genealogiq/actions/oidc/customization/sub` before
+changing the subject. The platform template and scoped
+[`github-oidc.bicep`](../infra/github-oidc.bicep) preserve the same trust.
+Preview the scoped template with `az deployment group what-if`, then deploy
+it in `rg-genealogiq-prod`; it changes only that credential. The October 7
+preview showed one subject modification and no resource replacements.
+
+CI container liveness retries transient connection resets during startup,
+with a bounded request timeout, and prints container logs on exit. A successful
+image build alone does not establish liveness. Docker build contexts exclude
+local credential files, Azure state, private QA evidence and original photos.
+
+The [October 7 release audit](audits/PRODUCTION-RELEASE-2026-10-07.md) records
+the consolidated source inventory, validation and deployment evidence.
+
 - Container Apps environment: `cae-genealogiq-prod`
 - Consumer app: `ca-genealogiq-app-prod`
 - BMS: `ca-genealogiq-bms-prod`
