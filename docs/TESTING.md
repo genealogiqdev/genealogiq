@@ -10,6 +10,7 @@ Run every command below from `C:/Users/Tiger/Desktop/dev/personal/genealogiq`. T
 | Layer | Command | Prerequisite | Latest observed result / scope |
 | --- | --- | --- | --- |
 | Unit/schema/helper/mock action | `pnpm test` | Installed workspace | 101 files passed, 840 tests passed; one Azurite file/test skipped by default |
+| Reviewed APP text recovery | `node --test scripts/azure/tests/repair-app-text.test.cjs` | Node.js >=22; no database | 12 tests cover strict UTF-8 input, intact text/punctuation, allowed targets, read-only preview, atomic stale-row rejection, idempotence and receipt-scoped rollback |
 | Single schema | `pnpm check:schema-parity` | Repository files | Pass; one packages/db schema, no app duplicates |
 | Migration shape | `pnpm check:migrations` | Repository files | Pass; 74 SQL files uniquely ordered; does not replay DDL |
 | Locale key parity | `pnpm check:i18n-parity` | Nine locale JSON files | Pass across APP/BMS/SEQ |
@@ -112,6 +113,7 @@ Store raw local logs/screenshots/session evidence under ignored .local-qa; track
 | 2026-10-03 | 6e06634 + new specs/config | Source and tests | pnpm test: 840 passed, one opt-in skip. New checkout test initially expected uppercase currency; corrected from the independent currencyForLocale contract to lowercase brl, then full suite passed. |
 | 2026-10-03 | Same | Runtime/browser | Enabled Azurite one pass; public Playwright three passes. Manual baseline recorded separately; full integration/CRUD scenarios remain incomplete. |
 | 2026-10-03 | 0353683 + final documentation/pointer changes | Final documentation check | node scripts/check-docs.mjs passed: four guides, 39 features, 2206 local source/doc links, 161 named references; 12 ignored local evidence links are optional. Final pnpm test: 840 passed, one opt-in skip. Schema/migration/i18n gates and git diff --check passed. |
+| 2026-10-07 | 218d5aa + text repair/tests and concurrent working changes | APP text regression | Full pnpm test: 104 files / 894 tests passed, two integration files / six tests skipped. Focused document specs: 24 passed. Separate recovery command: 12 passed. Real local DB and browser evidence is recorded in [the text audit](audits/APP-TEXT-ENCODING-2026-10-07.md); these results do not establish production recovery. |
 
 ## Related
 

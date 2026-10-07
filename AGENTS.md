@@ -60,7 +60,7 @@ The app indexes contain 18 APP, nine BMS and seven SEQ feature documents; the fi
 | Document | Use |
 | --- | --- |
 | [LOCAL-DEVELOPMENT](docs/LOCAL-DEVELOPMENT.md) | Setup, normal local identity, three-app baseline, readiness, stop/recovery |
-| [DATABASE](docs/DATABASE.md) | Model/table/migration inventory and local-vs-deployed schema paths |
+| [DATABASE](docs/DATABASE.md) | Model/table/migration inventory, schema paths and reviewed stored-text recovery |
 | [CONFIGURATION](docs/CONFIGURATION.md) | Environment ownership/defaults, restart/rebuild rules and optional provider modes |
 | [TESTING](docs/TESTING.md) | Deterministic, schema/i18n, build, public E2E and enabled Azurite checks |
 | [OBSERVABILITY](docs/OBSERVABILITY.md) | Logs, health endpoints, ledger and provider failure diagnosis |
@@ -80,3 +80,8 @@ Use `node scripts/check-docs.mjs` to validate indexes, links, feature paths/symb
 **Domain configuration verification:** 2026-10-03 at `7d267f7` plus domain changes;
 [cutover audit](docs/audits/AZURE-DOMAINS-2026-10-03.md) separates source/tests,
 live Azure/HTTPS/browser evidence, local baseline, cleanup and provider limits.
+
+**Stored-text investigation:** 2026-10-07, [APP text audit](docs/audits/APP-TEXT-ENCODING-2026-10-07.md).
+Current source preserves accents; the live read-only audit found damaged
+persisted content. Review the recovery runbook and remaining originals before
+assuming a locale/font change can repair stored question marks.

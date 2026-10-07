@@ -28,6 +28,14 @@ No LLM/model stage exists in this implementation.
 
 Document saves need a guardian/owner and the shared media completion flow. URL reuse is allowed for an already stored reference; a new URL must match the authorized prefix (documents.actions.test.ts and media-storage.ts). Origin of public-container design not recorded.
 
+Titles, descriptions and original file names are Unicode text. Validation trims
+surrounding whitespace but preserves accents and intentional punctuation. The
+[profile preview](../src/components/card-previews.tsx), document list/detail and
+[edit form](../src/components/document-edit-form.tsx) render the stored values.
+They must not guess replacements for question marks: a stored question mark no
+longer contains the original character. Correct reviewed data at its source using
+the [text recovery runbook](../../../docs/DATABASE.md#recover-damaged-app-text).
+
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
@@ -93,6 +101,23 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 
 ## Runbooks
 
+### Diagnose broken accents
+
+1. Compare a translated label with the affected stored value. The profile card
+   uses Profile.documentsDescription for the subtitle and Document.title for
+   each document; the collection/detail/edit views use that same Document row.
+2. Follow the [database text recovery runbook](../../../docs/DATABASE.md#recover-damaged-app-text).
+   Check a live read-only result rather than assuming a font, locale or charset
+   change can recover characters already stored as question marks.
+3. Verify a disposable local document through the normal edit form: save
+   "CNH - carteira de habilitação", a description containing "Certidão, cartão,
+   avó, avô e informações de São José." and reload both the collection and profile.
+   A blank title must show "Obrigatório" and must not replace the persisted title.
+4. Run the document specs and
+   `node --test scripts/azure/tests/repair-app-text.test.cjs`. For a data repair,
+   verify the actual row, unchanged visibility/file reference and repeat/rollback
+   behavior separately from the browser result.
+
 ### Change or diagnose this feature
 
 1. Read this document and [the applicable AGENTS.md](../AGENTS.md); trace the linked entry through session, schema, query/action and integration.
@@ -118,12 +143,22 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 - **Root cause:** The present implementation/contract is described in the evidence; original decision not recorded.
 - **Resolution:** Not fixed in this task. Decide private-blob delivery and authorized download semantics, then add anonymous access tests.
 
+### DOCUMENTS-G2: Accented text was already damaged in stored content
+
+- **Status:** open
+- **Found:** 2026-10-07, reported profile preview and read-only production audit.
+- **Evidence:** The database contains the reported titles "CNH - carteira de habilita????o" and "Cart??o INSS"; the translated subtitle retains its accents. Both PostgreSQL encodings are UTF8. The current form/action/query path preserves Unicode; local form saving and independent PostgreSQL assertions verify that boundary.
+- **Impact:** Every view using the damaged row repeats the same text. Other APP content fields also have replacement runs; a translation-only deployment cannot repair them.
+- **Root cause:** Non-ASCII UTF-8 bytes were replaced with ASCII question marks before the currently observed reads. The originating writer/import is not established; the available pre-Azure local dump contains no document rows.
+- **Resolution:** Regression specs and the guarded repair command are provided in this change. Production recovery remains open until the replacement text is reviewed and applied. See the [database runbook](../../../docs/DATABASE.md#recover-damaged-app-text) and [dated audit](../../../docs/audits/APP-TEXT-ENCODING-2026-10-07.md); preserve unknown originals instead of inventing accents or emoji.
+
 ## Verification log
 
 | Date | Commit / working changes | Verified by | Scope and evidence | Mismatches or limits → action |
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
+| 2026-10-07 | `218d5aa` + text repair/tests/docs; concurrent unrelated work excluded from this change | Source, deterministic tests, read-only production query and local PostgreSQL/browser | The card/list/form use the same stored title; 24 document tests and 12 repair tests pass. Local title/description accents persist; blank-title validation and transaction/rollback boundaries pass. [Dated evidence](../../../docs/audits/APP-TEXT-ENCODING-2026-10-07.md) separates the layers. | Production data remains unchanged pending review/application; no upload/download or private-blob delivery claim. |
 
 ## Related
 

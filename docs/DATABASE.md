@@ -91,6 +91,71 @@ Migration SQL lives in timestamped folders. The gate checks nonempty files and u
 
 packages/db/src/index.ts requires DATABASE_URL when imported, selects a PostgreSQL adapter pool (DATABASE_POOL_MAX defaults/falls back to 5), sets a 10-second connect timeout and a 30-second idle timeout, and reuses the development client. [CONFIGURATION](CONFIGURATION.md) records the environment owners and [TESTING](TESTING.md) records the unreachable dummy URL used by deterministic tests.
 
+## Recover damaged APP text
+
+The [repair command](../scripts/azure/repair-app-text.cjs) diagnoses stored content
+and applies an explicitly reviewed manifest. It covers text fields in profiles,
+biographies, documents, gallery captions, places, resting locations and tributes.
+It cannot recover an unknown character from a question mark or determine the
+correct spelling of a person's name. For example, both "avós" and "avôs" can lose
+their UTF-8 bytes into "av??s". A matching loss signature is a validation guard,
+not proof of the original wording.
+
+1. Trace the rendered value to its source. Compare translated labels with stored
+   content and check server_encoding/client_encoding through a read-only query.
+   If the stored bytes already contain ASCII question marks, changing fonts,
+   locale files, HTTP headers or Unicode normalization will not restore them.
+2. Run the command without a manifest for a read-only audit. The default output
+   includes counts only. The optional --details flag (or
+   APP_TEXT_AUDIT_DETAILS=true) emits one private content record per line;
+   retain these only in ignored local evidence or the existing private audit
+   system. A suspicious run can also be intentional punctuation.
+3. Recover original values from a matching backup or review each proposed
+   spelling with the content owner. Keep ambiguous values unchanged. Store the
+   manifest outside Git, encoded as UTF-8. A synthetic example is:
+
+    {
+      "version": 1,
+      "repairs": [{
+        "table": "app_documents",
+        "column": "title",
+        "id": "disposable-document-id",
+        "before": "Cart??o INSS",
+        "after": "Cartão INSS"
+      }]
+    }
+
+4. Locally, supply the explicit loopback DATABASE_URL and run
+   `node scripts/azure/repair-app-text.cjs --plan <private-manifest.json>`.
+   For production, use [the private database task runner](AZURE-DATABASE-ACCESS.md)
+   with this script and APP_TEXT_REPAIR_PLAN_B64 containing the base64 encoding
+   of the UTF-8 manifest bytes. Default execution is read-only. Do not transport
+   Unicode SQL or a binary dump through a legacy PowerShell text pipeline;
+   use parameterized database calls, explicit UTF-8 files or the runner's
+   byte-preserving base64 transport.
+5. After review and within the task's authorized production scope, add --apply
+   locally or APP_TEXT_REPAIR_APPLY=true to the private job. The command accepts
+   only its allowlisted text columns, preserves every intact character, locks
+   the target rows and compares their full current values with the manifest.
+   Any missing/stale row aborts the whole transaction. Already-correct values
+   are skipped. IDs, ownership, roles, privacy, media references and other
+   columns are outside the update; updated_at changes only on updated rows.
+6. Retain the successful JSON result as the apply receipt. Verify the persisted
+   values independently, reload the relevant collection and profile preview,
+   and check an invalid input or permission boundary. A job success alone is
+   not a UI pass. An idempotent rerun must make no additional writes.
+7. If an authorized rollback is needed, use the same manifest with --rollback
+   --receipt <apply-receipt.json>, preview first, then --apply. The private job
+   equivalents are APP_TEXT_REPAIR_ROLLBACK=true and
+   APP_TEXT_REPAIR_RECEIPT_B64. The receipt limits rollback to the fields that
+   that run actually updated; a prior correct value is not reverted. A changed
+   current value aborts rollback instead of overwriting a later user edit.
+
+Run `node --test scripts/azure/tests/repair-app-text.test.cjs` for the command's
+deterministic guards. The [2026-10-07 audit](audits/APP-TEXT-ENCODING-2026-10-07.md)
+separates mocked expectations, real local PostgreSQL transactions, browser
+save/reload, live read-only diagnosis and unresolved source text.
+
 ## Gaps and fixes
 
 ### DATABASE-G1: Fresh migration replay lacks a baseline fixture
@@ -102,12 +167,22 @@ packages/db/src/index.ts requires DATABASE_URL when imported, selects a PostgreS
 - **Root cause:** The current tree preserves incremental history after shared-database consolidation; original baseline provenance is incomplete.
 - **Resolution:** Not fixed. Add a disposable empty-database replay/baseline fixture and compare schema independently; preserve deployed migration bookkeeping.
 
+### DATABASE-G2: Persisted APP content has lost non-ASCII characters
+
+- **Status:** open
+- **Found:** 2026-10-07, document screenshot investigation and live read-only audit.
+- **Evidence:** 72 text values in 23 columns across seven APP tables contain replacement runs. Both PostgreSQL encoding settings are UTF8; the nine locale files had no detected corruption. The available pre-Azure local dump contains no matching original values.
+- **Impact:** Profile cards, individual tabs and edit forms repeat the already-damaged content. The original characters cannot be uniquely recovered from ASCII question marks.
+- **Root cause:** The data matches replacement of non-ASCII UTF-8 bytes with question marks. The historical write/import that caused it is not established.
+- **Resolution:** The guarded recovery command, independent tests and local UI/transaction evidence are provided. Production remains unchanged pending review/application of the private repair manifest; uncertain names/symbols require original wording. See the runbook and dated audit above.
+
 ## Verification log
 
 | Date | Revision | Scope | Evidence / limits |
 | --- | --- | --- | --- |
 | 2026-10-03 | 6e06634 + working changes | Source and checks | 43 models, 74 migrations, single-schema and migration guards pass. |
 | 2026-10-03 | Same | Local runtime | db push/generate/local seed ran; PostgreSQL SELECT 1 passed. Full historical migration replay and deployed migration state are n/a. |
+| 2026-10-07 | 218d5aa + text repair/tests/docs | Source, local runtime and live read-only diagnosis | 12 command tests; real PostgreSQL preview/apply/repeat/receipt rollback/stale-batch checks pass. Live audit finds 72 affected values; no production update or schema migration performed. [Evidence](audits/APP-TEXT-ENCODING-2026-10-07.md). |
 
 ## Related
 

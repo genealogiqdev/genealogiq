@@ -18,6 +18,23 @@ describe("getDocumentSchema", () => {
     expect(schema.safeParse(base).success).toBe(true)
   })
 
+  it("preserves accents in the title, description and original file name", () => {
+    const result = schema.parse({
+      ...base,
+      title: "  CNH - carteira de habilitação  ",
+      description: "  Certidão, cartão, avó, avô e informações de São José.  ",
+      fileName: "  cartão-ação.pdf  ",
+    })
+    expect(result.title).toBe("CNH - carteira de habilitação")
+    expect(result.description).toBe("Certidão, cartão, avó, avô e informações de São José.")
+    expect(result.fileName).toBe("cartão-ação.pdf")
+  })
+
+  it("preserves intentional question marks instead of guessing missing characters", () => {
+    expect(schema.parse({ ...base, title: "Qual certidão? Original??" }).title)
+      .toBe("Qual certidão? Original??")
+  })
+
   it("requires a title", () => {
     expect(schema.safeParse({ ...base, title: "" }).success).toBe(false)
   })

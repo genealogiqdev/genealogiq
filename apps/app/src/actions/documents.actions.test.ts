@@ -87,6 +87,39 @@ describe("saveDocument — quota (always enforced)", () => {
 })
 
 describe("saveDocument — create/update happy paths", () => {
+  it("passes accented text intact to the database on creation", async () => {
+    prismaMock.document.create.mockResolvedValue({ id: "d1" })
+    await saveDocument("A", null, {
+      ...validData,
+      title: "CNH - carteira de habilitação",
+      description: "Cartão e certidão de São José.",
+      fileName: "habilitação.pdf",
+    })
+    expect(prismaMock.document.create).toHaveBeenCalledWith({
+      data: {
+        userId: "A", order: 0, title: "CNH - carteira de habilitação",
+        description: "Cartão e certidão de São José.", category: "birth_certificate",
+        fileUrl: "https://qa.public.blob.vercel-storage.com/doc.pdf",
+        fileName: "habilitação.pdf", isPublic: true,
+      },
+    })
+  })
+
+  it("saves a corrected accented title without replacing the document file", async () => {
+    prismaMock.document.findFirst.mockResolvedValue({ fileUrl: validData.fileUrl })
+    prismaMock.document.update.mockResolvedValue({ id: "d1" })
+    await saveDocument("A", "d1", { ...validData, title: "Cartão INSS" })
+    expect(prismaMock.document.update).toHaveBeenCalledWith({
+      where: { id: "d1" },
+      data: {
+        title: "Cartão INSS", description: "", category: "birth_certificate",
+        fileUrl: "https://qa.public.blob.vercel-storage.com/doc.pdf",
+        fileName: "doc.pdf", isPublic: true,
+      },
+    })
+    expect(deleteBlobs).not.toHaveBeenCalled()
+  })
+
   it("creates a document with order equal to the current count", async () => {
     prismaMock.document.count.mockResolvedValue(2)
     prismaMock.document.create.mockResolvedValue({ id: "d1" })
