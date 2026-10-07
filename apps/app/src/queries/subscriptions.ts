@@ -5,14 +5,19 @@ import { prisma } from "@/lib/prisma"
 import { LOCALE_TO_CURRENCY, type Currency } from "@/lib/currency"
 import { mapSubscriptionPrices } from "@genealogiq/services/subscription-price"
 
-export async function getActiveSubscriptions() {
+export async function getActiveSubscriptions(activeManualSubscriptionId?: string) {
   const viewerCurrency = LOCALE_TO_CURRENCY[await resolveLocale()]
 
   const rows = await prisma.subscription.findMany({
     // Self-serve checkout only ever offers the plans this app actually sells
-    // this way — a physical-QR license or any other admin-created row is
-    // sold/tracked through a different channel, not this page.
-    where: { isActive: true, code: { in: ["FREE", "PREMIUM"] } },
+    // this way. Include a manually activated plan for this account so its
+    // benefits remain visible, even if it is no longer in the public catalog.
+    where: {
+      OR: [
+        { isActive: true, code: { in: ["FREE", "PREMIUM"] } },
+        ...(activeManualSubscriptionId ? [{ id: activeManualSubscriptionId }] : []),
+      ],
+    },
     select: {
       id:                    true,
       code:                  true,

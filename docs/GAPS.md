@@ -1,6 +1,6 @@
 # Gap index and pending decisions
 
-> **Source verification:** 2026-10-03 at `6e06634` + current docs/tests/launcher. Detailed permanent entries live in the linked feature docs; this index does not replace their history.
+> **Source verification:** Original inventory at `6e06634` (2026-10-03), with targeted Gen2026 resolutions at `9253152` plus this change (2026-10-07). Detailed permanent entries live in the linked feature docs; this index does not replace their history.
 
 ## Issues affecting confidentiality, authority or business outcomes
 
@@ -11,10 +11,10 @@
 | [AUTHENTICATION-G1](AUTHENTICATION.md) | Session role/tenant claims are not immediately revoked by a live user-state check. | Read evidence/resolution in the permanent entry; policy fixes are not made by this documentation task |
 | [PARTNER-PURCHASING-G1](../apps/seq/docs/PARTNER-PURCHASING.md) | Current checkout uses tenant membership, while older docs claimed an admin-only role policy. | Read evidence/resolution in the permanent entry; policy fixes are not made by this documentation task |
 | [EMAIL-DELIVERY-G1](EMAIL-DELIVERY.md) | Resolved Resend errors are ignored; callers may report success after provider rejection. | Read evidence/resolution in the permanent entry; policy fixes are not made by this documentation task |
-| [PARTNER-PLANS-CONTRACTS-G1](../apps/bms/docs/PARTNER-PLANS-CONTRACTS.md) | Annual checkout callback points to removed /sales/manual-sales instead of /sales/contracts. | Read evidence/resolution in the permanent entry; policy fixes are not made by this documentation task |
+| [PARTNER-PLANS-CONTRACTS-G1](../apps/bms/docs/PARTNER-PLANS-CONTRACTS.md) | Fixed 2026-10-07: callbacks now target /sales/contracts and the fallback BMS origin. | Literal action tests pass; signed Stripe return remains a provider scenario |
 | [REPORTING-G1](../apps/bms/docs/REPORTING.md) | Dashboard aggregates money without preserving currency partition. | Read evidence/resolution in the permanent entry; policy fixes are not made by this documentation task |
 | [REPORTING-G2](../apps/bms/docs/REPORTING.md) | Trial conversion is counted without attribution to the trial cohort. | Read evidence/resolution in the permanent entry; policy fixes are not made by this documentation task |
-| [BILLING-QUOTAS-G2](../apps/app/docs/BILLING-QUOTAS.md) | The local seed has PREMIUM but no required FREE fallback row. | Read evidence/resolution in the permanent entry; policy fixes are not made by this documentation task |
+| [BILLING-QUOTAS-G2](../apps/app/docs/BILLING-QUOTAS.md) | Fixed 2026-10-07: guarded seed now creates a missing FREE fallback without changing existing settings. | Local APP rendered the expected free limits; keep the original incident in the feature log |
 | [ACCOUNTS-G1](../apps/app/docs/ACCOUNTS.md) | OAuth-only password=null users cannot use password-gated account management. | Read evidence/resolution in the permanent entry; policy fixes are not made by this documentation task |
 | [MEMORIALS-GUARDIANS-G1](../apps/app/docs/MEMORIALS-GUARDIANS.md) | Guard helper allows unexpected non-PENDING/non-REJECTED status strings. | Read evidence/resolution in the permanent entry; policy fixes are not made by this documentation task |
 
@@ -37,19 +37,23 @@ Entries include fixed history; the linked **Status** is authoritative. SUPPLIERS
 | APP / TRIBUTES | [TRIBUTES-G1: Two-person moderation QA fixture missing](../apps/app/docs/TRIBUTES.md) | The seed has one consumer identity and the existing tribute action tests do not exercise complete author-to-guardian delivery. |
 | APP / MESSAGES | [MESSAGES-G1: Activity query lacks deterministic fixture coverage](../apps/app/docs/MESSAGES.md) | notifications.ts ordering/enrichment and deleted actor cases have no query spec; the new tests cover the action boundary only. |
 | APP / BILLING-QUOTAS | [BILLING-QUOTAS-G1: Extra-unit checkout has no direct deterministic action test](../apps/app/docs/BILLING-QUOTAS.md) | extra-units.actions.ts delegates to Stripe; existing extra-units tests cover quota arithmetic rather than the checkout action. |
-| APP / BILLING-QUOTAS | [BILLING-QUOTAS-G2: Fresh local seed does not create the FREE fallback](../apps/app/docs/BILLING-QUOTAS.md) | seed-local.ts creates a Premium sale but getFreeQuotas requires a Subscription with code FREE. |
+| APP / BILLING-QUOTAS | [BILLING-QUOTAS-G2: Fresh local seed does not create the FREE fallback](../apps/app/docs/BILLING-QUOTAS.md) | Fixed: seed-local.ts and coupon QA fixture create the missing FREE row; original settings are retained. |
+| APP / BILLING-QUOTAS | [BILLING-QUOTAS-G3: Custom manual plan absent from the grid](../apps/app/docs/BILLING-QUOTAS.md) | Fixed: account-specific query includes the held manual plan; query tests and APP browser reload show its quotas and finite term. |
 | APP / GENCODE-ACTIVATION | [GENCODE-ACTIVATION-G1: Activation browser fixture missing](../apps/app/docs/GENCODE-ACTIVATION.md) | The local seed provides partner balances but no isolated available code tied to a replayable activation scenario. |
 | APP / QR-ANALYTICS | [QR-ANALYTICS-G1: Scan browser/persistence fixture missing](../apps/app/docs/QR-ANALYTICS.md) | The new route spec pins malformed input, missing QR, 429 Retry-After and scan/counter transaction arguments. It uses mocked Prisma; the baseline has no activated QR. |
 | APP / PWA | [PWA-G1: Production installation and worker QA not exercised](../apps/app/docs/PWA.md) | The audit used next dev, where service workers are intentionally unregistered; pure install helpers passed. |
 | APP / WEB-PUSH | [WEB-PUSH-G1: Real push transport is not exercised](../apps/app/docs/WEB-PUSH.md) | local-qa disables VAPID; tests mock endpoint/transport responses. |
 | APP / MARKETING-FEEDBACK | [MARKETING-FEEDBACK-G1: Feedback delivery and Turnstile lack provider replay evidence](../apps/app/docs/MARKETING-FEEDBACK.md) | Tests stub the email/verification boundaries; local-qa disables real mail and Turnstile. |
 | BMS / ACCOUNTS-STAFF | [ACCOUNTS-STAFF-G1: Initial setup lacks a deterministic fixture](../apps/bms/docs/ACCOUNTS-STAFF.md) | The new company boundary spec verifies administrator rejection/invalid input; auth.ts setupSystem still has no disposable empty-system spec. |
-| BMS / PARTNERS | [PARTNERS-G1: Invitation delivery fixture unavailable](../apps/bms/docs/PARTNERS.md) | The local baseline tests company editing, not the BMS partner invite-to-SEQ sign-in flow; mail adapters are mocked. |
-| BMS / PARTNER-PLANS-CONTRACTS | [PARTNER-PLANS-CONTRACTS-G1: Partner checkout callback points to a removed route](../apps/bms/docs/PARTNER-PLANS-CONTRACTS.md) | sendPartnerPlanLink builds successUrl/cancelUrl and revalidates /sales/manual-sales; the current router uses /sales/contracts. |
-| BMS / PARTNER-PLANS-CONTRACTS | [PARTNER-PLANS-CONTRACTS-G2: Plan CRUD/contract actions have no direct deterministic specs](../apps/bms/docs/PARTNER-PLANS-CONTRACTS.md) | The new partner plan schema spec pins cash/installment/trial constraints. partner-plan.actions.ts still has no action test; shared partner-billing tests cover downstream lifecycle only. |
+| BMS / PARTNERS | [PARTNERS-G1: Invitation delivery fixture unavailable](../apps/bms/docs/PARTNERS.md) | Manual settlement now verifies inactive-to-active OWNER access and an invitation-failure warning. Actual delivery and password setup remain untested with Resend disabled. |
+| BMS / PARTNER-PLANS-CONTRACTS | [PARTNER-PLANS-CONTRACTS-G1: Partner checkout callback points to a removed route](../apps/bms/docs/PARTNER-PLANS-CONTRACTS.md) | Fixed: configured/fallback URLs and revalidation use /sales/contracts; literal regression tests cover the action. |
+| BMS / PARTNER-PLANS-CONTRACTS | [PARTNER-PLANS-CONTRACTS-G2: Plan CRUD/contract actions have no direct deterministic specs](../apps/bms/docs/PARTNER-PLANS-CONTRACTS.md) | Partially covered: five checkout action tests plus manual settlement action/service tests. Plan CRUD and signed provider replay remain outside this evidence. |
 | BMS / GENCODE-PACKAGES | [GENCODE-PACKAGES-G1: Package checkout has no signed full-path replay fixture](../apps/bms/docs/GENCODE-PACKAGES.md) | Action/schema and shared service specs exist; the audit did not create a checkout or deliver a package email. |
 | BMS / CONSUMER-PRICING | [CONSUMER-PRICING-G1: Pricing actions have only helper coverage](../apps/bms/docs/CONSUMER-PRICING.md) | subscription.actions.ts and extra-unit-price.actions.ts have no direct action specs; price-book.test.ts exercises formatting/conversion. |
 | BMS / DISCOUNT-COUPONS | [DISCOUNT-COUPONS-G1: Legacy coupon E2E would call live Stripe without an isolated fixture](../apps/bms/docs/DISCOUNT-COUPONS.md) | e2e CRUD specs reuse an existing server and create discount coupons; the isolated launcher disables Stripe. |
+| BMS / DISCOUNT-COUPONS | [DISCOUNT-COUPONS-G2: External settlement depended on Stripe](../apps/bms/docs/DISCOUNT-COUPONS.md) | Fixed: BMS-only Gen2026 review, atomic receipt/entitlement and three sale types; real PostgreSQL concurrency/rollback and browser acceptance recorded. |
+| BMS / DISCOUNT-COUPONS | [DISCOUNT-COUPONS-G3: Wide table displaced the application button](../apps/bms/docs/DISCOUNT-COUPONS.md) | Fixed: BMS content can shrink and coupon actions wrap; table overflow stays within the table. |
+| BMS / DISCOUNT-COUPONS | [DISCOUNT-COUPONS-G4: Audit foreign key blocked consumer deletion](../apps/bms/docs/DISCOUNT-COUPONS.md) | Fixed: durable result identity survives optional AppSale detachment; real PostgreSQL deletion/retry/receipt-reuse regression passes. |
 | BMS / REPORTING | [REPORTING-G1: Dashboard combines currencies](../apps/bms/docs/REPORTING.md) | dashboard.ts sums paid amounts without partitioning currency, while the report has currency-specific results. |
 | BMS / REPORTING | [REPORTING-G2: Trial conversion is not attributed to a trial cohort](../apps/bms/docs/REPORTING.md) | getTrialConversion counts paid subscriptions without a join from each trial memorial to its conversion event. |
 | BMS / REPORTING | [REPORTING-G3: Dashboard query lacks direct deterministic coverage](../apps/bms/docs/REPORTING.md) | reports.test.ts covers pure folds and selected report behavior; dashboard.ts has no direct query fixture. |
@@ -65,7 +69,7 @@ Entries include fixed history; the linked **Status** is authoritative. SUPPLIERS
 | SEQ / DASHBOARD | [DASHBOARD-G1: Dashboard SQL and browser dataset missing](../apps/seq/docs/DASHBOARD.md) | The new mocked query spec pins exact October totals, legacy null channel, twelve-month empty spine and tenant bind values; real PostgreSQL aggregates have no controlled two-tenant fixture. |
 | SEQ / SUPPORT-FEEDBACK | [SUPPORT-FEEDBACK-G1: Tenant support delivery fixture unavailable](../apps/seq/docs/SUPPORT-FEEDBACK.md) | Unit actions mock email and the isolated launcher disables Resend. |
 | SHARED / AUTHENTICATION | [AUTHENTICATION-G1: Session role revocation is not immediate](AUTHENTICATION.md) | JWT carries a role/tenant snapshot and edge checks do not reload live user activation/role on every request. |
-| SHARED / PARTNER-CREDITS | [PARTNER-CREDITS-G1: End-to-end ledger/reconciliation fixture missing](PARTNER-CREDITS.md) | Unit suites mock transaction DB/provider boundaries; the daily route suite mocks all services. No full signed-event database replay is saved. |
+| SHARED / PARTNER-CREDITS | [PARTNER-CREDITS-G1: End-to-end ledger/reconciliation fixture missing](PARTNER-CREDITS.md) | Manual coupon PostgreSQL fixtures now verify real grant, stock, rollover, idempotency and rollback. Full signed-event/daily reconciliation replay remains absent. |
 | SHARED / MEDIA-STORAGE | [MEDIA-STORAGE-G1: Browser upload fixture not exercised](MEDIA-STORAGE.md) | The Azurite API/storage integration passed, but the audit did not upload/save through each app browser form. |
 | SHARED / MEDIA-MIGRATION | [MEDIA-MIGRATION-G1: Full resumable migration fixture absent](MEDIA-MIGRATION.md) | Only helper tests ran; no legacy source/CDN copy, conditional DB rewrite, rollback or resumed manifest was exercised. |
 | SHARED / MEDIA-MIGRATION | [MEDIA-MIGRATION-G2: Manifest override missing from declared environment contract](MEDIA-MIGRATION.md) | MEDIA_MIGRATION_MANIFEST_BLOB is read in media-migration.ts but absent from turbo.json globalEnv and .env examples. |
@@ -80,7 +84,7 @@ Cross-cutting gaps: [DATABASE-G1](DATABASE.md#gaps-and-fixes) (fresh migration b
 
 ## Deferred work
 
-Full provider fixtures, second-consumer/two-tenant product QA and production PWA/push/browser codec evidence are scoped by their gap entries. A missing fixture is not a current code bug or a completed product pass. No new product feature, pricing decision, cloud write or deployment is added by this bootstrap.
+Full provider fixtures, remaining second-consumer/two-tenant scenarios and production PWA/push/browser codec evidence are scoped by their gap entries. A missing fixture is not a current code bug or a completed product pass. The original bootstrap introduced no product feature or deployment; the subsequent Gen2026 implementation and its targeted local evidence are recorded separately.
 
 ## Find and maintain entries
 

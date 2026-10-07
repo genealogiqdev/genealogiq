@@ -100,13 +100,13 @@ export async function getPartnerPlan(id: string) {
  * because choosing it there would fail at checkout with nothing to charge. Same
  * rule the old Package catalogue had, now expressed against the price book.
  */
-export async function getSellablePartnerPlans(currency: AppCurrency) {
+export async function getSellablePartnerPlans(currency: AppCurrency, includeUnsynced = false) {
   await verifySession()
 
   const rows = await prisma.partnerPlan.findMany({
     where: {
       isActive: true,
-      prices:   { some: { ...LIVE_PRICE, currency: currency.toUpperCase(), stripeCashPriceId: { not: null } } },
+      prices:   { some: { ...LIVE_PRICE, currency: currency.toUpperCase(), ...(includeUnsynced ? {} : { stripeCashPriceId: { not: null } }) } },
     },
     select: {
       id: true, name: true, code: true, annualAllowance: true,
@@ -129,6 +129,7 @@ export async function getSellablePartnerPlans(currency: AppCurrency) {
         code:                r.code,
         annualAllowance:     r.annualAllowance,
         currency:            p.currency,
+        stripeSynced:        !!p.stripeCashPriceId,
         annualCashAmount:    Number(p.annualCashAmount),
         unitReferenceAmount: toNumber(p.unitReferenceAmount),
         // Only offered as instalments when the amount AND its Stripe Price both

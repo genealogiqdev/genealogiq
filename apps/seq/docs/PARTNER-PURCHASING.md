@@ -3,7 +3,7 @@
 > **Code:** [src/actions/partner-plan.actions.ts](../src/actions/partner-plan.actions.ts) · [src/queries/purchasing.ts](../src/queries/purchasing.ts) · [src/app/api/stripe/webhook/route.ts](../src/app/api/stripe/webhook/route.ts)
 > **Entry points:** `/purchasing/plans` · `/api/stripe/webhook`
 > **Depends on:** [PARTNER-CREDITS](../../../docs/PARTNER-CREDITS.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-03 at `6e06634`, including this task’s uncommitted documentation, launcher and test changes. Source verification is separate from runtime/UI below.
+> **Last verified against code:** 2026-10-07 at `9253152` plus the Gen2026 changes to the paths named below. Source, tests, runtime and UI are recorded separately; earlier observations remain in the verification log.
 
 The SEQ application supplies partner purchasing and annual subscription. The verified tenant selects an effective plan price and cash/installment payment mode; shared checkout supplies Stripe metadata. Annual plans and standalone package orders have separate entitlement contracts. Webhook events use the shared services, not browser redirects, to grant credits.
 
@@ -30,6 +30,12 @@ One annual cycle spans twelve months even when paid in installments (ea6e3ca). 2
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
+
+### Plans activated by the BMS team
+
+[Manual Gen2026 settlements](../../bms/docs/DISCOUNT-COUPONS.md) enter the same PartnerSubscription/cycle/credit models read by SEQ. A manually settled annual contract appears active with its finite end date in `/purchasing/plans`, and the resulting funded stock appears in `/inventory/activations`. It has no Stripe subscription and `autoRenew=false`. Only BMS staff can apply the coupon; SEQ does not expose manual redemption. The existing self-service plan catalog still requires Stripe synchronization, so an unsynchronized manual plan can appear in acquisition history without becoming a self-service offer.
+
+Local acceptance signed in as the funded partner and saw the active 07/10/2026–07/10/2027 acquisition and 20 available GenCodes. A separately inactive first-access OWNER could not sign in before BMS settlement, then signed in normally and saw its own 20 codes afterward. SQL independently verified the tenant balances and disabled automatic renewal. See the [Gen2026 audit](../../../docs/audits/GEN2026-2026-10-07.md); no signed Stripe checkout replay was run.
 
 The verified tenant selects an effective plan price and cash/installment payment mode; shared checkout supplies Stripe metadata. Annual plans and standalone package orders have separate entitlement contracts. Webhook events use the shared services, not browser redirects, to grant credits.
 
@@ -136,6 +142,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
+| 2026-10-07 | `218d5aa` + Gen2026 change | Source trace, BMS/SEQ browser and raw DB rows | Manual contract history, 20 available codes, tenant-specific balances and first-access activation verified. | [Audit](../../../docs/audits/GEN2026-2026-10-07.md); the existing self-service role and signed replay gaps remain open. |
 
 ## Related
 

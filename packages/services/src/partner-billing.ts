@@ -5,6 +5,7 @@ import { prisma, type Prisma } from '@genealogiq/db'
 import { generateGenCode } from '@genealogiq/core'
 import { grantCycleCredits } from './credits'
 import { decideRollover, countRollableCredits } from './rollover'
+import { addBillingMonths } from './billing-dates'
 
 /**
  * Cycle lifecycle for a partner's B2B subscription.
@@ -38,10 +39,23 @@ export interface AppliedInvoice {
   cycleId:        string | null
 }
 
+export const partnerCycleSelect = {
+  id: true, planId: true, status: true, tenantId: true,
+  plan: {
+    select: {
+      id: true, name: true, code: true, annualAllowance: true, graceDays: true,
+      rolloverRate: true, rolloverValidityMonths: true, committedReservationMonths: true,
+      activationTrialMonths: true, activationTrialPlanCode: true, version: true,
+    },
+  },
+  autoRenew: true, founderRolloverEligible: true, founderRolloverUsed: true,
+  currentCycle: { select: { id: true, endAt: true } },
+} as const satisfies Prisma.PartnerSubscriptionSelect
+
+type CycleSubscription = Prisma.PartnerSubscriptionGetPayload<{ select: typeof partnerCycleSelect }>
+
 function addMonths(from: Date, months: number): Date {
-  const d = new Date(from)
-  d.setMonth(d.getMonth() + months)
-  return d
+  return addBillingMonths(from, months)
 }
 
 /**
@@ -150,18 +164,7 @@ export async function applyPartnerInvoicePaid(invoice: Stripe.Invoice): Promise<
 
   const subscription = await prisma.partnerSubscription.findUnique({
     where:  { stripeSubscriptionId },
-    select: {
-      id: true, planId: true, status: true, tenantId: true,
-      plan: {
-        select: {
-          id: true, name: true, code: true, annualAllowance: true, graceDays: true,
-          rolloverRate: true, rolloverValidityMonths: true, committedReservationMonths: true,
-          activationTrialMonths: true, activationTrialPlanCode: true, version: true,
-        },
-      },
-      autoRenew: true, founderRolloverEligible: true, founderRolloverUsed: true,
-      currentCycle: { select: { id: true, endAt: true } },
-    },
+    select: partnerCycleSelect,
   })
   // Not ours: the account also carries the APP's B2C subscriptions, and Stripe
   // fans every event out to every endpoint.
@@ -187,7 +190,29 @@ export async function applyPartnerInvoicePaid(invoice: Stripe.Invoice): Promise<
   }
 
   const price = await resolveInvoicePrice(invoice)
+  const cycle = await prisma.$transaction((tx) => openPartnerCycle(tx, {
+    subscription, price, now, stripeInvoiceId: invoice.id,
+  }))
+
+  return {
+    outcome: isFirst ? 'first-cycle' : 'renewed',
+    subscriptionId: subscription.id,
+    cycleId: cycle.id,
+  }
+}
+
+/** Shared entitlement writer for verified Stripe invoices and BMS settlements. */
+export async function openPartnerCycle(
+  tx: Prisma.TransactionClient,
+  { subscription, price, now, stripeInvoiceId = null }: {
+    subscription: CycleSubscription
+    price: Prisma.InputJsonObject
+    now: Date
+    stripeInvoiceId?: string | null
+  },
+): Promise<{ id: string }> {
   const plan  = subscription.plan
+  const current = subscription.currentCycle
 
   const startAt    = now
   const endAt      = addMonths(startAt, CYCLE_MONTHS)
@@ -197,101 +222,93 @@ export async function applyPartnerInvoicePaid(invoice: Stripe.Invoice): Promise<
 
   const tenantId = subscription.tenantId
 
-  const cycle = await prisma.$transaction(async (tx) => {
-    if (current) {
-      await tx.subscriptionCycle.update({
-        where: { id: current.id },
-        data:  { status: 'CLOSED' },
-      })
-    }
-
-    const created = await tx.subscriptionCycle.create({
-      data: {
-        subscriptionId:     subscription.id,
-        planId:             plan.id,
-        // Same reasoning as the price book below: rolloverRate is a Decimal,
-        // and a frozen record reads better as plain data than as whatever a
-        // future client deserialises a Decimal into.
-        planSnapshot:       { ...plan, rolloverRate: plan.rolloverRate.toString() },
-        priceSnapshot:      price,
-        startAt,
-        endAt,
-        graceEndAt,
-        status:             'ACTIVE',
-        renewedFromCycleId: current?.id ?? null,
-        stripeInvoiceId:    invoice.id,
-      },
-      select: { id: true },
+  if (current) {
+    await tx.subscriptionCycle.update({
+      where: { id: current.id },
+      data:  { status: 'CLOSED' },
     })
+  }
 
-    await tx.partnerSubscription.update({
-      where: { id: subscription.id },
-      data:  { currentCycleId: created.id, status: 'ACTIVE' },
-    })
-
-    // Rollover BEFORE the fresh allowance, and before expiring the old cycle:
-    // what carries over is measured against the grants the closing cycle still
-    // holds.
-    if (current) {
-      const unused   = await countRollableCredits(tx, tenantId, current.id)
-      const decision = decideRollover({
-        unused,
-        renewedAllowance: plan.annualAllowance,
-        rolloverRate:     Number(plan.rolloverRate),
-        founderEligible:  subscription.founderRolloverEligible,
-        founderUsed:      subscription.founderRolloverUsed,
-      })
-
-      if (decision.quantity > 0) {
-        const rolloverExpiry = decision.validity === 'cycle-end'
-          ? endAt
-          : addMonths(startAt, plan.rolloverValidityMonths)
-
-        await grantCycleCredits({
-          tenantId,
-          subscriptionId:     subscription.id,
-          cycleId:            created.id,
-          quantity:           decision.quantity,
-          expiresAt:          rolloverExpiry,
-          source:             decision.usedFounder ? 'FOUNDER_ROLLOVER' : 'ROLLOVER',
-          // Generation 1: this unit has now rolled, and can never roll again.
-          rolloverGeneration: 1,
-          tx,
-        })
-      }
-
-      if (decision.usedFounder) {
-        await tx.partnerSubscription.update({
-          where: { id: subscription.id },
-          data:  { founderRolloverUsed: true },
-        })
-      }
-
-      // Whatever did not carry over dies with the cycle that funded it. Written
-      // as an explicit EXPIRE rather than left to the daily job so the ledger
-      // explains the drop at the moment it happens.
-      await expireCycleGrants(tx, tenantId, current.id)
-    }
-
-    await grantCycleCredits({
-      tenantId:       tenantId,
-      subscriptionId: subscription.id,
-      cycleId:        created.id,
-      quantity:       plan.annualAllowance,
-      expiresAt:      endAt,
-      tx,
-    })
-
-    await mintToMatchBalance(tx, tenantId, created.id)
-
-    return created
+  const created = await tx.subscriptionCycle.create({
+    data: {
+      subscriptionId:     subscription.id,
+      planId:             plan.id,
+      // Same reasoning as the price book below: rolloverRate is a Decimal,
+      // and a frozen record reads better as plain data than as whatever a
+      // future client deserialises a Decimal into.
+      planSnapshot:       { ...plan, rolloverRate: plan.rolloverRate.toString() },
+      priceSnapshot:      price,
+      startAt,
+      endAt,
+      graceEndAt,
+      status:             'ACTIVE',
+      renewedFromCycleId: current?.id ?? null,
+      stripeInvoiceId,
+    },
+    select: { id: true },
   })
 
-  return {
-    outcome:        isFirst ? 'first-cycle' : 'renewed',
-    subscriptionId: subscription.id,
-    cycleId:        cycle.id,
+  await tx.partnerSubscription.update({
+    where: { id: subscription.id },
+    data:  { currentCycleId: created.id, status: 'ACTIVE' },
+  })
+
+  // Rollover BEFORE the fresh allowance, and before expiring the old cycle:
+  // what carries over is measured against the grants the closing cycle still
+  // holds.
+  if (current) {
+    const unused   = await countRollableCredits(tx, tenantId, current.id)
+    const decision = decideRollover({
+      unused,
+      renewedAllowance: plan.annualAllowance,
+      rolloverRate:     Number(plan.rolloverRate),
+      founderEligible:  subscription.founderRolloverEligible,
+      founderUsed:      subscription.founderRolloverUsed,
+    })
+
+    if (decision.quantity > 0) {
+      const rolloverExpiry = decision.validity === 'cycle-end'
+        ? endAt
+        : addMonths(startAt, plan.rolloverValidityMonths)
+
+      await grantCycleCredits({
+        tenantId,
+        subscriptionId:     subscription.id,
+        cycleId:            created.id,
+        quantity:           decision.quantity,
+        expiresAt:          rolloverExpiry,
+        source:             decision.usedFounder ? 'FOUNDER_ROLLOVER' : 'ROLLOVER',
+        // Generation 1: this unit has now rolled, and can never roll again.
+        rolloverGeneration: 1,
+        tx,
+      })
+    }
+
+    if (decision.usedFounder) {
+      await tx.partnerSubscription.update({
+        where: { id: subscription.id },
+        data:  { founderRolloverUsed: true },
+      })
+    }
+
+    // Whatever did not carry over dies with the cycle that funded it. Written
+    // as an explicit EXPIRE rather than left to the daily job so the ledger
+    // explains the drop at the moment it happens.
+    await expireCycleGrants(tx, tenantId, current.id)
   }
+
+  await grantCycleCredits({
+    tenantId:       tenantId,
+    subscriptionId: subscription.id,
+    cycleId:        created.id,
+    quantity:       plan.annualAllowance,
+    expiresAt:      endAt,
+    tx,
+  })
+
+  await mintToMatchBalance(tx, tenantId, created.id)
+
+  return created
 }
 
 /**

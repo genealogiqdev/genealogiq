@@ -32,7 +32,7 @@ vi.mock("next-intl/server", () => ({
   getLocale: vi.fn(async () => "en-US"),
 }))
 
-import { createDiscountCoupon } from "./discount-coupon.actions"
+import { createDiscountCoupon, toggleDiscountCouponActive } from "./discount-coupon.actions"
 import { verifyAdmin } from "@/lib/dal"
 
 const base = {
@@ -64,6 +64,40 @@ beforeEach(() => {
 })
 
 describe("createDiscountCoupon — percentage", () => {
+  it('creates a manual 100% coupon without calling Stripe', async () => {
+    await createDiscountCoupon({ ...base, code: 'Gen2026', percentOff: 100, redemptionMode: 'manual' })
+    expect(prismaMock.discountCoupon.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({
+      code: 'GEN2026', percentOff: 100, duration: 'once', redemptionMode: 'manual', createdById: 'admin-1',
+    }) }))
+    expect(stripeMock.coupons.create).not.toHaveBeenCalled()
+    expect(stripeMock.promotionCodes.list).not.toHaveBeenCalled()
+  })
+
+  it('rejects partial or recurring manual coupons', async () => {
+    expect((await createDiscountCoupon({ ...base, redemptionMode: 'manual' })).ok).toBe(false)
+    expect((await createDiscountCoupon({ ...base, redemptionMode: 'manual', percentOff: 100, duration: 'forever' })).ok).toBe(false)
+    expect(prismaMock.discountCoupon.create).not.toHaveBeenCalled()
+  })
+
+  it('allows manual product restrictions before Stripe synchronization', async () => {
+    prismaMock.genCodePackage.findMany.mockResolvedValue([{ id: 'package-1', stripeProductId: null }])
+    expect((await createDiscountCoupon({ ...base, redemptionMode: 'manual', percentOff: 100, appliesTo: ['package-1'] })).ok).toBe(true)
+    expect(stripeMock.coupons.create).not.toHaveBeenCalled()
+  })
+
+  it('includes B2C product restrictions in the Stripe coupon and local mirror', async () => {
+    prismaMock.planPrice.findMany.mockResolvedValue([{ partnerPlanId: null, subscriptionId: 'premium', stripeProductId: 'prod-premium' }])
+    await createDiscountCoupon({ ...base, appliesTo: ['premium'] })
+    expect(stripeMock.coupons.create).toHaveBeenCalledWith(expect.objectContaining({ applies_to: { products: ['prod-premium'] } }))
+    expect(prismaMock.discountCoupon.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ subscriptions: { connect: [{ id: 'premium' }] } }) }))
+  })
+
+  it('deactivates a manual coupon without a Stripe credential', async () => {
+    prismaMock.discountCoupon.findUnique.mockResolvedValue({ isActive: true, stripePromotionCodeId: null })
+    expect((await toggleDiscountCouponActive('coupon-1')).ok).toBe(true)
+    expect(prismaMock.discountCoupon.update).toHaveBeenCalledWith({ where: { id: 'coupon-1' }, data: { isActive: false } })
+    expect(stripeMock.promotionCodes.update).not.toHaveBeenCalled()
+  })
   // 10% off is 10% off in every currency; sending an amount or a currency would
   // be Stripe rejecting the call.
   it("sends percent_off alone, with no currency", async () => {

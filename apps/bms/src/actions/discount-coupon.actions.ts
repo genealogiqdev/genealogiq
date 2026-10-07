@@ -45,10 +45,11 @@ export async function createDiscountCoupon(
   const validated = getDiscountCouponSchema(identityTranslator).safeParse(data)
   if (!validated.success) return fail(t('common.invalidData'))
   const input = validated.data
+  const manual = input.redemptionMode === 'manual'
 
   // Pre-flight 1: the code must be free in our DB
   const dbDup = await prisma.discountCoupon.findFirst({
-    where:  { code: input.code },
+    where:  { code: { equals: input.code, mode: 'insensitive' } },
     select: { id: true },
   })
   if (dbDup) return fail(t('discountCoupon.codeExists'))
@@ -59,26 +60,31 @@ export async function createDiscountCoupon(
   let stripeProductIds: string[] = []
   let partnerPlanIds: string[] = []
   let genCodePackageIds: string[] = []
+  let subscriptionIds: string[] = []
   if (input.appliesTo.length > 0) {
     const requested = [...new Set(input.appliesTo)]
     const [prices, packages] = await Promise.all([
       prisma.planPrice.findMany({
         where: {
-          partnerPlanId: { in: requested },
+          OR: [
+            { partnerPlan: { id: { in: requested }, isActive: true } },
+            { subscription: { id: { in: requested }, isActive: true } },
+          ],
           isActive: true,
           effectiveTo: null,
-          stripeProductId: { not: null },
+          ...(manual ? {} : { stripeProductId: { not: null } }),
         },
-        select: { partnerPlanId: true, stripeProductId: true },
+        select: { partnerPlanId: true, subscriptionId: true, stripeProductId: true },
       }),
       prisma.genCodePackage.findMany({
-        where: { id: { in: requested }, isActive: true, stripeProductId: { not: null } },
+        where: { id: { in: requested }, isActive: true, ...(manual ? {} : { stripeProductId: { not: null } }) },
         select: { id: true, stripeProductId: true },
       }),
     ])
     partnerPlanIds = [...new Set(prices.map((p) => p.partnerPlanId).filter((id): id is string => !!id))]
     genCodePackageIds = packages.map((p) => p.id)
-    const resolvedIds = new Set([...partnerPlanIds, ...genCodePackageIds])
+    subscriptionIds = [...new Set(prices.map((p) => p.subscriptionId).filter((id): id is string => !!id))]
+    const resolvedIds = new Set([...partnerPlanIds, ...genCodePackageIds, ...subscriptionIds])
     if (requested.some((id) => !resolvedIds.has(id))) {
       return fail(t('discountCoupon.productNotSynced'))
     }
@@ -88,6 +94,34 @@ export async function createDiscountCoupon(
         ...packages.map((p) => p.stripeProductId),
       ].filter((id): id is string => !!id),
     )]
+  }
+
+  const couponData = {
+    code: input.code, description: input.description ?? null,
+    redemptionMode: input.redemptionMode ?? 'stripe',
+    discountType: input.discountType,
+    percentOff: input.discountType === 'percent' ? input.percentOff : null,
+    amountOffUsd: input.discountType === 'amount' && input.amountOffUsd > 0 ? input.amountOffUsd : null,
+    amountOffBrl: input.discountType === 'amount' && input.amountOffBrl > 0 ? input.amountOffBrl : null,
+    amountOffMxn: input.discountType === 'amount' && input.amountOffMxn > 0 ? input.amountOffMxn : null,
+    duration: input.duration, durationInMonths: input.duration === 'repeating' ? input.durationInMonths : null,
+    maxRedemptions: input.maxRedemptions ?? null, redeemBy: input.redeemBy ?? null,
+    appliesTo: { connect: partnerPlanIds.map((id) => ({ id })) },
+    genCodePackages: { connect: genCodePackageIds.map((id) => ({ id })) },
+    subscriptions: { connect: subscriptionIds.map((id) => ({ id })) },
+    createdById: session.user.id,
+  } satisfies Prisma.DiscountCouponCreateInput
+
+  if (manual) {
+    try {
+      const created = await prisma.discountCoupon.create({ data: couponData, select: { id: true, code: true } })
+      revalidatePath('/sales/discount-coupons')
+      return ok(created, t('discountCoupon.created'))
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') return fail(t('discountCoupon.codeExists'))
+      console.error('[discount-coupon] manual create failed', error)
+      return fail(t('discountCoupon.createFailed'))
+    }
   }
 
   // Dynamic import so the action module never forces stripe.ts to load at
@@ -133,26 +167,9 @@ export async function createDiscountCoupon(
     // 3. Persist mirror in DB
     const created = await prisma.discountCoupon.create({
       data: {
-        code:                  input.code,
-        description:           input.description ?? null,
-        discountType:          input.discountType,
-        percentOff:            input.discountType === 'percent' ? input.percentOff : null,
-        amountOffUsd:          input.discountType === 'amount' && input.amountOffUsd > 0 ? input.amountOffUsd : null,
-        amountOffBrl:          input.discountType === 'amount' && input.amountOffBrl > 0 ? input.amountOffBrl : null,
-        amountOffMxn:          input.discountType === 'amount' && input.amountOffMxn > 0 ? input.amountOffMxn : null,
-        duration:              input.duration,
-        durationInMonths:      input.duration === 'repeating' ? input.durationInMonths : null,
-        maxRedemptions:        input.maxRedemptions ?? null,
-        redeemBy:              input.redeemBy ?? null,
-        appliesTo:             partnerPlanIds.length > 0
-          ? { connect: partnerPlanIds.map((id) => ({ id })) }
-          : undefined,
-        genCodePackages:       genCodePackageIds.length > 0
-          ? { connect: genCodePackageIds.map((id) => ({ id })) }
-          : undefined,
+        ...couponData,
         stripeCouponId:        stripeCoupon.id,
         stripePromotionCodeId: promo.id,
-        createdById:           session.user.id,
       },
       select: { id: true, code: true },
     })
@@ -221,9 +238,9 @@ export async function toggleDiscountCouponActive(id: string): Promise<ActionResu
   const nextActive = !coupon.isActive
 
   try {
-    const { stripe } = await import('@/lib/stripe')
     // Mirror the active flag onto the Stripe Promotion Code so checkout enforcement stays in sync.
     if (coupon.stripePromotionCodeId) {
+      const { stripe } = await import('@/lib/stripe')
       await stripe.promotionCodes.update(coupon.stripePromotionCodeId, { active: nextActive })
     }
     await prisma.discountCoupon.update({ where: { id }, data: { isActive: nextActive } })

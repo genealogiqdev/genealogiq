@@ -508,7 +508,8 @@
       "deactivate": "Desativar",
       "editDescription": "Editar descrição",
       "openMenu": "Abrir menu",
-      "reactivate": "Reativar"
+      "reactivate": "Reativar",
+      "apply": "Aplicar cupom de 100%"
     },
     "create": "Criar cupom",
     "discount": {
@@ -540,18 +541,21 @@
       "durationInMonths": "Duração em meses",
       "expiresOn": "Expira em",
       "maxRedemptions": "Máximo de resgates",
-      "percent": "Percentual (0-100)"
+      "percent": "Percentual (0-100)",
+      "redemptionMode": "Forma de aplicação"
     },
     "hints": {
       "appliesTo": "Deixe tudo desmarcado para aplicar a todos os produtos.",
-      "codeImmutable": "O código promocional é imutável. Para alterar os termos, desative este cupom e crie um novo."
+      "codeImmutable": "O código promocional é imutável. Para alterar os termos, desative este cupom e crie um novo.",
+      "manual": "Para pagamentos externos ou estoque antigo. Desconto de 100% em uma venda, sem renovação automática."
     },
     "loadError": "Não foi possível carregar os cupons: {message}. Verifique os logs das funções na Vercel para mais detalhes.",
     "new": "Novo cupom",
     "packageMeta": "{quantity, plural, one {# unidade} other {# unidades}} · {price}",
     "productKind": {
       "gencodePackage": "Pacote de Gencodes",
-      "partnerPlan": "Plano B2B"
+      "partnerPlan": "Plano B2B",
+      "consumer": "Assinatura B2C"
     },
     "placeholders": {
       "code": "WELCOME10",
@@ -582,6 +586,10 @@
     "toasts": {
       "deactivated": "Cupom desativado.",
       "reactivated": "Cupom reativado."
+    },
+    "redemptionMode": {
+      "stripe": "No checkout do Stripe",
+      "manual": "Pela equipe no BMS (100%)"
     }
   },
   "Errors": {
@@ -614,7 +622,9 @@
     "title": "Algo deu errado",
     "trialNeedsPlanCode": "Informe o plano do trial ou zere a duração.",
     "upperSnakeOnly": "Use apenas letras maiúsculas, números e underscore.",
-    "wholeNumber": "Deve ser um número inteiro"
+    "wholeNumber": "Deve ser um número inteiro",
+    "manualCouponTerms": "Cupons aplicados no BMS devem ter 100% de desconto e duração única.",
+    "manualCouponConfirmation": "Confirme a conferência do pagamento ou do estoque."
   },
   "ExtraUnitPrices": {
     "resource": {
@@ -1111,5 +1121,75 @@
       "emailResent": "E-mail reenviado com sucesso.",
       "reactivated": "Usuário reativado."
     }
+  },
+  "ManualCoupons": {
+    "title": "Aplicar cupom de 100%",
+    "description": "Confirme o pagamento recebido por outro gateway ou a regularização do estoque. A aplicação libera o produto imediatamente, sem nova cobrança.",
+    "back": "Cupons de desconto",
+    "coupon": "Cupom",
+    "pickCoupon": "Selecione o cupom",
+    "noCoupons": "Não há cupons de 100% disponíveis para aplicação no BMS.",
+    "kind": "Tipo de venda",
+    "kinds": {
+      "package": "Pacote de GenCodes",
+      "partner": "Assinatura B2B",
+      "consumer": "Assinatura B2C"
+    },
+    "consumerEmail": "E-mail do cliente no APP",
+    "consumerHint": "O cliente precisa ter uma conta ativa no APP. Use o e-mail dessa conta.",
+    "partner": "Cliente parceiro",
+    "pickPartner": "Selecione o cliente",
+    "searchPartner": "Buscar por nome ou documento...",
+    "noPartner": "Nenhum cliente encontrado.",
+    "product": "Produto",
+    "pickProduct": "Selecione o produto",
+    "noProducts": "Nenhum produto disponível para este cupom e moeda.",
+    "quantity": "Quantidade de GenCodes",
+    "period": "Período contratado",
+    "months": "{count, plural, one {1 mês} other {# meses}}",
+    "subtotal": "Valor de catálogo",
+    "discount": "Desconto de 100%",
+    "total": "Total a cobrar aqui",
+    "termNote": "Liberação por {count, plural, one {1 mês} other {# meses}}, sem renovação automática.",
+    "credits": "Inclui {count} créditos de ativação.",
+    "source": "Motivo da liberação",
+    "sources": {
+      "external_payment": "Pagamento recebido em outro gateway",
+      "legacy_stock": "Regularização de estoque antigo"
+    },
+    "reference": "Referência única da venda ou lote",
+    "referencePlaceholder": "Ex.: InfinitePay ABC123 ou lote EST-2026-01",
+    "referenceHint": "Use a identificação da venda ou do lote. A mesma referência não pode ser aplicada novamente.",
+    "externalAmount": "Valor já recebido ({currency})",
+    "confirmation": "Confirmo que conferi o pagamento externo ou o estoque, o cliente, o produto e o período. Esta ação libera os benefícios agora.",
+    "apply": "Confirmar e liberar",
+    "applying": "Aplicando...",
+    "review": "Conferir e aplicar cupom",
+    "applied": "Cupom aplicado. Os benefícios já estão disponíveis.",
+    "alreadyApplied": "Esta venda já foi aplicada. Nenhum benefício foi duplicado.",
+    "resultNote": "O histórico abaixo registra o cliente, os valores, a validade e o responsável. O cliente pode atualizar o APP ou o SEQ para ver os benefícios.",
+    "another": "Aplicar em outra venda",
+    "history": "Últimas 50 aplicações",
+    "emptyHistory": "Nenhuma aplicação registrada.",
+    "recipient": "Cliente",
+    "record": "Registro",
+    "amounts": "Ver valores",
+    "validUntil": "Válido até {date}",
+    "needsCoupon": "Selecione um cupom para aplicação no BMS ou sincronize este produto com o Stripe para enviar um link de pagamento.",
+    "errors": {
+      "invalid-data": "Confira os dados e confirme o pagamento ou o estoque antes de aplicar.",
+      "coupon-unavailable": "Este cupom não está disponível para aplicação no BMS. Confira a ativação e a validade.",
+      "coupon-exhausted": "Este cupom atingiu o limite de aplicações.",
+      "product-not-applicable": "O cupom não se aplica ao produto selecionado.",
+      "recipient-inactive": "Cliente não encontrado ou inativo. Para B2C, use o e-mail de uma conta ativa do APP.",
+      "product-unavailable": "Produto ou preço indisponível para o período e a moeda selecionados.",
+      "invalid-quantity": "A quantidade deve respeitar o mínimo do pacote.",
+      "active-subscription": "O cliente já tem uma assinatura vigente ou uma cobrança em andamento. Confira o contrato antes de liberar outro período.",
+      "reference-used": "Esta referência de venda ou lote já foi aplicada. Confira o histórico.",
+      "request-conflict": "Esta operação já foi registrada com outros dados. Atualize a página e confira o histórico.",
+      "failed": "Não foi possível aplicar o cupom. Tente novamente; a mesma operação não duplica benefícios."
+    },
+    "appliedAccessPending": "Cupom aplicado e benefícios liberados. Não foi possível concluir o convite de acesso ao SEQ. Confira o cliente e reenvie o convite em Clientes; não aplique a venda novamente.",
+    "manageAccess": "Conferir acesso em Clientes"
   }
 }

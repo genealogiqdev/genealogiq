@@ -6,6 +6,7 @@
     "./activation-trial": "./src/activation-trial.ts",
     "./credits": "./src/credits.ts",
     "./gencode-package": "./src/gencode-package.ts",
+    "./manual-coupon": "./src/manual-coupon.ts",
     "./media-storage": "./src/media-storage.ts",
     "./partner-billing": "./src/partner-billing.ts",
     "./partner-checkout": "./src/partner-checkout.ts",

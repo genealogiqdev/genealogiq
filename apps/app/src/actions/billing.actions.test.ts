@@ -59,11 +59,21 @@ const bookPrice = (over: Partial<{
 
 beforeEach(() => {
   vi.clearAllMocks()
+  prismaMock.appSale.findFirst.mockResolvedValue(null)
   vi.mocked(verifySession).mockResolvedValue({ user: { id: "user-1" } } as never)
   vi.mocked(ensureStripeCustomer).mockResolvedValue("cus_123")
 })
 
 describe("createCheckoutSession", () => {
+  it('rejects a second checkout while a manually granted plan is live', async () => {
+    prismaMock.appSale.findFirst.mockResolvedValue({ id: 'manual-sale' })
+    expect(await createCheckoutSession('sub-1', 'annual')).toEqual({ ok: false, message: 'billing.manualPlanActive' })
+    expect(ensureStripeCustomer).not.toHaveBeenCalled()
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled()
+    expect(prismaMock.appSale.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({
+      appUserId: 'user-1', couponRedemption: { isNot: null }, status: { in: ['active', 'trialing'] },
+    }) }))
+  })
   it("fails with planNotFound when no active plan matches (never touches Stripe)", async () => {
     prismaMock.subscription.findUnique.mockResolvedValue(null)
 

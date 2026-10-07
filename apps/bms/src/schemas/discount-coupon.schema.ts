@@ -19,9 +19,13 @@ function makeDiscountCouponRefine(t: Translator) {
       amountOffUsd: number
       amountOffBrl: number
       amountOffMxn: number
+      redemptionMode?: 'stripe' | 'manual'
     },
     ctx: z.RefinementCtx,
   ) => {
+    if (data.redemptionMode === 'manual' && (data.discountType !== 'percent' || data.percentOff !== 100 || data.duration !== 'once')) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['percentOff'], message: t('manualCouponTerms') })
+    }
     if (data.duration === 'repeating' && !data.durationInMonths) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['durationInMonths'], message: t('durationInMonthsRequired') })
     }
@@ -45,12 +49,13 @@ function makeDiscountCouponRefine(t: Translator) {
 
 export function getDiscountCouponSchema(t: Translator) {
   return z.object({
-    code: z.string()
+    code: z.string().trim().toUpperCase()
       .min(3, t('minChars', { count: 3 }))
       .max(32, t('maxChars', { count: 32 }))
       .regex(/^[A-Z0-9_-]+$/, t('couponCodeFormat')),
     description:      z.string().max(255).optional().nullable(),
     discountType:     z.enum(['percent', 'amount']),
+    redemptionMode:   z.enum(['stripe', 'manual']).optional(),
     percentOff:       z.number().min(0, t('mustBeZeroOrGreater')),
     amountOffUsd:     z.number().min(0, t('mustBeZeroOrGreater')),
     amountOffBrl:     z.number().min(0, t('mustBeZeroOrGreater')),
@@ -69,6 +74,7 @@ export const discountCouponDefaultValues: DiscountCouponFormValues = {
   code:             '',
   description:      '',
   discountType:     'percent',
+  redemptionMode:   'stripe',
   percentOff:       10,
   amountOffUsd:     0,
   amountOffBrl:     0,

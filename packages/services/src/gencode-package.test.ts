@@ -167,6 +167,7 @@ describe('openGenCodePackageCheckout', () => {
     prismaMock.discountCoupon.findFirst.mockResolvedValue({
       id: 'coupon_15',
       code: 'PACOTE15',
+      subscriptions: [],
       discountType: 'percent',
       percentOff: 15,
       amountOffUsd: null,
@@ -205,6 +206,7 @@ describe('openGenCodePackageCheckout', () => {
     prismaMock.discountCoupon.findFirst.mockResolvedValue({
       id: 'coupon_other',
       code: 'OUTRO10',
+      subscriptions: [],
       discountType: 'percent',
       percentOff: 10,
       amountOffUsd: null,
@@ -226,6 +228,7 @@ describe('openGenCodePackageCheckout', () => {
     prismaMock.discountCoupon.findFirst.mockResolvedValue({
       id: 'coupon_100',
       code: 'ESTOQUE100',
+      subscriptions: [],
       discountType: 'percent',
       percentOff: 100,
       amountOffUsd: null,

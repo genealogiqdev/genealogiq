@@ -5,6 +5,7 @@ genealogiq.dump
 github_token
 # next.js / build
 .next/
+.next-qa*/
 out/
 dist/
 .turbo/

@@ -15,7 +15,7 @@ export default async function NewContractPage() {
 
   const [tenants, plans, coupons] = await Promise.all([
     getActiveCustomers(),
-    getSellablePartnerPlans(currency),
+    getSellablePartnerPlans(currency, true),
     getSelectableCoupons(currency),
   ])
 

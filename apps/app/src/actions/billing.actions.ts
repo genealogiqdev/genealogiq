@@ -22,6 +22,15 @@ export async function createCheckoutSession(
   const t = await getTranslations("Actions")
   const session = await verifySession()
 
+  const manualPlan = await prisma.appSale.findFirst({
+    where: {
+      appUserId: session.user.id, status: { in: ['active', 'trialing'] },
+      currentPeriodEnd: { gt: new Date() }, couponRedemption: { isNot: null },
+    },
+    select: { id: true },
+  })
+  if (manualPlan) return fail(t('billing.manualPlanActive'))
+
   const plan = await prisma.subscription.findUnique({
     where:  { id: subscriptionId, isActive: true },
     select: { id: true, name: true },

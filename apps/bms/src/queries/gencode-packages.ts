@@ -3,11 +3,11 @@ import 'server-only'
 import { prisma } from '@/lib/prisma'
 import { verifySession } from '@/lib/dal'
 
-export async function getGenCodePackages(options: { sellableOnly?: boolean } = {}) {
+export async function getGenCodePackages(options: { sellableOnly?: boolean; includeUnsynced?: boolean } = {}) {
   await verifySession()
   const rows = await prisma.genCodePackage.findMany({
     where: options.sellableOnly
-      ? { isActive: true, stripeProductId: { not: null }, stripePriceId: { not: null } }
+      ? { isActive: true, ...(options.includeUnsynced ? {} : { stripeProductId: { not: null }, stripePriceId: { not: null } }) }
       : undefined,
     orderBy: [{ minimumQuantity: 'asc' }, { name: 'asc' }],
   })

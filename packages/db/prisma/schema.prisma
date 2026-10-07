@@ -191,6 +191,7 @@ model Subscription {
   // Free QR codes (own profile + guarded memorials, combined).
   qrCodeMax      Int         @default(1) @map("qr_code_max")
   appSales       AppSale[]
+  coupons        DiscountCoupon[] @relation("CouponSubscriptions")
   // Versioned price book (see PlanPrice). Coexists with the price_* columns
   // above during the cutover: the columns are still the ones the APP reads.
   prices         PlanPrice[]
@@ -211,6 +212,8 @@ model DiscountCoupon {
   amountOffBrl          Decimal?         @map("amount_off_brl") @db.Decimal(10, 2)
   amountOffMxn          Decimal?         @map("amount_off_mxn") @db.Decimal(10, 2)
   duration              String
+  /// Manual coupons settle a single sale in BMS after an external payment or stock reconciliation.
+  redemptionMode        String           @default("stripe") @map("redemption_mode")
   durationInMonths      Int?             @map("duration_in_months")
   maxRedemptions        Int?             @map("max_redemptions")
   redeemBy              DateTime?        @map("redeem_by")
@@ -222,7 +225,9 @@ model DiscountCoupon {
   updatedAt             DateTime         @updatedAt @map("updated_at")
   appliesTo             PartnerPlan[]    @relation("CouponPlans")
   genCodePackages       GenCodePackage[] @relation("CouponGenCodePackages")
+  subscriptions         Subscription[]   @relation("CouponSubscriptions")
   genCodeOrders         GenCodeOrder[]
+  redemptions           CouponRedemption[]
 
   @@map("discount_coupons")
 }
@@ -254,9 +259,49 @@ model AppSale {
   soldBy               User?        @relation(fields: [soldById], references: [id], onDelete: Restrict)
   subscription         Subscription @relation(fields: [subscriptionId], references: [id])
   tenant               Tenant?      @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  couponRedemption     CouponRedemption?
 
   @@index([appUserId])
   @@map("app_sales")
+}
+
+/// Immutable evidence of one BMS-authorized, fully discounted sale. The result
+/// and this record are committed together; request and receipt keys prevent
+/// retries or a second operator from granting the same sale twice.
+model CouponRedemption {
+  id                  String   @id @default(cuid())
+  requestId           String   @unique @map("request_id")
+  requestHash         String   @map("request_hash")
+  /// Permanent result identity survives deletion of a consumer account/sale.
+  resultId            String   @unique @map("result_id")
+  couponId            String   @map("coupon_id")
+  code                String
+  kind                String
+  recipientId         String   @map("recipient_id")
+  productId           String   @map("product_id")
+  quantity            Int
+  cadence             String?
+  source              String
+  reference           String   @db.VarChar(160)
+  externalAmount      Decimal? @map("external_amount") @db.Decimal(12, 2)
+  currency            String   @db.VarChar(3)
+  subtotalAmount      Decimal  @map("subtotal_amount") @db.Decimal(12, 2)
+  discountAmount      Decimal  @map("discount_amount") @db.Decimal(12, 2)
+  totalAmount         Decimal  @map("total_amount") @db.Decimal(12, 2)
+  createdById         String   @map("created_by_id")
+  createdAt           DateTime @default(now()) @map("created_at")
+  genCodeOrderId      String?  @unique @map("gencode_order_id")
+  subscriptionCycleId String?  @unique @map("subscription_cycle_id")
+  appSaleId           String?  @unique @map("app_sale_id")
+  coupon              DiscountCoupon    @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  genCodeOrder        GenCodeOrder?     @relation(fields: [genCodeOrderId], references: [id], onDelete: Restrict)
+  subscriptionCycle  SubscriptionCycle? @relation(fields: [subscriptionCycleId], references: [id], onDelete: Restrict)
+  appSale             AppSale?          @relation(fields: [appSaleId], references: [id], onDelete: SetNull)
+
+  @@unique([source, reference])
+  @@index([couponId, createdAt(sort: Desc)])
+  @@index([recipientId])
+  @@map("coupon_redemptions")
 }
 
 model StripeEvent {
@@ -1065,6 +1110,7 @@ model GenCodeOrder {
   createdBy               User?                @relation(fields: [createdById], references: [id], onDelete: SetNull)
   creditGrant             CreditGrant?         @relation("OrderGrant", fields: [creditGrantId], references: [id], onDelete: SetNull)
   genCodes                GenCode[]            @relation("OrderGenCodes")
+  couponRedemption        CouponRedemption?
 
   @@index([tenantId, createdAt(sort: Desc)])
   @@index([partnerSubscriptionId])
@@ -1231,6 +1277,7 @@ model SubscriptionCycle {
   currentOf          PartnerSubscription?    @relation("CurrentCycle")
   genCodes           GenCode[]
   grants             CreditGrant[]
+  couponRedemption   CouponRedemption?
 
   @@index([subscriptionId, startAt(sort: Desc)])
   @@index([endAt])

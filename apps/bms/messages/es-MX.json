@@ -508,7 +508,8 @@
       "deactivate": "Desactivar",
       "editDescription": "Editar descripción",
       "openMenu": "Abrir menú",
-      "reactivate": "Reactivar"
+      "reactivate": "Reactivar",
+      "apply": "Aplicar cupón del 100%"
     },
     "create": "Crear cupón",
     "discount": {
@@ -540,18 +541,21 @@
       "durationInMonths": "Duración en meses",
       "expiresOn": "Vence el",
       "maxRedemptions": "Máximo de canjes",
-      "percent": "Porcentaje (0-100)"
+      "percent": "Porcentaje (0-100)",
+      "redemptionMode": "Forma de aplicación"
     },
     "hints": {
       "appliesTo": "Deja todo sin marcar para aplicar a todos los productos.",
-      "codeImmutable": "El código promocional es inmutable. Para cambiar los términos, desactiva este cupón y crea uno nuevo."
+      "codeImmutable": "El código promocional es inmutable. Para cambiar los términos, desactiva este cupón y crea uno nuevo.",
+      "manual": "Para pagos externos o inventario anterior. Descuento del 100% en una venta, sin renovación automática."
     },
     "loadError": "No se pudieron cargar los cupones: {message}. Revisa los registros de funciones en Vercel para más detalles.",
     "new": "Nuevo cupón",
     "packageMeta": "{quantity, plural, one {# unidad} other {# unidades}} · {price}",
     "productKind": {
       "gencodePackage": "Paquete de GenCodes",
-      "partnerPlan": "Plan B2B"
+      "partnerPlan": "Plan B2B",
+      "consumer": "Suscripción B2C"
     },
     "placeholders": {
       "code": "WELCOME10",
@@ -582,6 +586,10 @@
     "toasts": {
       "deactivated": "Cupón desactivado.",
       "reactivated": "Cupón reactivado."
+    },
+    "redemptionMode": {
+      "stripe": "En el checkout de Stripe",
+      "manual": "Por el equipo en BMS (100%)"
     }
   },
   "Errors": {
@@ -614,7 +622,9 @@
     "title": "Algo salió mal",
     "trialNeedsPlanCode": "Indica el plan de prueba o pon la duración en cero.",
     "upperSnakeOnly": "Usa solo letras mayúsculas, números y guiones bajos.",
-    "wholeNumber": "Debe ser un número entero"
+    "wholeNumber": "Debe ser un número entero",
+    "manualCouponTerms": "Los cupones de BMS deben tener un descuento del 100% y duración única.",
+    "manualCouponConfirmation": "Confirma la revisión del pago o del inventario."
   },
   "ExtraUnitPrices": {
     "resource": {
@@ -1111,5 +1121,75 @@
       "emailResent": "Correo reenviado correctamente.",
       "reactivated": "Usuario reactivado."
     }
+  },
+  "ManualCoupons": {
+    "title": "Aplicar cupón del 100%",
+    "description": "Confirma el pago recibido por otra pasarela o la regularización del inventario. La aplicación libera el producto inmediatamente, sin un nuevo cobro.",
+    "back": "Cupones de descuento",
+    "coupon": "Cupón",
+    "pickCoupon": "Selecciona el cupón",
+    "noCoupons": "No hay cupones del 100% disponibles para aplicar en BMS.",
+    "kind": "Tipo de venta",
+    "kinds": {
+      "package": "Paquete de GenCodes",
+      "partner": "Suscripción B2B",
+      "consumer": "Suscripción B2C"
+    },
+    "consumerEmail": "Correo del cliente en APP",
+    "consumerHint": "El cliente debe tener una cuenta activa en APP. Usa el correo de esa cuenta.",
+    "partner": "Cliente socio",
+    "pickPartner": "Selecciona el cliente",
+    "searchPartner": "Buscar por nombre o documento...",
+    "noPartner": "No se encontró ningún cliente.",
+    "product": "Producto",
+    "pickProduct": "Selecciona el producto",
+    "noProducts": "No hay productos disponibles para este cupón y moneda.",
+    "quantity": "Cantidad de GenCodes",
+    "period": "Periodo contratado",
+    "months": "{count, plural, one {1 mes} other {# meses}}",
+    "subtotal": "Valor de catálogo",
+    "discount": "Descuento del 100%",
+    "total": "Total a cobrar aquí",
+    "termNote": "Acceso por {count, plural, one {1 mes} other {# meses}}, sin renovación automática.",
+    "credits": "Incluye {count} créditos de activación.",
+    "source": "Motivo de la activación",
+    "sources": {
+      "external_payment": "Pago recibido por otra pasarela",
+      "legacy_stock": "Regularización de inventario anterior"
+    },
+    "reference": "Referencia única de la venta o lote",
+    "referencePlaceholder": "Ej.: InfinitePay ABC123 o lote EST-2026-01",
+    "referenceHint": "Usa el identificador de la venta o del lote. La misma referencia no puede aplicarse otra vez.",
+    "externalAmount": "Importe ya recibido ({currency})",
+    "confirmation": "Confirmo que revisé el pago externo o el inventario, el cliente, el producto y el periodo. Esta acción libera los beneficios ahora.",
+    "apply": "Confirmar y activar",
+    "applying": "Aplicando...",
+    "review": "Revisar y aplicar cupón",
+    "applied": "Cupón aplicado. Los beneficios ya están disponibles.",
+    "alreadyApplied": "Esta venta ya fue aplicada. No se duplicaron beneficios.",
+    "resultNote": "El historial registra el cliente, los importes, la vigencia y el responsable. El cliente puede actualizar APP o SEQ para ver los beneficios.",
+    "another": "Aplicar en otra venta",
+    "history": "Últimas 50 aplicaciones",
+    "emptyHistory": "No hay aplicaciones registradas.",
+    "recipient": "Cliente",
+    "record": "Registro",
+    "amounts": "Ver importes",
+    "validUntil": "Válido hasta {date}",
+    "needsCoupon": "Selecciona un cupón para aplicar en BMS o sincroniza este producto con Stripe para enviar un enlace de pago.",
+    "errors": {
+      "invalid-data": "Revisa los datos y confirma el pago o el inventario antes de aplicar.",
+      "coupon-unavailable": "Este cupón no está disponible para aplicar en BMS. Revisa su activación y vencimiento.",
+      "coupon-exhausted": "Este cupón alcanzó su límite de usos.",
+      "product-not-applicable": "El cupón no se aplica al producto seleccionado.",
+      "recipient-inactive": "Cliente no encontrado o inactivo. Para B2C, usa el correo de una cuenta activa de APP.",
+      "product-unavailable": "Producto o precio no disponible para el periodo y la moneda seleccionados.",
+      "invalid-quantity": "La cantidad debe cumplir el mínimo del paquete.",
+      "active-subscription": "El cliente ya tiene una suscripción vigente o un cobro en curso. Revisa el contrato antes de liberar otro periodo.",
+      "reference-used": "Esta referencia de venta o lote ya fue aplicada. Revisa el historial.",
+      "request-conflict": "Esta operación ya se registró con otros datos. Actualiza la página y revisa el historial.",
+      "failed": "No fue posible aplicar el cupón. Intenta de nuevo; la misma operación no duplica beneficios."
+    },
+    "appliedAccessPending": "Cupón aplicado y beneficios liberados. No se pudo completar la invitación de acceso a SEQ. Revisa al cliente y reenvía la invitación en Clientes; no vuelvas a aplicar la venta.",
+    "manageAccess": "Revisar acceso en Clientes"
   }
 }

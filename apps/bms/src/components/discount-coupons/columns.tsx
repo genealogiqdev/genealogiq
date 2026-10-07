@@ -15,6 +15,7 @@ export type DiscountCouponRow = {
   code:             string
   description:      string | null
   discountType:     string
+  redemptionMode:   string
   percentOff:       number | null
   amountOffUsd:     number | null
   amountOffBrl:     number | null
@@ -59,6 +60,7 @@ function ActionsCell({ row, t }: { row: { original: DiscountCouponRow }; t: Tran
     <RowActions
       menuLabel={t('actions.openMenu')}
       items={[
+        ...(coupon.redemptionMode === 'manual' && coupon.isActive ? [{ kind: 'link' as const, label: t('actions.apply'), href: `/sales/discount-coupons/redeem?couponId=${encodeURIComponent(coupon.id)}` }] : []),
         { kind: 'link', label: t('actions.editDescription'), href: `/sales/discount-coupons/${coupon.id}` },
         {
           kind: 'action',

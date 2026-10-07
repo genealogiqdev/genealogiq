@@ -25,7 +25,7 @@ export default async function ProtectPagesLayout({
       }
     >
       <AppSidebar />
-      <div className="flex flex-col w-full min-h-screen">
+      <div className="flex min-w-0 flex-col w-full min-h-screen">
         <header className="sticky top-0 z-30 flex items-center justify-between border-b bg-background/80 px-4 py-2 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
           <div className="flex items-center gap-2">
             <SidebarTrigger />

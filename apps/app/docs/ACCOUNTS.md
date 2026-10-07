@@ -3,7 +3,7 @@
 > **Code:** [src/actions/auth.actions.ts](../src/actions/auth.actions.ts) · [src/auth.ts](../src/auth.ts) · [src/schemas/auth.schema.ts](../src/schemas/auth.schema.ts)
 > **Entry points:** `/sign-in` · `/sign-up` · `/forgot-password` · `/reset-password` · `/profile/[id]/edit` · `/verify-email` · `/api/auth/[...nextauth]` · `/api/verify-email`
 > **Depends on:** [AUTHENTICATION](../../../docs/AUTHENTICATION.md) · [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** Email-change submission rechecked on 2026-10-07 at `218d5aa` plus this fix; other account contracts retain the 2026-10-03 `6e06634` audit. Source verification is separate from runtime/UI below.
+> **Last verified against code:** Email-change submission rechecked on 2026-10-07 at `218d5aa` plus its fix; the Gen2026 deletion cascade was rechecked at `9253152` plus its amendment. Other account contracts retain the 2026-10-03 `6e06634` audit. Source verification is separate from runtime/UI below.
 
 The APP application supplies consumer accounts. Zod auth schemas parse account inputs. Verified active APP_USER accounts use app.session-token; Google may create password=null accounts. Token fields are hashed/expiring; nullable password originated in 20260331141146_nullable_password.
 
@@ -32,6 +32,8 @@ Shared authorize checks active status, verified email and password lockout; five
 The email dialog stops its own submit event from bubbling into the profile form. React events follow the component tree even when Dialog renders its content through a portal. Without that boundary, React Hook Form prevents the email action and validates or saves unrelated profile fields. Submitting by button or Enter must leave the profile draft untouched and display errors returned by `requestEmailChange` inside the dialog. Do not prevent the default React form action when isolating this event.
 
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
+
+Manual Gen2026 sales preserve the existing consumer deletion path. AppSale still cascades when its AppUser is deleted; `CouponRedemption.appSaleId` then becomes null while the receipt's permanent result ID, amounts and usage count remain. A receipt cannot be reused after deletion. This is verified against a disposable PostgreSQL account in the [manual-coupon integration suite](../../../packages/services/src/manual-coupon.integration.test.ts); it does not change password checks, email delivery or the deletion action's other behavior.
 
 ## Contracts and data
 
@@ -155,6 +157,7 @@ For email-change regression QA, use the normal local Credentials account and an 
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | pass: Credentials sign-in → /home; normal sign-out → protected /home redirected to /sign-in. This does not verify signup/reset/OAuth. | Only the named exercised behavior is verified. |
 | 2026-10-07 | `218d5aa` + email-change fix | Source trace and real-portal regression | Rechecked history since `6e06634` and the current dialog → profile form → session/schema/action → token → email adapter → confirmation route. Two tests reproduced the cancellation before the fix and passed afterward. Full suite: 842 passed, one opt-in skip. APP typecheck, lint (eight existing warnings) and production build passed; documentation checks passed. | Server contracts unchanged; other concurrent workspace edits are outside this fix. |
 | 2026-10-07 | Same email-change fix | Local browser, PostgreSQL and mail sink | Invalid password, valid button/Enter submission, pending token, confirmation/consumption and independent profile persistence checks exercised. | See the dated audit for restoration, process ownership and the real-delivery limitation. |
+| 2026-10-07 | `9253152` + Gen2026 changes | Source and real PostgreSQL lifecycle regression | Traced `deleteAccount` → AppUser deletion → AppSale cascade. A disposable consumer was deleted without blocking; its manual receipt, amount, usage count and retry identity remained. | [Gen2026 audit](../../../docs/audits/GEN2026-2026-10-07.md); this is database-boundary evidence, not a new deletion-mail/UI pass. |
 
 ## Related
 

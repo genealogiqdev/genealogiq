@@ -25,7 +25,8 @@ interface ProductOption {
   price:    number
   quantity: number
   currency: string
-  kind:     'partner-plan' | 'gencode-package'
+  kind:     'partner-plan' | 'gencode-package' | 'consumer'
+  stripeSynced: boolean
 }
 
 interface DiscountCouponFormProps {
@@ -86,6 +87,8 @@ export function DiscountCouponForm({ products }: DiscountCouponFormProps) {
   const { control, handleSubmit, watch, formState: { isSubmitting } } = form
   const duration     = watch('duration')
   const discountType = watch('discountType')
+  const manual = watch('redemptionMode') === 'manual'
+  const visibleProducts = products.filter((p) => manual || p.stripeSynced)
 
   async function onSubmit(data: DiscountCouponFormValues) {
     setServerError(null)
@@ -103,6 +106,26 @@ export function DiscountCouponForm({ products }: DiscountCouponFormProps) {
       {serverError && <FieldError>{serverError}</FieldError>}
 
       <FieldGroup>
+        <Controller name="redemptionMode" control={control} render={({ field }) => (
+          <Field>
+            <FieldLabel>{t('fields.redemptionMode')}</FieldLabel>
+            <Select value={field.value ?? 'stripe'} onValueChange={(value) => {
+              field.onChange(value)
+              form.setValue('appliesTo', [])
+              if (value === 'manual') {
+                form.setValue('discountType', 'percent'); form.setValue('percentOff', 100)
+                form.setValue('duration', 'once'); form.setValue('durationInMonths', null)
+              }
+            }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="stripe">{t('redemptionMode.stripe')}</SelectItem>
+                <SelectItem value="manual">{t('redemptionMode.manual')}</SelectItem>
+              </SelectContent>
+            </Select>
+            {manual && <p className="text-sm text-muted-foreground">{t('hints.manual')}</p>}
+          </Field>
+        )} />
         <Controller
           name="code"
           control={control}
@@ -157,7 +180,7 @@ export function DiscountCouponForm({ products }: DiscountCouponFormProps) {
             render={({ field }) => (
               <Field>
                 <FieldLabel>{t('fields.discountType')}</FieldLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select value={field.value} onValueChange={field.onChange} disabled={manual}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="percent">{t('discountType.percent')}</SelectItem>
@@ -180,6 +203,7 @@ export function DiscountCouponForm({ products }: DiscountCouponFormProps) {
                     step="1"
                     min="0"
                     max="100"
+                    readOnly={manual}
                     value={field.value ?? ''}
                     onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
                     aria-invalid={fieldState.invalid}
@@ -198,7 +222,7 @@ export function DiscountCouponForm({ products }: DiscountCouponFormProps) {
             render={({ field }) => (
               <Field>
                 <FieldLabel>{t('fields.duration')}</FieldLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select value={field.value} onValueChange={field.onChange} disabled={manual}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="once">{t('durationOption.once')}</SelectItem>
@@ -271,7 +295,7 @@ export function DiscountCouponForm({ products }: DiscountCouponFormProps) {
           />
         </div>
 
-        {products.length > 0 && (
+        {visibleProducts.length > 0 && (
           <Controller
             name="appliesTo"
             control={control}
@@ -280,7 +304,7 @@ export function DiscountCouponForm({ products }: DiscountCouponFormProps) {
                 <FieldLabel>{t('fields.appliesTo')}</FieldLabel>
                 <p className="text-xs text-muted-foreground">{t('hints.appliesTo')}</p>
                 <div className="flex flex-col gap-2 mt-1">
-                  {products.map((p) => {
+                  {visibleProducts.map((p) => {
                     const checked = field.value.includes(p.id)
                     return (
                       <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -294,7 +318,7 @@ export function DiscountCouponForm({ products }: DiscountCouponFormProps) {
                           }}
                         />
                         <span>
-                          {t(`productKind.${p.kind === 'partner-plan' ? 'partnerPlan' : 'gencodePackage'}`)}: {p.name}
+                          {t(`productKind.${p.kind === 'partner-plan' ? 'partnerPlan' : p.kind === 'consumer' ? 'consumer' : 'gencodePackage'}`)}: {p.name}
                           <span className="text-muted-foreground"> — {t('packageMeta', { quantity: p.quantity, price: money(p.price, p.currency) })}</span>
                         </span>
                       </label>

@@ -44,6 +44,21 @@ async function main() {
   // DATABASE_URL during module initialization.
   const { prisma } = await import("@genealogiq/db")
   disconnect = () => prisma.$disconnect()
+  const manualCoupon = await prisma.discountCoupon.findFirst({ where: { code: { equals: 'Gen2026', mode: 'insensitive' } } })
+  if (!manualCoupon) {
+    await prisma.discountCoupon.create({ data: {
+      id: 'gen2026-manual-coupon', code: 'Gen2026', redemptionMode: 'manual',
+      description: '100% para vendas recebidas por outro gateway ou regularização de estoque. Aplicação pela equipe no BMS.',
+      discountType: 'percent', percentOff: 100, duration: 'once', createdById: 'system:gen2026',
+    } })
+  }
+  // A fresh consumer needs the real FREE fallback even before its first sale.
+  await prisma.subscription.upsert({
+    where: { code: 'FREE' }, update: {},
+    create: { name: 'Free', code: 'FREE', termLength: 0, treeMaxMembers: 32, bioMaxChars: 2048,
+      mediaMaxImages: 32, mediaMaxVideos: 8, documentsMax: 16, geoPlacesMax: 3,
+      memorialsMax: 1, petsMax: 0, qrCodeMax: 1 },
+  })
   const password = await bcrypt.hash(PASSWORD, 12)
 
   const company = await prisma.company.upsert({

@@ -62,12 +62,14 @@ export async function sendPartnerPlanLink(
         stripePromotionCodeId: true,
         appliesTo: { select: { id: true } },
         genCodePackages: { select: { id: true } },
+        subscriptions: { select: { id: true } },
       },
     })
     if (!coupon) return fail(t('sale.couponNotApplicable'))
     const restrictedProductIds = [
       ...coupon.appliesTo.map((product) => product.id),
       ...coupon.genCodePackages.map((product) => product.id),
+      ...coupon.subscriptions.map((product) => product.id),
     ]
     if (restrictedProductIds.length > 0 && !restrictedProductIds.includes(planId)) {
       return fail(t('sale.couponNotApplicable'))
@@ -75,7 +77,7 @@ export async function sendPartnerPlanLink(
     promotionCodeId = coupon.stripePromotionCodeId
   }
 
-  const baseUrl = process.env.BMS_URL ?? 'http://localhost:3000'
+  const baseUrl = process.env.BMS_URL ?? 'http://localhost:3001'
 
   try {
     const checkout = await openPartnerCheckout({
@@ -84,8 +86,8 @@ export async function sendPartnerPlanLink(
       cadence,
       currency,
       origin:     BMS_ORIGIN,
-      successUrl: `${baseUrl}/sales/manual-sales?status=success`,
-      cancelUrl:  `${baseUrl}/sales/manual-sales?status=cancel`,
+      successUrl: `${baseUrl}/sales/contracts?status=success`,
+      cancelUrl:  `${baseUrl}/sales/contracts?status=cancel`,
       promotionCodeId,
     })
 
@@ -99,7 +101,7 @@ export async function sendPartnerPlanLink(
       expiresAt:   checkout.expiresAt,
     })
 
-    revalidatePath('/sales/manual-sales')
+    revalidatePath('/sales/contracts')
     return ok({ email: tenant.email })
   } catch (err) {
     if (err instanceof PartnerCheckoutError) {

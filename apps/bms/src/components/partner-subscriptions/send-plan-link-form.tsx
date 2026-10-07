@@ -17,9 +17,10 @@ export interface LinkTenant { id: string; name: string; taxId: string }
 export interface LinkPlan {
   id: string; name: string; code: string; annualAllowance: number
   currency: string; annualCashAmount: number
+  stripeSynced: boolean
   installmentCount: number | null; installmentAmount: number | null
 }
-export interface LinkCoupon { id: string; code: string; discountType: string; value: number; productIds: string[] }
+export interface LinkCoupon { id: string; code: string; discountType: string; value: number; productIds: string[]; redemptionMode: string }
 
 /**
  * The operator-driven half of subscribing a partner.
@@ -33,6 +34,7 @@ export function SendPlanLinkForm({
 }: { tenants: LinkTenant[]; plans: LinkPlan[]; coupons: LinkCoupon[] }) {
   const t = useTranslations('Contracts')
   const tc = useTranslations('Common')
+  const tm = useTranslations('ManualCoupons')
   const locale = useLocale()
   const router = useRouter()
 
@@ -54,8 +56,13 @@ export function SendPlanLinkForm({
   )
 
   const offersInstalments = !!plan && plan.installmentCount != null && plan.installmentAmount != null
+  const manual = eligibleCoupons.find((c) => c.id === couponId)?.redemptionMode === 'manual'
 
   async function handleSend() {
+    if (manual) {
+      router.push(`/sales/discount-coupons/redeem?${new URLSearchParams({ couponId, kind: 'partner', productId: planId, tenantId })}`)
+      return
+    }
     setError(null)
     setSending(true)
     const result = await sendPartnerPlanLink(tenantId, planId, cadence, couponId || null)
@@ -111,7 +118,7 @@ export function SendPlanLinkForm({
           )}
         </Field>
 
-        {plan && (
+        {plan && !manual && (
           <Field>
             <FieldLabel>{t('link.cadence')}</FieldLabel>
             <Select value={cadence} onValueChange={(v) => setCadence(v as PartnerCadence)}>
@@ -136,9 +143,10 @@ export function SendPlanLinkForm({
         {eligibleCoupons.length > 0 && (
           <Field>
             <FieldLabel>{t('link.coupon')}</FieldLabel>
-            <Select value={couponId} onValueChange={setCouponId}>
+            <Select value={couponId || '__none__'} onValueChange={(v) => setCouponId(v === '__none__' ? '' : v)}>
               <SelectTrigger><SelectValue placeholder={t('link.noCoupon')} /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="__none__">{t('link.noCoupon')}</SelectItem>
                 {eligibleCoupons.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.code} — {c.discountType === 'percent' ? `${c.value}%` : money(c.value, plan?.currency ?? 'USD')}
@@ -152,13 +160,13 @@ export function SendPlanLinkForm({
         {/* Stripe caps a Checkout Session at 24 hours and rejects anything
             longer. Saying so up front beats an operator wondering why the link
             they sent on Friday is dead on Monday. */}
-        <p className="text-xs text-muted-foreground">{t('link.expiryNote')}</p>
+        <p className="text-xs text-muted-foreground">{manual ? tm('description') : !plan?.stripeSynced && plan ? tm('needsCoupon') : t('link.expiryNote')}</p>
 
         {error && <FieldError>{error}</FieldError>}
 
         <div className="flex items-center gap-3">
-          <Button onClick={handleSend} disabled={!tenantId || !planId || sending}>
-            {sending ? t('link.sending') : t('link.send')}
+          <Button onClick={handleSend} disabled={!tenantId || !planId || sending || (!manual && !plan?.stripeSynced)}>
+            {manual ? tm('review') : sending ? t('link.sending') : t('link.send')}
           </Button>
           <Button variant="outline" onClick={() => router.push('/sales/contracts')}>{tc('cancel')}</Button>
         </div>

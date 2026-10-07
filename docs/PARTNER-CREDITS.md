@@ -3,7 +3,7 @@
 > **Code:** [packages/services/src/credits.ts](../packages/services/src/credits.ts) · [packages/services/src/partner-billing.ts](../packages/services/src/partner-billing.ts) · [packages/services/src/rollover.ts](../packages/services/src/rollover.ts) · [packages/services/src/gencode-package.ts](../packages/services/src/gencode-package.ts) · [packages/services/src/activation-trial.ts](../packages/services/src/activation-trial.ts) · [packages/services/src/reconciliation.ts](../packages/services/src/reconciliation.ts) · [packages/services/src/partner-lifecycle.ts](../packages/services/src/partner-lifecycle.ts) · [packages/services/src/partner-notifications.ts](../packages/services/src/partner-notifications.ts)
 > **Entry points:** `BMS GET /api/cron/daily` · `BMS/SEQ POST /api/stripe/webhook` · `APP activateGenCode`
 > **Depends on:** [EMAIL-DELIVERY](EMAIL-DELIVERY.md) · [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) · [DATABASE](DATABASE.md) · [CONFIGURATION](CONFIGURATION.md) · [TESTING](TESTING.md) · [OBSERVABILITY](OBSERVABILITY.md) · [RUNBOOKS](RUNBOOKS.md)
-> **Last verified against code:** 2026-10-03 at `6e06634`, including this task’s uncommitted documentation, launcher and test changes. Source verification is separate from runtime/UI below.
+> **Last verified against code:** 2026-10-07 at `9253152` plus the Gen2026 changes to the paths named below. Source, tests, runtime and UI are recorded separately; earlier observations remain in the verification log.
 
 This shared module supplies partner credit ledger, cycles and reconciliation. Grant balances, reservations and ledger events change transactionally under row locks. Idempotency keys are unique. HELD reservations consume availability; identified sales create a code-bound COMMITTED grant with its own twelve-month validity. TOPUP orders grant quantity plus bonus for twelve months. Cycle snapshot/rollover/grace rules are persisted, not recalculated from current plans.
 
@@ -35,6 +35,14 @@ No LLM/model stage exists in this implementation.
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
+
+### BMS manual settlement entry
+
+`redeemManualCoupon` now opens [Gen2026 settlements](../apps/bms/docs/DISCOUNT-COUPONS.md) after privileged BMS confirmation. It calls `openPartnerCycle` for an annual plan or `grantGenCodeOrder` for a standalone package inside the same transaction as the coupon audit. These writers are also used by the existing Stripe paths; no separate allowance/rollover algorithm was introduced.
+
+Annual settlement mints only the balance/stock delta, preserves current snapshots and committed credits, and disables automatic renewal. Renewal in a manual contract's grace window retains the existing rollover calculation. A package grants exactly its recorded quantity as TOPUP for 12 months and does not inherit annual rollover. Prior stock and ledger entries are retained.
+
+The opt-in PostgreSQL suite independently expects 5 existing + 2 purchased = 7 codes; concurrent retries create one grant; a usage limit of one admits one competing transaction; an audit-insert failure rolls back all side effects. A 20-credit annual plan renewed under the 30% cap produces 6 rollover + 20 annual credits and 26 codes. This covers real locks/transactions on the manual path. Signed provider replay and the broader reservation/activation/reconciliation sequence in PARTNER-CREDITS-G1 remain open. See [TESTING](TESTING.md) and the [Gen2026 audit](audits/GEN2026-2026-10-07.md).
 
 Grant balances, reservations and ledger events change transactionally under row locks. Idempotency keys are unique. HELD reservations consume availability; identified sales create a code-bound COMMITTED grant with its own twelve-month validity. TOPUP orders grant quantity plus bonus for twelve months. Cycle snapshot/rollover/grace rules are persisted, not recalculated from current plans.
 
@@ -135,6 +143,7 @@ Follow [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for exact setup/start/readiness
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
+| 2026-10-07 | `218d5aa` + Gen2026 change | Literal unit expectations and seven real PostgreSQL tests | Shared writers, old-stock preservation, renewal/rollover, concurrency, usage cap and atomic audit rollback verified; SEQ displayed funded stock. | [Audit](audits/GEN2026-2026-10-07.md); no signed provider or complete reconciliation replay claim. |
 
 ## Related
 

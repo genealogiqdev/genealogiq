@@ -1,9 +1,9 @@
 # Discount coupon management
 
-> **Code:** [src/actions/discount-coupon.actions.ts](../src/actions/discount-coupon.actions.ts) · [src/queries/discount-coupons.ts](../src/queries/discount-coupons.ts) · [src/schemas/discount-coupon.schema.ts](../src/schemas/discount-coupon.schema.ts)
-> **Entry points:** `/sales/discount-coupons` · `/sales/discount-coupons/new` · `/sales/discount-coupons/[id]`
+> **Code:** [src/actions/discount-coupon.actions.ts](../src/actions/discount-coupon.actions.ts) · [src/queries/discount-coupons.ts](../src/queries/discount-coupons.ts) · [src/schemas/discount-coupon.schema.ts](../src/schemas/discount-coupon.schema.ts) · [src/actions/manual-coupon.actions.ts](../src/actions/manual-coupon.actions.ts) · [manual-coupon service](../../../packages/services/src/manual-coupon.ts)
+> **Entry points:** `/sales/discount-coupons` · `/sales/discount-coupons/new` · `/sales/discount-coupons/[id]` · `/sales/discount-coupons/redeem`
 > **Depends on:** [GENCODE-PACKAGES](GENCODE-PACKAGES.md) · [PARTNER-PLANS-CONTRACTS](PARTNER-PLANS-CONTRACTS.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-03 at `6e06634`, including this task’s uncommitted documentation, launcher and test changes. Source verification is separate from runtime/UI below.
+> **Last verified against code:** 2026-10-07, `218d5aa` plus the Gen2026 implementation in this change. Source, tests, runtime and UI evidence are separated in the [Gen2026 audit](../../../docs/audits/GEN2026-2026-10-07.md).
 
 The BMS application supplies discount coupon management. Coupons support percentage or currency-specific fixed amounts, expiry, usage and activation. The schema/SDK mapping determines the Stripe coupon; BMS mutations are privileged. Migration 20260825180000_coupon_tri_currency established the currency-specific shape.
 
@@ -29,6 +29,26 @@ A coupon must not be presented as valid for a currency with no configured amount
 
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
+### Manual settlement with Gen2026
+
+The user chose **application by the BMS team after checking external payment or old stock**. `Gen2026` is an active, unrestricted 100% coupon with `redemptionMode=manual`, `duration=once`, no expiry and no usage cap. The migration and local seed provision it without creating a Stripe object. The displayed code retains `Gen2026`; code matching and duplicate checks are case-insensitive.
+
+Only `verifyAdmin`-authorized BMS staff can load options/history or call `applyManualCoupon`. The action derives the operator from the session and plan currency from the locale; the browser cannot supply an actor, price or entitlement. The manual branch requires 100% and one use per sale and never calls a payment gateway. It also supports other manually created 100% coupons with product restrictions, expiry and usage limits. Stripe-mode coupons retain their existing provider workflow; a manual coupon cannot be passed to a Stripe checkout action.
+
+| Sale | Recipient and result | Finite entitlement |
+| --- | --- | --- |
+| GenCode package | Active Tenant; PAID order with full recorded discount, zero due; one TOPUP grant and exactly the ordered number of new codes | 12 months; existing stock/credits remain; no rollover for this package grant |
+| B2B subscription | Active Tenant; ACTIVE contract with `autoRenew=false`; cycle uses the shared snapshot, grant and stock-delta writer | 12 months; an ended manual contract can renew within its grace window using normal rollover; live/pending or Stripe-managed contracts block overlap |
+| B2C subscription | Existing active APP_USER identified by email; active AppSale with zero value, no Stripe subscription and `cancelAtPeriodEnd=true` | Selected monthly term is one calendar month; annual term is the catalog's `termLength`; same manual plan extends from its paid-through date; any live Stripe or different plan blocks overlap |
+
+Month-end arithmetic clamps to the destination month's last day. Coupon restrictions are the union of B2B plans, GenCode packages and B2C subscriptions; a restriction in another category must never become a global coupon. B2B/B2C prices must be active/current in the operator's currency. Packages use their stored currency. Unsynchronized products can be sold manually.
+
+The operator supplies a unique sale/stock reference, selects `external_payment` or `legacy_stock`, and checks the confirmation box. External payment requires a positive amount with two decimal places; stock regularization records no new payment. This is staff confirmation, not automatic InfinitePay verification or an InfinitePay API integration. The catalog amount, full discount, zero amount due and separate externally received amount are recorded in currency units. Existing Stripe revenue reports are not a report of external receipts.
+
+`CouponRedemption` and the entitlement commit in one transaction. Coupon and recipient row locks serialize usage caps and grants. A stable request UUID plus payload hash makes a retry return the original result; a different payload conflicts. A normalized source/reference pair is independently unique across coupons and operators. A failed audit insert rolls back the order/cycle/sale, grants, ledger and minted codes. The database enforces full-discount amounts, a unique durable `resultId` and matching result links. Account deletion may detach only a consumer AppSale; it retains the receipt, amount, usage count and original result identity, so it neither blocks account deletion nor permits reuse. Retain this audit and the existing ledger history.
+
+After a partner settlement, BMS invokes the existing `provisionTenantAccess` process so a newly registered OWNER becomes active. A thrown invitation failure produces a successful-sale response with an explicit access follow-up and a link to Customers. It must not invite the operator to repeat the sale. Normal mail delivery still requires Resend; see [PARTNERS](PARTNERS.md) and [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md) for the existing resend flow and provider limits.
+
 ## Contracts and data
 
 Coupons support percentage or currency-specific fixed amounts, expiry, usage and activation. The schema/SDK mapping determines the Stripe coupon; BMS mutations are privileged. Migration 20260825180000_coupon_tri_currency established the currency-specific shape.
@@ -38,6 +58,7 @@ Inputs, defaults and output types live in the linked schema/actions/query files.
 | Prisma model | PostgreSQL table | Creation migration / provenance |
 | --- | --- | --- |
 | `DiscountCoupon` | `discount_coupons` | Existing/introspected baseline; creation SQL not recorded in the current migration tree |
+| `CouponRedemption` | `coupon_redemptions` | [20261007000000_manual_coupon_redemptions](../../../packages/db/prisma/migrations/20261007000000_manual_coupon_redemptions/migration.sql); mode, B2C restrictions and Gen2026 provisioning are in the same migration |
 
 Column mappings, keys, enums, deletes and nullability are authoritative in [schema.prisma](../../../packages/db/prisma/schema.prisma). Later amendments and the legacy baseline limitation are indexed in [DATABASE](../../../docs/DATABASE.md). Models listed here are read or written by the feature; ownership is shared where explicitly noted.
 
@@ -46,6 +67,7 @@ Column mappings, keys, enums, deletes and nullability are authoritative in [sche
 | GET | `/sales/discount-coupons` | [src/app/(protected)/sales/discount-coupons/page.tsx](../src/app/(protected)/sales/discount-coupons/page.tsx) |
 | GET | `/sales/discount-coupons/new` | [src/app/(protected)/sales/discount-coupons/new/page.tsx](../src/app/(protected)/sales/discount-coupons/new/page.tsx) |
 | GET | `/sales/discount-coupons/[id]` | [src/app/(protected)/sales/discount-coupons/[id]/page.tsx](../src/app/(protected)/sales/discount-coupons/[id]/page.tsx) |
+| GET | `/sales/discount-coupons/redeem` | [src/app/(protected)/sales/discount-coupons/redeem/page.tsx](../src/app/(protected)/sales/discount-coupons/redeem/page.tsx) |
 
 | Setting | Default | Validation / owner | Consequence |
 | --- | --- | --- | --- |
@@ -106,7 +128,48 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 2. Identify an existing launcher/PID rather than reuse an unknown port. Follow the owned-process cleanup steps in [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md).
 3. Restart the launcher and sign in separately for each app. Ephemeral secrets make old cookies invalid after a restart. Restore temporary fixture edits and append the new result, rather than rewriting the dated audit.
 
+### Apply a confirmed external sale or old-stock allocation
+
+1. Deploy the canonical migration before the application release. An already existing code matching Gen2026 is preserved; inspect its mode/terms before rollout. Do not silently overwrite an operator's coupon or leave an existing Stripe promotion active when intentionally migrating that code.
+2. In **Vendas → Cupons de Desconto → Aplicar cupom de 100%**, select Gen2026, sale type, recipient and product. Existing package/contract sale forms also offer Gen2026 and prefill this review page.
+3. Verify quantity and period, choose payment or stock, and enter the unique reference and actual amount received when applicable. Confirm only after checking the external receipt or old-stock allocation.
+4. Expect immediate benefits and a history row with recipient, product, expiry, operator and values. Reload APP/SEQ to see the result. Use the same stock reference for retries; do not invent another receipt to bypass duplicate protection.
+5. If the page reports an access-invitation follow-up, inspect the partner's OWNER in Customers and use the existing resend action after correcting mail configuration. If access activation itself failed, retry the original request or investigate the logged provisioning error; a new sale is not the repair.
+
+### Repeat the isolated manual QA
+
+After normal local schema/identity setup, run `pnpm exec tsx scripts/seed-coupon-qa.ts --run=20261007` with the loopback `genealogiq` database and the migration applied. It adds named fixtures without resetting previous redemptions. All fixture identities use the documented public local password. Start `node scripts/local-qa.mjs --port-offset=1000 --host=127.0.0.1` and use ports 4000/4001/4002. Use a new run suffix or new sale references when deliberately creating another sale.
+
+Expect: stock tenant 5 + package quantity 2 = 7 codes and credits; a new B2B plan grants 20 for 12 months; a B2C year grants the configured 128 tree members until the same date next year. Reusing a reference and opening an overlapping B2B contract must fail without another row/grant. USER staff receives 403. The first-access OWNER is inactive before settlement, then can sign in with the fixture password. Mail is disabled, so the invitation warning is expected; actual delivery is n/a. The separate PostgreSQL suite in [TESTING](../../../docs/TESTING.md) exercises concurrent retries, limit races, renewal rollover and atomic rollback in a disposable database.
+
 ## Gaps and fixes
+
+### DISCOUNT-COUPONS-G4: Audit foreign key would block consumer account deletion
+
+- **Status:** fixed
+- **Found:** 2026-10-07, final Gen2026 schema/lifecycle review.
+- **Evidence:** APP account deletion cascades to AppSale; an initial restrictive audit-to-AppSale foreign key would reject that cascade.
+- **Impact:** A customer with a manual coupon sale could not complete the existing account deletion flow.
+- **Root cause:** Audit identity was coupled to the live sale foreign key instead of being stored durably in the receipt.
+- **Resolution:** `resultId` is unique and retained permanently; the optional AppSale link uses `SetNull` on deletion. A real PostgreSQL regression deletes a disposable consumer, verifies its sale is removed while the audit and usage count survive, and rejects reuse of the receipt. The unit retry case still returns the original result without regranting. No account deletion policy or mail flow was changed.
+
+### DISCOUNT-COUPONS-G3: A wide table displaced the application button
+
+- **Status:** fixed
+- **Found:** 2026-10-07, final Gen2026 browser capture.
+- **Evidence:** At a roughly 1250px desktop viewport the unbounded BMS flex content expanded to the coupon table's minimum width, moving the new application button past the right edge.
+- **Impact:** Staff had to scroll the whole page horizontally to reach the application action.
+- **Root cause:** The protected layout's content flex item had no `min-w-0`, and the coupon heading/actions did not wrap as a group.
+- **Resolution:** This change allows the BMS content to shrink, keeps wide-table scrolling inside the table, and wraps the coupon heading/actions. Final browser evidence and BMS rebuild are recorded in the Gen2026 audit.
+
+### DISCOUNT-COUPONS-G2: Externally settled sales still depended on Stripe
+
+- **Status:** fixed
+- **Found:** 2026-10-07, Gen2026 source trace and user clarification.
+- **Evidence:** Coupon creation mirrored Stripe; a 100% package checkout still required Stripe, B2B created recurring subscriptions, and BMS had no corresponding B2C release action.
+- **Impact:** Confirmed external payments and old stock could not reliably release all three products without a new provider checkout.
+- **Root cause:** Discounting was coupled to Stripe checkout rather than an independently authorized settlement.
+- **Resolution:** This Gen2026 change adds the privileged manual transaction, audit and review flow. Regression expectations live in `manual-coupon.test.ts`, `manual-coupon.integration.test.ts` and `manual-coupon.actions.test.ts`. The dated audit records real PostgreSQL races/rollback and BMS/APP/SEQ happy and boundary cases; cloud deployment and gateway receipt verification are outside this run.
 
 ### DISCOUNT-COUPONS-G1: Legacy coupon E2E would call live Stripe without an isolated fixture
 
@@ -123,6 +186,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
+| 2026-10-07 | `218d5aa` + Gen2026 change | Source, deterministic tests, real PostgreSQL and normal Credentials/browser | Manual mode, all three products, stock preservation, duplicate reference, overlapping contract, non-admin 403, finite APP entitlement and new partner access exercised. | [Gen2026 audit](../../../docs/audits/GEN2026-2026-10-07.md) records separate evidence, exact counts and provider/deployment limits. Stripe replay gap G1 remains open. |
 
 ## Related
 

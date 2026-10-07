@@ -1,7 +1,7 @@
 # Configuration and integration modes
 
 > **Code:** [turbo.json](../turbo.json), [local launcher](../scripts/local-qa.mjs), per-app .env.example and the readers below.
-> **Last verified against code:** 2026-10-03 at `6e06634` + documentation/test/launcher changes.
+> **Last verified against code:** 2026-10-07 at `9253152` plus the local launcher and manual-coupon environment changes; earlier provider evidence remains below.
 
 There is no single environment-validation schema. Settings are read at import, request, provider initialization or build time by the listed owner. turbo.json globalEnv controls task environment/cache inputs; it is not a validator. Never copy real .env values into memory, commands, reports or repository files.
 
@@ -12,7 +12,7 @@ There is no single environment-validation schema. Settings are read at import, r
 | DATABASE_URL | required | packages/db/src/index.ts; packages/db/prisma.config.ts | DB import throws when absent; local-qa forces loopback |
 | DATABASE_POOL_MAX | 5; invalid/nonpositive falls back to 5 | packages/db/src/index.ts | Per-replica PostgreSQL pool; restart |
 | AUTH_SECRET | required in ordinary app configuration | packages/auth/src/node.ts / NextAuth | Ephemeral per app in local-qa; restart invalidates cookies |
-| AUTH_URL / AUTH_TRUST_HOST | unset / NextAuth option default; launcher sets origin/true | packages/auth/src/node.ts / edge.ts | Use canonical localhost origin; set production URL explicitly |
+| AUTH_URL / AUTH_TRUST_HOST | unset / NextAuth option default; launcher sets origin/true | packages/auth/src/node.ts / edge.ts | Use the launcher's canonical host; set production URL explicitly |
 | APP_URL / BMS_URL / SEQUOIA_URL | several adapters fall back to http://localhost:3000 | app adapters/actions | Launcher sets 3000/3001/3002; absent staff URLs can send wrong-origin links |
 | STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET | absent | packages/services/src/stripe.ts and app webhook routes | Required for actual test checkout/signature verification; destination secrets are distinct |
 | RESEND_API_KEY | absent | packages/email/src/index.ts | Lazy transport only initializes on send; use a disposable test recipient |
@@ -32,6 +32,8 @@ There is no single environment-validation schema. Settings are read at import, r
 | SENTRY_ORG / SENTRY_PROJECT / SENTRY_AUTH_TOKEN | absent | per-app next.config.ts | Optional build source-map upload; no cloud upload in local baseline |
 | NODE_ENV | development in local-qa | Next / APP register-service-worker.tsx | Production worker registration; stop dev before building |
 | RUN_AZURITE_TESTS | false unless true | packages/services/src/media-storage.integration.test.ts | Opt-in local integration; skip is not a pass |
+| MANUAL_COUPON_TEST_DATABASE_URL | unset | packages/services/src/manual-coupon.integration.test.ts | Opt-in integration; only a loopback `genealogiq_coupon_qa_*` database is accepted; never point it at normal local data |
+| LOCAL_QA_DIST_DIR | `.next` | each app's next.config.ts | Local launcher uses `.next-qa-<port>` to separate generated output; direct build invocations can use a separate `.next-qa-build`; not a production runtime setting |
 
 ## Local, test and deployed modes
 
@@ -51,7 +53,9 @@ There is no single environment-validation schema. Settings are read at import, r
 
 The local launcher overlays blank strings in Node child environment variables, preventing Next's .env loading from inheriting real cloud credentials. In PowerShell, assigning an empty string removes a variable in some versions; that is why the launcher owns the explicit child overlay. It does not write .env files. Use http://localhost for browser authentication; mixing 127.0.0.1 and localhost can redirect away from the cookie origin.
 
-The seed supplies one Premium consumer identity and independent BMS/SEQ staff records, a company/tenant, family and pets. It does not create the FREE plan fallback or complete provider fixtures; those limitations have feature gap entries.
+The seed supplies one Premium consumer identity and independent BMS/SEQ staff records, a company/tenant, family and pets. The Gen2026 change adds idempotent provisioning of a missing FREE fallback and manual Gen2026 coupon. `seed-coupon-qa.ts` adds optional named manual-settlement fixtures. Neither seed supplies complete provider fixtures.
+
+`local-qa.mjs --port-offset=1000 --host=127.0.0.1` selects alternate loopback ports/origins consistently for all three apps and their callbacks. Different ports alone do not isolate cookies. See [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for concurrent-session and generated-output cleanup. Manual coupons do not need Stripe keys; first-time partner invitations still use the existing Resend configuration and have a separate failure follow-up after a committed sale.
 
 ## Locale and currency
 
@@ -93,6 +97,7 @@ webhooks do not change automatically with runtime environment variables.
 | 2026-10-03 | 6e06634 + working changes | Source | Readers/defaults, turbo environment and local child overlay checked. |
 | 2026-10-03 | Same | Runtime/UI | Credentials/DB and Azurite mode exercised; no payment/mail/OAuth/push/production identity proof. |
 | 2026-10-03 | `7d267f7` + domain changes | Azure runtime/browser | All three latest revisions `--0000007` ready; shared public origins and per-app AUTH_URL checked against literal new URLs; four custom HTTPS hosts and canonical Credentials callbacks verified. [Audit](audits/AZURE-DOMAINS-2026-10-03.md) records external-provider and browser-bundle limits. |
+| 2026-10-07 | `9253152` + Gen2026 changes | Local runtime/build/browser | Provider-disabled builds passed for all three apps; normal Credentials callbacks used the configured 127.0.0.1 host after restart. Manual settlement worked without Stripe; absent Resend produced the separate invitation follow-up. [Audit](audits/GEN2026-2026-10-07.md). |
 
 ## Related
 

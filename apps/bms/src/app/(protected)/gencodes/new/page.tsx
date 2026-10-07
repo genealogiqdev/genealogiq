@@ -11,7 +11,7 @@ export default async function NewGenCodeOrderPage({
 }) {
   await verifyAdmin()
   const [packages, customers, coupons, query] = await Promise.all([
-    getGenCodePackages({ sellableOnly: true }),
+    getGenCodePackages({ sellableOnly: true, includeUnsynced: true }),
     getGenCodeCustomers(),
     getSelectableCoupons('brl'),
     searchParams,

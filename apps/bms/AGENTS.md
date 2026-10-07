@@ -17,7 +17,7 @@
 
 Use verifyAdmin for administrative mutations; staff roles are session claims and do not guarantee immediate revocation. A BMS customer is a Tenant partner. Catalog edits and Stripe synchronization are separate operations. Reporting must distinguish measured empty counts from failed queries and preserve currency meaning. Inspect every daily job step result even when outer ok is true.
 
-The app uses Next.js App Router, server-side queries, server actions and Zod schema factories. Shared database/auth/services/email/core/UI/i18n contracts are indexed in [root AGENTS.md](../../AGENTS.md). Local origin is http://localhost:3001; use canonical localhost for auth redirects/cookies.
+The app uses Next.js App Router, server-side queries, server actions and Zod schema factories. Shared database/auth/services/email/core/UI/i18n contracts are indexed in [root AGENTS.md](../../AGENTS.md). Default local origin is http://localhost:3001; use the launcher's configured canonical host/port for auth redirects and cookies. See [LOCAL-DEVELOPMENT](../../docs/LOCAL-DEVELOPMENT.md) for isolated sessions.
 
 ## Feature index
 

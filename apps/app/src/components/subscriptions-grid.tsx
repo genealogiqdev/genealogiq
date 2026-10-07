@@ -160,7 +160,7 @@ function PlanCard({ plan, delay, isActive, activePlan, onRequestChange }: PlanCa
   // not — FREE always renders them invisible, and so does an active paid
   // card (which hides its own tabs/button) — so both cards line up
   // regardless of which plan the viewer is currently on.
-  const showTabsAndButton = !isFree && !isActive
+  const showTabsAndButton = !isFree && !isActive && !activePlan?.couponRedemption
   const showBestValue = !isFree && displayCadence === "annual"
 
   const q = plan.quotas
@@ -199,11 +199,15 @@ function PlanCard({ plan, delay, isActive, activePlan, onRequestChange }: PlanCa
       </div>
 
       <div className="space-y-1.5">
+        {isActive && activePlan?.couponRedemption ? (
+          <p className="text-lg font-semibold">{t('manualPrice', { code: activePlan.couponRedemption.code })}</p>
+        ) : (
         <div className="flex items-baseline gap-1">
           {!isFree && <span className="text-sm text-muted-foreground">{t("onlyPrefix")}</span>}
           <span className="text-4xl font-bold">{isFree ? t("freePrice") : format(displayPrice)}</span>
           {!isFree && <span className="text-sm text-muted-foreground">{termSuffix}</span>}
         </div>
+        )}
         <span
           className={cn(
             "inline-block text-[10px] font-semibold uppercase tracking-wider rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 dark:bg-amber-950 dark:text-amber-300",

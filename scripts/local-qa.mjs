@@ -8,10 +8,14 @@ import { fileURLToPath } from 'node:url'
 // This launcher uses normal credentials/session/DAL checks against compose's
 // local database. It never writes .env files or inherits provider credentials.
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const apps = { app: 3000, bms: 3001, seq: 3002 }
+const offset = Number(process.argv.find((arg) => arg.startsWith('--port-offset='))?.slice(14) ?? 0)
+if (!Number.isInteger(offset) || offset < 0 || offset > 62000) throw new Error('Invalid --port-offset')
+const apps = { app: 3000 + offset, bms: 3001 + offset, seq: 3002 + offset }
+const host = process.argv.find((arg) => arg.startsWith('--host='))?.slice(7) ?? 'localhost'
+if (!['localhost', '127.0.0.1'].includes(host)) throw new Error('Expected --host=localhost or 127.0.0.1')
 const selection = process.argv.find((arg) => arg.startsWith('--app='))?.slice(6) ?? 'all'
-if (process.argv.some((arg) => !arg.startsWith('--app=') && arg !== process.argv[0] && arg !== process.argv[1])) {
-  throw new Error('Usage: node scripts/local-qa.mjs [--app=all|app|bms|seq]')
+if (process.argv.slice(2).some((arg) => !arg.startsWith('--app=') && !arg.startsWith('--port-offset=') && !arg.startsWith('--host='))) {
+  throw new Error('Usage: node scripts/local-qa.mjs [--app=all|app|bms|seq] [--port-offset=1000] [--host=localhost|127.0.0.1]')
 }
 if (selection !== 'all' && !(selection in apps)) {
   throw new Error('Expected --app=all, app, bms, or seq')
@@ -52,7 +56,7 @@ const disabled = {
 const local = {
   DATABASE_URL: 'postgresql://genealogiq:genealogiq@127.0.0.1:5432/genealogiq',
   DATABASE_POOL_MAX: '5', AUTH_TRUST_HOST: 'true',
-  APP_URL: 'http://localhost:3000', BMS_URL: 'http://localhost:3001', SEQUOIA_URL: 'http://localhost:3002',
+  APP_URL: `http://${host}:${apps.app}`, BMS_URL: `http://${host}:${apps.bms}`, SEQUOIA_URL: `http://${host}:${apps.seq}`,
   AZURE_STORAGE_CONNECTION_STRING: 'UseDevelopmentStorage=true',
   AZURE_STORAGE_MEDIA_CONTAINER: 'media', AZURE_STORAGE_STAGING_CONTAINER: 'media-staging',
   AZURE_STORAGE_MIGRATION_CONTAINER: 'media-migration',
@@ -79,10 +83,10 @@ for (const [app, port] of selected) {
   const appRoot = path.join(root, 'apps', app)
   const child = spawn(process.execPath, [path.join(appRoot, 'node_modules/next/dist/bin/next'), 'dev', '--hostname', '127.0.0.1', '--port', String(port)], {
     cwd: appRoot, windowsHide: true, stdio: 'inherit',
-    env: { ...process.env, ...disabled, ...local, NODE_ENV: 'development', AUTH_SECRET: randomBytes(32).toString('hex'), AUTH_URL: `http://localhost:${port}` },
+    env: { ...process.env, ...disabled, ...local, LOCAL_QA_DIST_DIR: `.next-qa-${port}`, NODE_ENV: 'development', AUTH_SECRET: randomBytes(32).toString('hex'), AUTH_URL: `http://${host}:${port}` },
   })
   children.push(child)
   child.on('error', (error) => { console.error(`[local-qa:${app}] ${error.message}`); stop(1) })
   child.on('exit', (code) => { if (!stopping) { console.error(`[local-qa:${app}] stopped (${code})`); stop(code || 1) } })
-  console.log(`[local-qa] ${app}: http://localhost:${port} (PID ${child.pid}); Ctrl+C stops this launcher's apps.`)
+  console.log(`[local-qa] ${app}: http://${host}:${port} (PID ${child.pid}); Ctrl+C stops this launcher's apps.`)
 }

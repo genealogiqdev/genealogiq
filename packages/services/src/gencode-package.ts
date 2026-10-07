@@ -2,7 +2,7 @@ import 'server-only'
 
 import type Stripe from 'stripe'
 import { generateGenCode } from '@genealogiq/core'
-import { prisma, type GenCodeOrderStatus } from '@genealogiq/db'
+import { prisma, type GenCodeOrderStatus, type Prisma } from '@genealogiq/db'
 import { CHECKOUT_TTL_HOURS, CHECKOUT_ORIGINS, type CheckoutOrigin } from './partner-checkout'
 import { ensureTenantStripeCustomer } from './stripe-customer'
 import { stripe } from './stripe'
@@ -267,64 +267,72 @@ export async function fulfillGenCodePackageCheckout(
     })
     if (claimed.count === 0) return 'already-fulfilled' as const
 
-    const order = await tx.genCodeOrder.findUnique({
-      where: { id: orderId },
-      select: {
-        id: true,
-        tenantId: true,
-        partnerSubscriptionId: true,
-        createdById: true,
-        quantity: true,
-      },
-    })
-    if (!order) throw new Error(`GenCode order ${orderId} disappeared during fulfillment`)
-
-    const grant = await tx.creditGrant.create({
-      data: {
-        tenantId: order.tenantId,
-        subscriptionId: order.partnerSubscriptionId,
-        source: 'TOPUP',
-        grantedQty: order.quantity,
-        remainingQty: order.quantity,
-        expiresAt: creditExpiresAt,
-        // A standalone package has its own 12-month term and never participates in rollover.
-        rolloverGeneration: 1,
-        createdById: order.createdById,
-        reason: `One-time GenCode package order ${order.id}`,
-      },
-      select: { id: true },
-    })
-
-    await tx.creditTransaction.create({
-      data: {
-        grantId: grant.id,
-        tenantId: order.tenantId,
-        type: 'GRANT',
-        quantity: order.quantity,
-        balanceAfter: order.quantity,
-        idempotencyKey: `grant:topup:${order.id}`,
-        actorId: order.createdById,
-        reason: `Paid GenCode package order ${order.id}`,
-      },
-    })
-
-    await tx.genCode.createMany({
-      data: Array.from({ length: order.quantity }, () => ({
-        genCode: generateGenCode(),
-        tenantId: order.tenantId,
-        mintedInOrderId: order.id,
-      })),
-    })
-
-    await tx.genCodeOrder.update({
-      where: { id: order.id },
-      data: { creditGrantId: grant.id },
-    })
-
+    await grantGenCodeOrder(tx, orderId, creditExpiresAt)
     return 'fulfilled' as const
   })
 
   return { outcome, tenantId: existing.tenantId }
+}
+
+/** Called only inside the transaction that settles a previously unfulfilled order. */
+export async function grantGenCodeOrder(
+  tx: Prisma.TransactionClient,
+  orderId: string,
+  creditExpiresAt: Date,
+): Promise<void> {
+  const order = await tx.genCodeOrder.findUnique({
+    where: { id: orderId },
+    select: {
+      id: true,
+      tenantId: true,
+      partnerSubscriptionId: true,
+      createdById: true,
+      quantity: true,
+    },
+  })
+  if (!order) throw new Error(`GenCode order ${orderId} disappeared during fulfillment`)
+
+  const grant = await tx.creditGrant.create({
+    data: {
+      tenantId: order.tenantId,
+      subscriptionId: order.partnerSubscriptionId,
+      source: 'TOPUP',
+      grantedQty: order.quantity,
+      remainingQty: order.quantity,
+      expiresAt: creditExpiresAt,
+      // A standalone package has its own 12-month term and never participates in rollover.
+      rolloverGeneration: 1,
+      createdById: order.createdById,
+      reason: `One-time GenCode package order ${order.id}`,
+    },
+    select: { id: true },
+  })
+
+  await tx.creditTransaction.create({
+    data: {
+      grantId: grant.id,
+      tenantId: order.tenantId,
+      type: 'GRANT',
+      quantity: order.quantity,
+      balanceAfter: order.quantity,
+      idempotencyKey: `grant:topup:${order.id}`,
+      actorId: order.createdById,
+      reason: `Paid GenCode package order ${order.id}`,
+    },
+  })
+
+  await tx.genCode.createMany({
+    data: Array.from({ length: order.quantity }, () => ({
+      genCode: generateGenCode(),
+      tenantId: order.tenantId,
+      mintedInOrderId: order.id,
+    })),
+  })
+
+  await tx.genCodeOrder.update({
+    where: { id: order.id },
+    data: { creditGrantId: grant.id },
+  })
 }
 
 /** Mirrors a terminal unpaid Checkout state without touching credits or codes. */
@@ -400,6 +408,7 @@ async function resolveCoupon(
       stripePromotionCodeId: true,
       appliesTo: { select: { id: true } },
       genCodePackages: { select: { id: true } },
+      subscriptions: { select: { id: true } },
     },
   })
 
@@ -407,6 +416,7 @@ async function resolveCoupon(
     ? [
         ...coupon.appliesTo.map((product) => product.id),
         ...coupon.genCodePackages.map((product) => product.id),
+        ...coupon.subscriptions.map((product) => product.id),
       ]
     : []
   const applicable = coupon

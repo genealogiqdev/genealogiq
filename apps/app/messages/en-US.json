@@ -28,7 +28,8 @@
       "planNotFound": "Plan not found or unavailable.",
       "planNotWired": "This plan is not yet wired in Stripe.",
       "planNotWiredSeed": "This plan is not yet wired in Stripe. Run prisma/seed-stripe.ts.",
-      "switchFailed": "Could not switch plan."
+      "switchFailed": "Could not switch plan.",
+      "manualPlanActive": "Your plan was activated by the team. Contact support to change the purchased period."
     },
     "bio": {
       "charLimit": "Biography limit is {max} characters for this plan.",
@@ -1673,7 +1674,9 @@
         "pets": "Need more pet profiles?",
         "tree": "Need a bigger tree?"
       }
-    }
+    },
+    "manualActive": "{plan} activated by the team until {date}, with no automatic renewal.",
+    "manualPrice": "Activated with {code}"
   },
   "Tributes": {
     "backToProfile": "Back to profile",
@@ -1883,7 +1886,13 @@
       "title": "A whole life, gathered in one digital memorial.",
       "description": "Biographies, photos, videos, and tributes come together in a space families can open and share with GenCode.",
       "included": "With Genealogiq",
-      "table": { "labels": { "need": "What families need", "experience": "How Genealogiq helps", "included": "Available" } },
+      "table": {
+        "labels": {
+          "need": "What families need",
+          "experience": "How Genealogiq helps",
+          "included": "Available"
+        }
+      },
       "items": {
         "care": {
           "title": "Stay alongside the family",

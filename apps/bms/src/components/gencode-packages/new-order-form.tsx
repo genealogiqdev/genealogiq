@@ -34,6 +34,7 @@ interface Props {
 export function NewGenCodeOrderForm({ packages, customers, coupons, initialPackageId }: Props) {
   const t = useTranslations('GenCodePackages')
   const tErrors = useTranslations('Errors')
+  const tm = useTranslations('ManualCoupons')
   const locale = useLocale()
   const router = useRouter()
   const initialPackage = packages.find((item) => item.id === initialPackageId) ?? packages[0]
@@ -60,6 +61,7 @@ export function NewGenCodeOrderForm({ packages, customers, coupons, initialPacka
     [coupons, packageRow],
   )
   const coupon = eligibleCoupons.find((item) => item.id === discountCouponId)
+  const manual = coupon?.redemptionMode === 'manual'
   const discountCents = coupon
     ? Math.min(
         subtotalCents,
@@ -76,6 +78,13 @@ export function NewGenCodeOrderForm({ packages, customers, coupons, initialPacka
   }).format(value)
 
   async function onSubmit(data: GenCodePackageOrderFormValues) {
+    if (manual && data.discountCouponId) {
+      router.push(`/sales/discount-coupons/redeem?${new URLSearchParams({
+        couponId: data.discountCouponId, kind: 'package', productId: data.packageId,
+        tenantId: data.tenantId, quantity: String(data.quantity),
+      })}`)
+      return
+    }
     const result = await sendGenCodePackageLink(data)
     if (!result.ok) {
       toast.error(result.message)
@@ -226,14 +235,14 @@ export function NewGenCodeOrderForm({ packages, customers, coupons, initialPacka
             </div>
           </div>
 
-          <p className="text-sm text-muted-foreground">{t('form.paymentNote')}</p>
+          <p className="text-sm text-muted-foreground">{manual ? tm('description') : !packageRow?.stripePriceId ? tm('needsCoupon') : t('form.paymentNote')}</p>
 
           <div className="flex gap-3">
             <Button
               type="submit"
-              disabled={form.formState.isSubmitting || customers.length === 0 || packages.length === 0}
+              disabled={form.formState.isSubmitting || customers.length === 0 || packages.length === 0 || (!manual && !packageRow?.stripePriceId)}
             >
-              {form.formState.isSubmitting ? t('form.sending') : t('form.send')}
+              {manual ? tm('review') : form.formState.isSubmitting ? t('form.sending') : t('form.send')}
             </Button>
             <Button type="button" variant="outline" asChild>
               <Link href="/gencodes">{t('form.cancel')}</Link>

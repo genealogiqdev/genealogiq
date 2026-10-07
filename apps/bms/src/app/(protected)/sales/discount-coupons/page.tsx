@@ -28,13 +28,14 @@ export default async function DiscountCouponsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-balance">
           {t('title')}
         </h1>
-        <Button asChild>
-          <Link href="/sales/discount-coupons/new">{t('new')}</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild><Link href="/sales/discount-coupons/redeem">{t('actions.apply')}</Link></Button>
+          <Button asChild><Link href="/sales/discount-coupons/new">{t('new')}</Link></Button>
+        </div>
       </div>
 
       {loadError ? (

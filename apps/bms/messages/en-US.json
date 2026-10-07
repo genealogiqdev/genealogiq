@@ -508,7 +508,8 @@
       "deactivate": "Deactivate",
       "editDescription": "Edit description",
       "openMenu": "Open menu",
-      "reactivate": "Reactivate"
+      "reactivate": "Reactivate",
+      "apply": "Apply a 100% coupon"
     },
     "create": "Create coupon",
     "discount": {
@@ -540,18 +541,21 @@
       "durationInMonths": "Duration in months",
       "expiresOn": "Expires on",
       "maxRedemptions": "Max redemptions",
-      "percent": "Percent (0-100)"
+      "percent": "Percent (0-100)",
+      "redemptionMode": "Application method"
     },
     "hints": {
       "appliesTo": "Leave all unchecked to apply to every product.",
-      "codeImmutable": "The promotion code is immutable. To change terms, deactivate this coupon and create a new one."
+      "codeImmutable": "The promotion code is immutable. To change terms, deactivate this coupon and create a new one.",
+      "manual": "For external payments or existing stock. A 100% discount on one sale, with no automatic renewal."
     },
     "loadError": "Could not load coupons: {message}. Check Vercel function logs for details.",
     "new": "New coupon",
     "packageMeta": "{quantity, plural, one {# unit} other {# units}} · {price}",
     "productKind": {
       "gencodePackage": "GenCode package",
-      "partnerPlan": "B2B plan"
+      "partnerPlan": "B2B plan",
+      "consumer": "B2C subscription"
     },
     "placeholders": {
       "code": "WELCOME10",
@@ -582,6 +586,10 @@
     "toasts": {
       "deactivated": "Coupon deactivated.",
       "reactivated": "Coupon reactivated."
+    },
+    "redemptionMode": {
+      "stripe": "At Stripe checkout",
+      "manual": "By the team in BMS (100%)"
     }
   },
   "Errors": {
@@ -614,7 +622,9 @@
     "title": "Something went wrong",
     "trialNeedsPlanCode": "Set the trial plan or zero the duration.",
     "upperSnakeOnly": "Use uppercase letters, numbers and underscores only.",
-    "wholeNumber": "Must be a whole number"
+    "wholeNumber": "Must be a whole number",
+    "manualCouponTerms": "BMS coupons must have a 100% discount and a one-time duration.",
+    "manualCouponConfirmation": "Confirm the payment or stock verification."
   },
   "ExtraUnitPrices": {
     "resource": {
@@ -1111,5 +1121,75 @@
       "emailResent": "Email resent successfully.",
       "reactivated": "User reactivated."
     }
+  },
+  "ManualCoupons": {
+    "title": "Apply a 100% coupon",
+    "description": "Confirm the payment received through another gateway or the existing stock reconciliation. Applying the coupon releases the product immediately, with no new charge.",
+    "back": "Discount coupons",
+    "coupon": "Coupon",
+    "pickCoupon": "Select a coupon",
+    "noCoupons": "No 100% coupons are available for application in BMS.",
+    "kind": "Sale type",
+    "kinds": {
+      "package": "GenCode package",
+      "partner": "B2B subscription",
+      "consumer": "B2C subscription"
+    },
+    "consumerEmail": "Customer's APP email",
+    "consumerHint": "The customer must have an active APP account. Use that account's email.",
+    "partner": "Partner customer",
+    "pickPartner": "Select a customer",
+    "searchPartner": "Search by name or tax ID...",
+    "noPartner": "No customer found.",
+    "product": "Product",
+    "pickProduct": "Select a product",
+    "noProducts": "No products are available for this coupon and currency.",
+    "quantity": "Number of GenCodes",
+    "period": "Purchased period",
+    "months": "{count, plural, one {1 month} other {# months}}",
+    "subtotal": "Catalog value",
+    "discount": "100% discount",
+    "total": "Amount to charge here",
+    "termNote": "Access for {count, plural, one {1 month} other {# months}}, with no automatic renewal.",
+    "credits": "Includes {count} activation credits.",
+    "source": "Reason for activation",
+    "sources": {
+      "external_payment": "Payment received through another gateway",
+      "legacy_stock": "Existing stock reconciliation"
+    },
+    "reference": "Unique sale or stock reference",
+    "referencePlaceholder": "E.g. InfinitePay ABC123 or stock EST-2026-01",
+    "referenceHint": "Use the sale or stock batch identifier. The same reference cannot be applied again.",
+    "externalAmount": "Amount already received ({currency})",
+    "confirmation": "I have checked the external payment or stock, customer, product and period. This action releases the benefits now.",
+    "apply": "Confirm and activate",
+    "applying": "Applying...",
+    "review": "Review and apply coupon",
+    "applied": "Coupon applied. The benefits are now available.",
+    "alreadyApplied": "This sale was already applied. No benefits were duplicated.",
+    "resultNote": "The history below records the customer, amounts, validity and operator. The customer can refresh APP or SEQ to see the benefits.",
+    "another": "Apply to another sale",
+    "history": "Last 50 applications",
+    "emptyHistory": "No applications recorded.",
+    "recipient": "Customer",
+    "record": "Record",
+    "amounts": "View amounts",
+    "validUntil": "Valid until {date}",
+    "needsCoupon": "Select a coupon for application in BMS, or sync this product with Stripe to send a payment link.",
+    "errors": {
+      "invalid-data": "Check the details and confirm the payment or stock before applying.",
+      "coupon-unavailable": "This coupon is unavailable for BMS application. Check its activation and expiry.",
+      "coupon-exhausted": "This coupon has reached its usage limit.",
+      "product-not-applicable": "This coupon does not apply to the selected product.",
+      "recipient-inactive": "Customer not found or inactive. For B2C, use an active APP account's email.",
+      "product-unavailable": "The product or price is unavailable for the selected period and currency.",
+      "invalid-quantity": "The quantity must meet the package minimum.",
+      "active-subscription": "The customer already has an active subscription or billing in progress. Check the contract before granting another period.",
+      "reference-used": "This sale or stock reference was already applied. Check the history.",
+      "request-conflict": "This operation was already recorded with different details. Refresh the page and check the history.",
+      "failed": "The coupon could not be applied. Try again; retrying the same operation does not duplicate benefits."
+    },
+    "appliedAccessPending": "Coupon applied and benefits released. The SEQ access invitation could not be completed. Check the customer and resend the invitation in Customers; do not apply the sale again.",
+    "manageAccess": "Check access in Customers"
   }
 }

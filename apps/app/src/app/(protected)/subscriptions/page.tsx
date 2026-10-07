@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server"
+import { getLocale, getTranslations } from "next-intl/server"
 import { AuroraBackdrop } from "@/components/aurora-backdrop"
 import { BackButton } from "@/components/back-button"
 import { ManageSubscriptionButton } from "@/components/manage-subscription-button"
@@ -9,10 +9,6 @@ import { getActiveSubscriptions } from "@/queries/subscriptions"
 import { getActivePlan } from "@/queries/billing"
 import { cn } from "@/lib/utils"
 
-const longDate = new Intl.DateTimeFormat("en-US", {
-  year: "numeric", month: "long", day: "numeric", timeZone: "UTC",
-})
-
 interface Props {
   searchParams: Promise<{ status?: string; session_id?: string }>
 }
@@ -20,6 +16,9 @@ interface Props {
 export default async function SubscriptionsPage({ searchParams }: Props) {
   const session = await verifySession()
   const t = await getTranslations("Subscriptions")
+  const longDate = new Intl.DateTimeFormat(await getLocale(), {
+    year: "numeric", month: "long", day: "numeric", timeZone: "UTC",
+  })
   const { status, session_id: checkoutSessionId } = await searchParams
 
   // Mirror a just-completed Checkout Session into the DB before reading
@@ -35,10 +34,8 @@ export default async function SubscriptionsPage({ searchParams }: Props) {
     }
   }
 
-  const [subscriptions, activePlan] = await Promise.all([
-    getActiveSubscriptions(),
-    getActivePlan(session.user.id),
-  ])
+  const activePlan = await getActivePlan(session.user.id)
+  const subscriptions = await getActiveSubscriptions(activePlan?.couponRedemption ? activePlan.subscription.id : undefined)
 
   const flashStatus = status === "success" ? "success" : status === "cancel" ? "cancel" : null
 
@@ -62,13 +59,15 @@ export default async function SubscriptionsPage({ searchParams }: Props) {
                   "text-xs",
                   activePlan.cancelAtPeriodEnd ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground",
                 )}>
-                  {activePlan.cancelAtPeriodEnd
+                  {activePlan.couponRedemption
+                    ? t('manualActive', { plan: activePlan.subscription.name, date: longDate.format(activePlan.currentPeriodEnd) })
+                    : activePlan.cancelAtPeriodEnd
                     ? t("cancelingOn", { plan: activePlan.subscription.name, date: longDate.format(activePlan.currentPeriodEnd) })
                     : t("currentlyOn", { plan: activePlan.subscription.name, date: longDate.format(activePlan.currentPeriodEnd) })}
                 </p>
               )}
             </div>
-            {activePlan && (
+            {activePlan?.stripeSubscriptionId && (
               <div className="shrink-0 self-end lg:self-auto">
                 <ManageSubscriptionButton />
               </div>

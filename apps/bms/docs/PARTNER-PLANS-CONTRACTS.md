@@ -3,7 +3,7 @@
 > **Code:** [src/actions/partner-plan.actions.ts](../src/actions/partner-plan.actions.ts) · [src/queries/partner-plans.ts](../src/queries/partner-plans.ts) · [src/queries/partner-subscriptions.ts](../src/queries/partner-subscriptions.ts) · [src/schemas/partner-plan.schema.ts](../src/schemas/partner-plan.schema.ts)
 > **Entry points:** `/plans` · `/plans/new` · `/plans/[id]` · `/sales/contracts` · `/sales/contracts/new` · `/sales/contracts/[id]`
 > **Depends on:** [PARTNER-CREDITS](../../../docs/PARTNER-CREDITS.md) · [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-03 at `6e06634`, including this task’s uncommitted documentation, launcher and test changes. Source verification is separate from runtime/UI below.
+> **Last verified against code:** 2026-10-07 at `9253152` plus the Gen2026 changes to the paths named below. Source, tests, runtime and UI are recorded separately; earlier observations remain in the verification log.
 
 The BMS application supplies partner plans and annual contracts. Plan forms version allowance, trial and pricing. Contracts bind Tenant, PartnerPlan and effective PlanPrice; a paid Stripe invoice creates the cycle with plan/price snapshots. Annual cash and installment options represent one twelve-month entitlement cycle.
 
@@ -31,6 +31,14 @@ ea6e3ca made invoice-paid cycles explicit; 7f13c0a added rollover/grace. Plan ch
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
+
+### Contracts settled with a manual 100% coupon
+
+The BMS sale form offers Gen2026 and routes to the [manual review](DISCOUNT-COUPONS.md), preserving the selected partner and plan. Active plans with a current price may use this mode before Stripe synchronization. Staff confirms the external receipt/old stock; the server resolves price, tenant and plan again. No checkout or recurring Stripe subscription is created.
+
+The manual service creates an ACTIVE contract with `autoRenew=false` and a 12-month cycle through `openPartnerCycle`. The existing plan/price snapshots, allowance, grace, founder latch, rollover and stock-delta rules are shared with paid-invoice fulfillment. An ended manual contract in grace can renew in the same contract. Live cycles, pending purchases and Stripe-managed contracts reject an overlapping manual period. R$1,000 catalog value with a full discount records zero charged here; an independently entered R$900 external receipt remains in the coupon audit and price snapshot, not Stripe revenue.
+
+Acceptance: the isolated 20-credit plan opens one cycle and exposes 20 available GenCodes in SEQ. In the PostgreSQL renewal fixture, 20 unused annual credits renew under the 30% cap into 6 rollover + 20 annual credits; stock becomes 26, not 40. Browser QA also rejects another period for a still-active contract and checks the existing BMS sale form's manual review entry. A new OWNER is provisioned using the existing first-payment access process. See the [Gen2026 audit](../../../docs/audits/GEN2026-2026-10-07.md).
 
 Plan forms version allowance, trial and pricing. Contracts bind Tenant, PartnerPlan and effective PlanPrice; a paid Stripe invoice creates the cycle with plan/price snapshots. Annual cash and installment options represent one twelve-month entitlement cycle.
 
@@ -117,12 +125,12 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 
 ### PARTNER-PLANS-CONTRACTS-G1: Partner checkout callback points to a removed route
 
-- **Status:** open
+- **Status:** fixed
 - **Found:** 2026-10-03, repository memory/bootstrap audit at 6e06634.
 - **Evidence:** sendPartnerPlanLink builds successUrl/cancelUrl and revalidates /sales/manual-sales; the current router uses /sales/contracts.
 - **Impact:** A completed or canceled checkout can return the partner/operator to a missing page.
 - **Root cause:** The present implementation/contract is described in the evidence; original decision not recorded.
-- **Resolution:** Not fixed in this task. Replace the callbacks with the current contract route and pin exact URLs in an action test.
+- **Resolution:** 2026-10-07, this Gen2026 change points success/cancel callbacks and revalidation to `/sales/contracts`, with the correct local BMS fallback on port 3001. `partner-plan.actions.test.ts` pins the literal configured/fallback URLs, role boundary and coupon restriction behavior. The original removed-route evidence above is retained; actual signed Stripe return remains an integration prerequisite.
 
 ### PARTNER-PLANS-CONTRACTS-G2: Plan CRUD/contract actions have no direct deterministic specs
 
@@ -133,12 +141,15 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 - **Root cause:** Missing fixture or direct coverage as described above.
 - **Resolution:** Not fixed in this task. Add mocked action tests with hand-authored plan/price snapshots; provide signed invoice replay fixtures.
 
+  2026-10-07 partial resolution: five direct checkout-action tests now cover callbacks, permission and manual/B2C coupon rejection. Catalog CRUD and signed provider replay are still open; this gap is not marked fully fixed.
+
 ## Verification log
 
 | Date | Commit / working changes | Verified by | Scope and evidence | Mismatches or limits → action |
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
+| 2026-10-07 | `218d5aa` + Gen2026 change | Source, deterministic and real DB tests, BMS/SEQ browser | Finite manual B2B cycle, allowance/stock, grace renewal/rollover, overlap rejection and new OWNER access exercised; checkout callbacks corrected. | [Audit](../../../docs/audits/GEN2026-2026-10-07.md) separates UI/persistence from mocked Stripe and disabled invitation transport. |
 
 ## Related
 

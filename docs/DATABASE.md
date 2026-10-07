@@ -1,9 +1,9 @@
 # Shared database and migrations
 
 > **Code:** [schema.prisma](../packages/db/prisma/schema.prisma), [Prisma configuration](../packages/db/prisma.config.ts), [client initialization](../packages/db/src/index.ts), [migration gate](../scripts/check-migrations.mjs)
-> **Last verified against code:** 2026-10-03 at `6e06634` plus the current documentation/test/launcher changes.
+> **Last verified against code:** 2026-10-07 at `9253152` plus the Gen2026 schema and migration; earlier audits remain below.
 
-All three apps consume @genealogiq/db. The schema contains 43 models and the migration tree contains 74 migration.sql files. These counts were recomputed from files, not taken from the old memory. The single-schema check verifies that no app keeps a competing Prisma schema.
+All three apps consume @genealogiq/db. The schema contains 44 models and the migration tree contains 75 migration.sql files, including the 2026-10-07 manual coupon settlement change. These counts were recomputed from files. The single-schema check verifies that no app keeps a competing Prisma schema.
 
 ## Model/table and creation provenance
 
@@ -11,6 +11,7 @@ All three apps consume @genealogiq/db. The schema contains 43 models and the mig
 | --- | --- | --- |
 | `Subscription` | `subscriptions` | Existing/introspected table; original creation SQL not recorded in this tree |
 | `DiscountCoupon` | `discount_coupons` | Existing/introspected table; original creation SQL not recorded in this tree |
+| `CouponRedemption` | `coupon_redemptions` | [20261007000000_manual_coupon_redemptions](../packages/db/prisma/migrations/20261007000000_manual_coupon_redemptions/migration.sql) |
 | `AppSale` | `app_sales` | Existing/introspected table; original creation SQL not recorded in this tree |
 | `StripeEvent` | `stripe_events` | [20260517000000_align_app_sale_stripe](../packages/db/prisma/migrations/20260517000000_align_app_sale_stripe/migration.sql) |
 | `ExtraUnitPrice` | `app_extra_unit_prices` | [20260805000000_extra_unit_purchases](../packages/db/prisma/migrations/20260805000000_extra_unit_purchases/migration.sql) |
@@ -71,6 +72,14 @@ The table names above come from @@map. Column names come from each field's @map;
 Commit 2498328 removed maxProfiles; a0aa99b removed memorial bulk-sale binding; 2504132 retired digital SEQ modules; bf57287 retained automatic canvas layout despite the historic TreeNodePosition model. Read feature docs before reviving an old field from CLAUDE/history.
 
 ## Local schema setup
+
+### Gen2026 amendment
+
+The [manual coupon migration](../packages/db/prisma/migrations/20261007000000_manual_coupon_redemptions/migration.sql) adds `DiscountCoupon.redemptionMode` (existing rows default to `stripe`), the implicit `_CouponSubscriptions` B2C restriction relation and `CouponRedemption`. The transaction links its receipt to one GenCodeOrder, SubscriptionCycle or AppSale and stores the result's identity separately. Unique request IDs, normalized source/reference pairs and durable `resultId` values prevent duplicate settlement. SQL CHECK constraints require matching result links, manual coupons to be 100%/once without provider IDs and full-discount zero-due audit values. Coupon/package/cycle links restrict deletion; an AppSale link may become null when its consumer account is deleted, preserving the audit and usage count without blocking the existing account lifecycle.
+
+The migration inserts active Gen2026 in manual mode if no case-insensitive code already exists. An existing operator-owned code is preserved for review, not converted silently. The normal local seed also provisions a missing Gen2026 and FREE fallback without updating existing commercial settings. `db push` creates the Prisma shape but does not replay the custom SQL CHECK constraints or migration's data insert; apply the incremental migration on an older local schema, or use an isolated migrated schema when testing those checks. Do not reapply the entire migration to an already-amended database.
+
+The Gen2026 SQL was replayed on a disposable copy of the pre-amendment schema and then applied to the normal loopback database. Eight tests exercise real PostgreSQL transactions, locks, constraints, rollback and consumer deletion with audit retention. This incremental replay does not close the historical empty-database baseline gap. [Audit](audits/GEN2026-2026-10-07.md).
 
 From the repository root, use the explicit loopback database for disposable compose data. [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) has the complete sequence and identity.
 
@@ -183,6 +192,8 @@ save/reload, live read-only diagnosis and unresolved source text.
 | 2026-10-03 | 6e06634 + working changes | Source and checks | 43 models, 74 migrations, single-schema and migration guards pass. |
 | 2026-10-03 | Same | Local runtime | db push/generate/local seed ran; PostgreSQL SELECT 1 passed. Full historical migration replay and deployed migration state are n/a. |
 | 2026-10-07 | 218d5aa + text repair/tests/docs | Source, local runtime and live read-only diagnosis | 12 command tests; real PostgreSQL preview/apply/repeat/receipt rollback/stale-batch checks pass. Live audit finds 72 affected values; no production update or schema migration performed. [Evidence](audits/APP-TEXT-ENCODING-2026-10-07.md). |
+| 2026-10-07 | `9253152` + initial Gen2026 change | Source, incremental migration and local PostgreSQL | 44 models, 75 migrations; initial incremental SQL replay and seven real transaction/concurrency/rollback tests passed. Persisted entitlements checked independently of the UI. Full historical empty-database replay remains n/a. |
+| 2026-10-07 | Same change plus durable result identity | Final migration and deletion regression | Final SQL replayed in `genealogiq_coupon_qa_20261007_final`; eight integration tests passed, including consumer deletion without losing the receipt or permitting reuse. The normal local amendment preserved its four existing receipts and entitlements. [Audit](audits/GEN2026-2026-10-07.md). |
 
 ## Related
 

@@ -13,6 +13,7 @@ export async function getDiscountCoupons() {
       code:           true,
       description:    true,
       discountType:   true,
+      redemptionMode: true,
       percentOff:     true,
       amountOffUsd:   true,
       amountOffBrl:   true,
@@ -38,6 +39,7 @@ export async function getDiscountCoupon(id: string) {
       code:                  true,
       description:           true,
       discountType:          true,
+      redemptionMode:        true,
       percentOff:            true,
       amountOffUsd:          true,
       amountOffBrl:          true,
@@ -59,14 +61,14 @@ export async function getDiscountCoupon(id: string) {
 /**
  * Products a coupon can be restricted to, priced in the operator's currency.
  *
- * Restriction is by Stripe PRODUCT, which is one object across every currency —
- * so a coupon limited to Semente covers it wherever Semente sells. The amount
- * shown here is only a label to help the operator recognise the row.
+ * Restrictions use local product IDs across B2B, packages and B2C. Stripe-mode
+ * creation resolves those IDs to provider products; manual mode also accepts
+ * unsynchronized products. The price label helps staff recognize each row.
  */
 export async function getActiveProductsForSelect(currency: AppCurrency) {
   await verifySession()
 
-  const [plans, packages] = await Promise.all([
+  const [plans, packages, subscriptions] = await Promise.all([
     prisma.partnerPlan.findMany({
       where: {
         isActive: true,
@@ -75,7 +77,6 @@ export async function getActiveProductsForSelect(currency: AppCurrency) {
             isActive: true,
             effectiveTo: null,
             currency: currency.toUpperCase(),
-            stripeProductId: { not: null },
           },
         },
       },
@@ -87,7 +88,6 @@ export async function getActiveProductsForSelect(currency: AppCurrency) {
             isActive: true,
             effectiveTo: null,
             currency: currency.toUpperCase(),
-            stripeProductId: { not: null },
           },
           select: { annualCashAmount: true, stripeProductId: true },
           take: 1,
@@ -98,7 +98,6 @@ export async function getActiveProductsForSelect(currency: AppCurrency) {
       where: {
         isActive: true,
         currency: currency.toUpperCase(),
-        stripeProductId: { not: null },
       },
       orderBy: [{ minimumQuantity: 'asc' }, { name: 'asc' }],
       select: {
@@ -107,7 +106,13 @@ export async function getActiveProductsForSelect(currency: AppCurrency) {
         minimumQuantity: true,
         unitPrice: true,
         currency: true,
+        stripeProductId: true,
       },
+    }),
+    prisma.subscription.findMany({
+      where: { isActive: true, code: { not: 'FREE' }, prices: { some: { isActive: true, effectiveTo: null, currency: currency.toUpperCase() } } },
+      select: { id: true, name: true, prices: { where: { isActive: true, effectiveTo: null, currency: currency.toUpperCase() }, select: { annualCashAmount: true, stripeProductId: true }, take: 1 } },
+      orderBy: { name: 'asc' },
     }),
   ])
 
@@ -119,6 +124,7 @@ export async function getActiveProductsForSelect(currency: AppCurrency) {
       quantity:        r.annualAllowance,
       price:           Number(r.prices[0]?.annualCashAmount ?? 0),
       currency:        currency.toUpperCase(),
+      stripeSynced:    !!r.prices[0]?.stripeProductId,
     })),
     ...packages.map((r) => ({
       kind:            'gencode-package' as const,
@@ -127,6 +133,12 @@ export async function getActiveProductsForSelect(currency: AppCurrency) {
       quantity:        r.minimumQuantity,
       price:           Number(r.unitPrice),
       currency:        r.currency,
+      stripeSynced:    !!r.stripeProductId,
+    })),
+    ...subscriptions.map((r) => ({
+      kind: 'consumer' as const, id: r.id, name: r.name, quantity: 1,
+      price: Number(r.prices[0]?.annualCashAmount ?? 0), currency: currency.toUpperCase(),
+      stripeSynced: !!r.prices[0]?.stripeProductId,
     })),
   ]
 }
@@ -169,12 +181,14 @@ export async function getSelectableCoupons(currency: AppCurrency) {
   const rows = await prisma.discountCoupon.findMany({
     where: {
       isActive:              true,
-      stripePromotionCodeId: { not: null },
       OR: [{ redeemBy: null }, { redeemBy: { gt: new Date() } }],
       // Douglas's rule: a coupon in Portuguese is a coupon in reais. A
       // percentage has no currency and is always eligible; a fixed amount is
       // only offered where it has a value, because Stripe would refuse it.
       AND: [{ OR: [
+        { redemptionMode: 'stripe', stripePromotionCodeId: { not: null } },
+        { redemptionMode: 'manual', discountType: 'percent', percentOff: 100 },
+      ] }, { OR: [
         { discountType: 'percent' },
         { [AMOUNT_BY_CURRENCY[currency]]: { gt: 0 } },
       ] }],
@@ -182,6 +196,9 @@ export async function getSelectableCoupons(currency: AppCurrency) {
     select: {
       id:            true,
       code:          true,
+      redemptionMode: true,
+      maxRedemptions: true,
+      _count: { select: { redemptions: true } },
       discountType:  true,
       percentOff:    true,
       amountOffUsd:  true,
@@ -189,13 +206,15 @@ export async function getSelectableCoupons(currency: AppCurrency) {
       amountOffMxn:  true,
       appliesTo:     { select: { id: true } },
       genCodePackages: { select: { id: true } },
+      subscriptions: { select: { id: true } },
     },
     orderBy: { code: 'asc' },
   })
 
-  return rows.map((c) => ({
+  return rows.filter((c) => c.redemptionMode !== 'manual' || c.maxRedemptions == null || c._count.redemptions < c.maxRedemptions).map((c) => ({
     id:           c.id,
     code:         c.code,
+    redemptionMode: c.redemptionMode,
     discountType: c.discountType,
     // One number, already resolved for this currency — the form never has to
     // know which of the four columns applies.
@@ -205,6 +224,7 @@ export async function getSelectableCoupons(currency: AppCurrency) {
     productIds: [
       ...c.appliesTo.map((p) => p.id),
       ...c.genCodePackages.map((p) => p.id),
+      ...c.subscriptions.map((p) => p.id),
     ],
   }))
 }

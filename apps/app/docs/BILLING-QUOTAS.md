@@ -3,7 +3,7 @@
 > **Code:** [src/components/header.tsx](../src/components/header.tsx) · [src/actions/billing.actions.ts](../src/actions/billing.actions.ts) · [src/actions/extra-units.actions.ts](../src/actions/extra-units.actions.ts) · [src/lib/subscription.ts](../src/lib/subscription.ts) · [src/lib/quota.ts](../src/lib/quota.ts) · [src/lib/plan-quotas.ts](../src/lib/plan-quotas.ts) · [src/lib/extra-units.ts](../src/lib/extra-units.ts) · [src/app/api/stripe/webhook/route.ts](../src/app/api/stripe/webhook/route.ts)
 > **Entry points:** Authenticated header's **Assinaturas / Subscriptions / Suscripciones** button → `/subscriptions` · `/billing/qr-code` · `/api/stripe/webhook`
 > **Depends on:** [PARTNER-CREDITS](../../../docs/PARTNER-CREDITS.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-03 at `6e06634`, including this task’s uncommitted documentation, launcher and test changes. Source verification is separate from runtime/UI below.
+> **Last verified against code:** 2026-10-07 at `9253152` plus the Gen2026 changes to the paths named below. Source, tests, runtime and UI are recorded separately; earlier observations remain in the verification log.
 
 The APP application supplies consumer billing and feature quotas. Zod parses checkout/currency inputs; getMemorialFeatures resolves current Subscription quota fields through a live living/guardian AppSale and ranks guardian plans by current USD PlanPrice. Extra-unit limits use purchased ExtraUnitPurchase quantities. Prices are versioned PlanPrice rows; do not trust UI amounts. The FREE fallback must exist. Subscription quota and price-book migrations own the dimensions; exact provenance is in DATABASE.md.
 
@@ -37,6 +37,14 @@ Subscription discovery must not require opening the avatar menu. The authenticat
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
+
+### BMS-confirmed external subscriptions
+
+The [BMS Gen2026 workflow](../../bms/docs/DISCOUNT-COUPONS.md) grants an existing active APP_USER a finite AppSale after the team confirms an external receipt or old-stock allocation. `CouponRedemption` links the operator's audit to the sale. `value=0`, no Stripe subscription and `cancelAtPeriodEnd=true` prevent another charge or automatic renewal. Monthly release is one calendar month; annual release is the subscription's `termLength`. Extending the same manual plan starts from the existing paid-through date. Any live Stripe or different-plan subscription blocks the manual writer, including a shorter subscription hidden behind a later manual end date.
+
+The existing entitlement/quota readers accept the active sale until its end date and use the current Subscription quotas, as before. `/subscriptions` displays the team activation and localized end date, marks the card “Ativado com Gen2026”, and hides Stripe management/change controls during the manual term. The server also rejects self-service checkout while a live manual sale exists. The catalog query includes that account's active manual plan even when its code is not FREE/PREMIUM or the catalog entry was later deactivated; anonymous offers remain restricted to the existing public catalog.
+
+Local QA created a 12-month plan with 128 tree members, 64 documents and 2 pets, applied it in BMS and verified the active card and expiry after APP sign-in/reload. The source guard, query contract, finite dates, conflicting sales and request retries have literal expectations in the new coupon tests and `subscriptions.test.ts`. See the [Gen2026 audit](../../../docs/audits/GEN2026-2026-10-07.md) for actual UI/DB evidence and provider limits.
 
 Zod parses checkout/currency inputs; getMemorialFeatures resolves current Subscription quota fields through a live living/guardian AppSale and ranks guardian plans by current USD PlanPrice. Extra-unit limits use purchased ExtraUnitPurchase quantities. Prices are versioned PlanPrice rows; do not trust UI amounts. The FREE fallback must exist. Subscription quota and price-book migrations own the dimensions; exact provenance is in DATABASE.md.
 
@@ -136,12 +144,21 @@ For changes to subscription navigation, sign in normally and start at `/home` wi
 
 ### BILLING-QUOTAS-G2: Fresh local seed does not create the FREE fallback
 
-- **Status:** open
+- **Status:** fixed
 - **Found:** 2026-10-03, repository memory/bootstrap audit at 6e06634.
 - **Evidence:** seed-local.ts creates a Premium sale but getFreeQuotas requires a Subscription with code FREE.
 - **Impact:** Fresh free accounts and some guardian fallback paths throw instead of showing free quotas.
 - **Root cause:** The present implementation/contract is described in the evidence; original decision not recorded.
-- **Resolution:** Not fixed in this task. Add an idempotent FREE fixture with independent plan expectations; preserve existing database pricing.
+- **Resolution:** 2026-10-07, this Gen2026 change makes `seed-local.ts` idempotently create the missing FREE row (32 tree members, 2048 biography tokens, 16 documents) and leaves an existing row/pricing untouched. The guarded coupon fixture also supplies it; local APP rendering showed these values. Existing quota tests and the new subscription query contract remain independent of provider checkout.
+
+### BILLING-QUOTAS-G3: A manually activated custom plan was absent from the subscription grid
+
+- **Status:** fixed
+- **Found:** 2026-10-07, Gen2026 browser acceptance.
+- **Evidence:** BMS had created a valid custom-plan AppSale and the banner showed its end date, but the grid's FREE/PREMIUM-only query hid the active card and its quotas.
+- **Impact:** The customer could not inspect the benefits granted by the team on the subscription page.
+- **Root cause:** The public offer filter was also being used as the list of plans the current customer may hold.
+- **Resolution:** This Gen2026 change includes only the authenticated account's manually held plan alongside public offers. `subscriptions.test.ts` pins catalog scope and the 128-member/64-document/2-pet fixture; browser reload showed the active Gen2026 card and localized finite term. See the dated audit for the commit scope and screenshots.
 
 ## Verification log
 
@@ -153,6 +170,7 @@ For changes to subscription navigation, sign in normally and start at `/home` wi
 | 2026-10-07 | Same header changes | Local deterministic checks | Tests: `pnpm test` passed 840 tests in 101 files; one optional Azurite test skipped. APP typecheck passed; APP lint passed with zero errors and eight existing warnings. Documentation and whitespace checks passed. | Initial typecheck overlapped another session's dependency installation and reported missing modules; the completed rerun passed. Existing unit tests do not establish the button's visual behavior. |
 | 2026-10-07 | Same header changes | Local runtime/browser attempt | Runtime: isolated Next 16.3.1 started on 3310 with the canonical local DB and disabled external providers. UI: n/a; shared-server interruption and stalled isolated compilation prevented the navigation scenario. | Full production build and browser acceptance remain unverified. Temporary servers were stopped; pre-existing compose services and other sessions' processes were preserved. |
 | 2026-10-07 | Same header changes | Final shared-tree review | The seeded sale still reads `PREMIUM`, `active`, period end `2027-10-03 11:32:57.503`, with cancellation disabled. Final documentation check reported an unrelated concurrent `DOCUMENTS.md` link to the not-yet-created `APP-TEXT-ENCODING-2026-10-07.md` audit. | No sale mutation was made. Recheck documentation after the concurrent audit exists. Automatic approval review blocked deletion of the temporary source export; it was retained with the ignored QA logs. |
+| 2026-10-07 | `9253152` + Gen2026 change | Source, tests, PostgreSQL and normal APP browser | Manual checkout guard and account-specific plan query verified; BMS activation and APP login/reload showed the finite Gen2026 plan with 128 tree members, 64 documents and 2 pets. | [Detailed evidence](../../../docs/audits/GEN2026-2026-10-07.md); separate from the earlier header-navigation audit and live Stripe verification. |
 
 ## Related
 

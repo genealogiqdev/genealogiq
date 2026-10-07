@@ -1,7 +1,7 @@
 # Local development
 
 > **Code:** [compose.yaml](../compose.yaml), [local launcher](../scripts/local-qa.mjs), [local seed](../scripts/seed-local.ts), [root scripts](../package.json)
-> **Last verified against code:** 2026-10-03 at `6e06634`, including the current launcher/documentation/test changes. Runtime/UI evidence is recorded separately below and in the [dated audit](audits/AGENT-MEMORY-2026-10-03.md).
+> **Last verified against code:** 2026-10-07 at `9253152` plus launcher/seed changes. Runtime/UI evidence is separate in the [Gen2026 audit](audits/GEN2026-2026-10-07.md); the [original baseline audit](audits/AGENT-MEMORY-2026-10-03.md) is preserved.
 
 The smallest baseline stack is PostgreSQL plus the relevant Next.js app. Run all three apps for repository documentation/setup QA; include Azurite for real upload/SAS behavior. The checked-in launcher supplies local configuration in child processes without rewriting existing .env files or inheriting provider keys.
 
@@ -19,7 +19,7 @@ The smallest baseline stack is PostgreSQL plus the relevant Next.js app. Run all
 | BMS | @genealogiq/bms | http://localhost:3001 | GET /api/health/ready returns ready |
 | SEQ | @genealogiq/seq | http://localhost:3002 | GET /api/health/ready returns ready |
 
-These are installed/checked-out versions, not a statement about the latest upstream releases. The launcher binds web listeners to loopback. Browser authentication must use canonical localhost, because a redirect from 127.0.0.1 to localhost leaves the old-origin cookie behind.
+These are installed/checked-out versions, not a statement about the latest upstream releases. The launcher binds web listeners to loopback. Browser authentication must use the host printed by the launcher (localhost by default), because switching between localhost and 127.0.0.1 leaves the old-origin cookie behind.
 
 ## First-time setup
 
@@ -88,7 +88,15 @@ Liveness returns status=ok without checking providers. Readiness executes SELECT
 
 Open /sign-in on each app and submit through the normal Credentials form. The same fixture email/password selects separate APP/staff records and separate app.session-token, bms.session-token and seq.session-token cookies. Sign in separately for each app; a valid browser session in one does not authorize the others. Do not inject tokens or bypass DAL checks. Restarting the launcher changes secrets, invalidating old sessions; sign in again.
 
-The seed is idempotent and refuses non-loopback URLs or another database name. It includes seven human family members across four displayed generations and the pets Rex/Luna. Rex has Local Admin and Marina Silva as tutors; Luna is linked to Helena. Older guidance described three generations; the checked tree UI displays four. The fixture currently creates PREMIUM but no FREE Subscription row, so free-fallback scenarios remain [BILLING-QUOTAS-G2](../apps/app/docs/BILLING-QUOTAS.md#gaps-and-fixes).
+The seed is idempotent and refuses non-loopback URLs or another database name. It includes seven human family members across four displayed generations and the pets Rex/Luna. Rex has Local Admin and Marina Silva as tutors; Luna is linked to Helena. Older guidance described three generations; the checked tree UI displays four. As of the Gen2026 change it also creates a missing FREE fallback (32 tree members, 2048 biography tokens, 16 documents) and the manual Gen2026 coupon without changing existing rows. [BILLING-QUOTAS-G2](../apps/app/docs/BILLING-QUOTAS.md#gaps-and-fixes) preserves the original missing-fixture incident.
+
+### Concurrent local sessions and manual coupon fixtures
+
+When the standard ports belong to another task, use `node scripts/local-qa.mjs --port-offset=1000 --host=127.0.0.1`. This sets APP/BMS/SEQ and AUTH origins to 4000/4001/4002 on the chosen loopback host and puts each build in `.next-qa-<port>`. Defaults remain ports 3000/3001/3002 with `localhost`. Only `localhost` and `127.0.0.1` are accepted as hosts. Different ports do not isolate cookies: two APP servers on `localhost` with different ephemeral secrets share the cookie name and can invalidate each other's sessions. Use a separate browser session/host and keep sign-in and navigation on the launcher's printed origin.
+
+After normal local setup and the manual-coupon migration, `pnpm exec tsx scripts/seed-coupon-qa.ts --run=20261007` adds a stock tenant (five codes/credits), new B2B tenant, inactive first-access OWNER, non-admin BMS viewer, B2C account and three priced catalog items. It prints only fixture IDs/emails; it copies the normal seed's public test password hash internally. It refuses a non-loopback URL or database other than `genealogiq`. Rerunning preserves previous grants and redemptions. See [DISCOUNT-COUPONS](../apps/bms/docs/DISCOUNT-COUPONS.md) for the exact 5 + 2 = 7, 20-credit and finite B2C scenarios.
+
+The app configs accept `LOCAL_QA_DIST_DIR` for isolated local build output; Git and ESLint ignore `.next-qa*`. Next may add that session's generated-type include paths to tsconfig.json. Remove only those generated session additions after stopping the owned apps; preserve another task's edits. For a build while another task owns ordinary `.next`, use a separate output directory and call each app's Next build directly in sequence with the same provider-disabled local environment. Do not reuse another task's server or compile output.
 
 ## Baseline product/manual QA
 
@@ -138,15 +146,15 @@ Do not stop unrelated Docker services or delete volumes merely to finish QA. A d
 1. Inspect docker compose ps and Get-NetTCPConnection before starting another launcher; an occupied port is a prerequisite conflict, not proof of a usable app.
 2. Identify the owning command/PID. If the previous launcher is reachable, use its Ctrl+C. If it is orphaned, inspect the specific Next command line/PID and stop that identified process tree; never kill all Node processes.
 3. Run pnpm db:up; regenerate Prisma once if required; restart node scripts/local-qa.mjs. Do not reseed over meaningful existing local edits unless fixture reset is intended.
-4. Sign in again using canonical localhost and run the affected save/reload/boundary scenario. Append the new evidence; do not overwrite a prior dated audit.
+4. Sign in again using the launcher's canonical host and run the affected save/reload/boundary scenario. Append the new evidence; do not overwrite a prior dated audit.
 
 ## Troubleshooting
 
 | Symptom | First check | Recovery |
 | --- | --- | --- |
 | Missing Prisma/generated symbols or ENOTEMPTY | Concurrent Turbo generation/Windows files | Stop competing checks, run pnpm db:generate once, then typecheck/lint/build sequentially |
-| Sign-in loops after redirect | localhost vs 127.0.0.1, app origin, old secret | Use canonical localhost and sign in again after launcher restart |
-| FREE subscription row not found | subscriptions WHERE code='FREE' | Open fixture gap; do not treat Premium baseline as FREE-plan proof |
+| Sign-in loops after redirect | localhost vs 127.0.0.1, app origin, old secret | Use the host printed by the launcher and sign in again after restart; `--host=127.0.0.1` isolates cookies from another localhost session |
+| FREE subscription row not found | subscriptions WHERE code='FREE' | Use the updated guarded local seed; it inserts a missing FREE row without replacing existing settings |
 | Missing browser | Playwright install for pinned Chromium | pnpm exec playwright install chromium, then rerun public smoke |
 | 503 readiness / connection refused | Compose state, DB URL, listener owner | Start repository DB and correct local URL; avoid another service's database |
 | Providers missing/disabled | Launcher mode and owning settings | Supply isolated test service/fixture for that scenario; leave it n/a meanwhile |
@@ -170,6 +178,7 @@ Do not stop unrelated Docker services or delete volumes merely to finish QA. A d
 | 2026-10-03 | 6e06634 + launcher/docs/tests | Source | Versions/scripts, ports, local overlay, seed auth/roles, health handlers and cleanup traced. |
 | 2026-10-03 | Same | Runtime | Compose, db push/generate/seed, three app startup/readiness and opt-in Azurite test exercised. |
 | 2026-10-03 | Same | UI | Three-app baseline save/reload/favorite/tree and anonymous boundaries passed; provider/full-feature scenarios remain incomplete as listed. |
+| 2026-10-07 | `9253152` + Gen2026 changes | Launcher, three apps and persistence | Offset 1000 with canonical 127.0.0.1: all three readiness endpoints returned 200; normal Credentials callbacks stayed on 4000/4001/4002. BMS history, APP finite Gen2026 plan and SEQ OWNER's 20 funded codes persisted across restart. Local fixture and separate PostgreSQL tests are in the [audit](audits/GEN2026-2026-10-07.md). |
 
 ## Related
 

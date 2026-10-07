@@ -52,6 +52,7 @@ The app indexes contain 18 APP, nine BMS and seven SEQ feature documents; the fi
 - UI visibility is not authorization. Recheck scope/permissions on every mutation. The current DAL reads session roles; immediate role revocation is an open gap, not an established guarantee.
 - Use done/ok/fail from @genealogiq/core and schema factories with translated errors. Do not revive removed digital-license/quota fields from historical notes.
 - Preserve recorded sale prices, purchased extra-unit quantities, partner-cycle snapshots, credit idempotency and ledger history when catalogs change. APP base quotas currently read the live Subscription; they are not purchase-time snapshots. Payment redirects do not establish paid entitlement.
+- Manual 100% coupons are applied only by privileged BMS staff after external-payment or old-stock confirmation. Keep CouponRedemption and the finite entitlement atomic; reuse shared package/cycle writers and provision first-time partner access after settlement. [Discount coupons](apps/bms/docs/DISCOUNT-COUPONS.md) owns the contract and audit.
 - Generate Prisma once and run generation/typecheck/lint/build sequentially. Concurrent Turbo tasks can race on generated Windows files; build after stopping dev servers that share .next.
 - Follow current Azure infrastructure/runbooks for cloud operations. Local baseline work uses the loopback database/Azurite launcher. Use existing credentials without printing them; cloud writes, mail, checkout, pushes and deployments follow the scope explicitly authorized by the task.
 

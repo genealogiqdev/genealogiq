@@ -17,7 +17,7 @@
 
 Resolve tenant scope with verifyTenantSession; never trust a browser tenantId. SEQ customer records use AppUser.tenantId. Administrative staff actions use verifyAdmin; operational inventory uses its documented gates. Current purchasing checks tenant membership only, which is an open policy gap. Supplier module flags still gate real supplier screens; retired digital-license screens must not return.
 
-The app uses Next.js App Router, server-side queries, server actions and Zod schema factories. Shared database/auth/services/email/core/UI/i18n contracts are indexed in [root AGENTS.md](../../AGENTS.md). Local origin is http://localhost:3002; use canonical localhost for auth redirects/cookies.
+The app uses Next.js App Router, server-side queries, server actions and Zod schema factories. Shared database/auth/services/email/core/UI/i18n contracts are indexed in [root AGENTS.md](../../AGENTS.md). Default local origin is http://localhost:3002; use the launcher's configured canonical host/port for auth redirects and cookies. See [LOCAL-DEVELOPMENT](../../docs/LOCAL-DEVELOPMENT.md) for isolated sessions.
 
 ## Feature index
 

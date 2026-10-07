@@ -20,6 +20,7 @@ export async function getActivePlan(userId: string) {
       currentPeriodEnd:     true,
       cancelAtPeriodEnd:    true,
       stripeSubscriptionId: true,
+      couponRedemption:     { select: { code: true } },
       subscription: { select: { id: true, code: true, name: true, termLength: true } },
     },
   })
