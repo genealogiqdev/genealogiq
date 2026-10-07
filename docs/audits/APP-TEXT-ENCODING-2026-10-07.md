@@ -1,6 +1,10 @@
 # APP stored-text investigation — 2026-10-07
 
-## Outcome and scope
+> **Update after approval:** The 67 proposed field repairs were applied and
+> independently verified on 2026-10-07. Seven audited fields still contain
+> unresolved characters. See [approved production application](#approved-production-application).
+
+## Initial outcome and scope
 
 The reported document titles are already stored with ASCII question marks.
 Current source, normal form submission and PostgreSQL round trips preserve
@@ -145,13 +149,69 @@ were removed while retaining the other task's existing port 4000 references.
 Shared PostgreSQL/Azurite and other tasks' servers were left running. The
 ignored review manifest, local receipts and screenshots remain available.
 
-## Remaining work
+## Remaining work recorded before approval
 
 Review the private proposed values, including names reconstructed from context;
 confirm unknown originals where available. Apply only within the authorized
 production scope, retain the successful receipt, independently verify changed
 rows and reload the affected product views. An application deployment or a
 translation change alone will not repair the existing question marks.
+
+## Approved production application
+
+The user approved the presented 67-field proposal with "Sim, pode aplicar".
+The branch remained main, at 074d7bd after the earlier repair commit 9253152.
+The repair script, private task runner and document read/write/render paths had
+no intervening source changes. The approved manifest matched the original
+read-only preview exactly:
+
+    af6797b8c882d3600ed8b2f9ef825b5ad377a923d2619281eb02a46179c862b2
+
+Execution job-genealogiq-migrate-prod-0hno8k3 succeeded on 2026-10-07 at
+13:55:07 America/Sao_Paulo (16:55:07Z). Its successful apply receipt reports
+67 updated text fields across 49 rows in the seven audited APP tables. The
+receipt is retained privately as .local-qa/accent-production-apply-receipt.json.
+The three document fields are fully restored: both reported titles and the
+CNH description. This was a guarded data update; no deployment or schema change
+was required.
+
+A separate script used explicit READ ONLY SELECTs, without calling repairText,
+to compare every original audit target with its approved expected value.
+Execution job-genealogiq-migrate-prod-acw9o10 succeeded and reported:
+
+| Independent production check | Observed result |
+| --- | --- |
+| Original audited fields compared | 72 |
+| Approved changed fields | 67, all equal to the approved after-values |
+| Excluded fields compared with their original values | Five, all unchanged |
+| Missing rows or value mismatches | Zero |
+| Fields still containing unresolved characters | Seven: five untouched fields and two partially restored biographies |
+| Reported documents' visibility | Both remain is_public=false |
+
+The independent verification is retained privately as
+.local-qa/accent-production-verification.json. The unchanged fields contain four
+ambiguous given names and one street name; the two biographies retain unknown
+symbols. These originals are still needed, so DATABASE-G2 remains open.
+
+The production public profile rendered a restored family-name accent while
+preserving an unresolved given-name segment. Both the profile preview and the
+Documents collection continued to hide the private documents from an anonymous
+viewer. An authenticated owner session was unavailable, so production owner UI
+verification is n/a; the exact document values are verified in PostgreSQL, and
+the same save/reload display path passed the local happy/boundary checks above.
+No document bytes, access settings or production credentials were exposed.
+
+The prepared command's 12 tests, 24 document specs and local PostgreSQL/UI
+evidence from 9253152 remain applicable; no implementation changed in this
+follow-up. The two private jobs completed, and no additional local product
+server or disposable database fixtures were started for this application.
+The temporary browser tab was closed; its privacy-boundary screenshot remains
+in .local-qa/accent-production-documents-privacy.jpg.
+
+Follow-up checks passed: documentation validation (four guides, 39 features,
+2,295 local links and 161 named references), git diff --check, and the locale
+reference gate (zero errors; 83 dynamic calls skipped and one unmapped file).
+The earlier missing BMS coupon key is resolved in the intervening source.
 
 ## Related
 

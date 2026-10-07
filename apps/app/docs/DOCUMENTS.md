@@ -145,12 +145,13 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 
 ### DOCUMENTS-G2: Accented text was already damaged in stored content
 
-- **Status:** open
+- **Status:** fixed
 - **Found:** 2026-10-07, reported profile preview and read-only production audit.
 - **Evidence:** The database contains the reported titles "CNH - carteira de habilita????o" and "Cart??o INSS"; the translated subtitle retains its accents. Both PostgreSQL encodings are UTF8. The current form/action/query path preserves Unicode; local form saving and independent PostgreSQL assertions verify that boundary.
 - **Impact:** Every view using the damaged row repeats the same text. Other APP content fields also have replacement runs; a translation-only deployment cannot repair them.
 - **Root cause:** Non-ASCII UTF-8 bytes were replaced with ASCII question marks before the currently observed reads. The originating writer/import is not established; the available pre-Azure local dump contains no document rows.
-- **Resolution:** Regression specs and the guarded repair command are provided in this change. Production recovery remains open until the replacement text is reviewed and applied. See the [database runbook](../../../docs/DATABASE.md#recover-damaged-app-text) and [dated audit](../../../docs/audits/APP-TEXT-ENCODING-2026-10-07.md); preserve unknown originals instead of inventing accents or emoji.
+- **Resolution:** Initial preparation in 9253152 supplied regression specs and the guarded repair command; production recovery was pending review/application at that point. See the applied resolution below, [database runbook](../../../docs/DATABASE.md#recover-damaged-app-text) and [dated audit](../../../docs/audits/APP-TEXT-ENCODING-2026-10-07.md); preserve unknown originals instead of inventing accents or emoji.
+- **Applied resolution:** 2026-10-07, after user approval of the proposal prepared in 9253152, the guarded production job restored both reported titles and the CNH description. Independent read-only verification matched all three exact values. Both documents remain private and are absent from the anonymous profile/collection. Local owner save/reload and blank-title checks passed before application; an authenticated production owner session was unavailable. Seven unresolved fields outside documents remain tracked by DATABASE-G2.
 
 ## Verification log
 
@@ -159,6 +160,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-10-07 | `218d5aa` + text repair/tests/docs; concurrent unrelated work excluded from this change | Source, deterministic tests, read-only production query and local PostgreSQL/browser | The card/list/form use the same stored title; 24 document tests and 12 repair tests pass. Local title/description accents persist; blank-title validation and transaction/rollback boundaries pass. [Dated evidence](../../../docs/audits/APP-TEXT-ENCODING-2026-10-07.md) separates the layers. | Production data remains unchanged pending review/application; no upload/download or private-blob delivery claim. |
+| 2026-10-07 | `9253152`, reapplied source review at `074d7bd`; approved production data operation | Private apply job, independent read-only query and anonymous production browser | All three damaged document values match the approved text; both rows retain private visibility and remain hidden anonymously. The total repair updated 67 fields, with zero mismatches across 72 independently checked fields. | Production owner UI is n/a without an authenticated session; earlier local UI checks remain the save/reload evidence. DATABASE-G2 retains the seven uncertain fields outside documents. |
 
 ## Related
 
