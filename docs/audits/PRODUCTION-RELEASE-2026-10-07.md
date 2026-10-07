@@ -65,5 +65,26 @@ the [text audit](APP-TEXT-ENCODING-2026-10-07.md).
 
 ## Deployment and final verification
 
-Pending execution and final evidence. Do not interpret this preparation
-record as deployment completion.
+The initial release `f85ee3721fec33e6dfc0042ccae60d0c2beac8a0` passed
+[CI](https://github.com/genealogiqdev/genealogiq/actions/runs/37658275770)
+and [Deploy Azure](https://github.com/genealogiqdev/genealogiq/actions/runs/37658275852).
+All five images built; APP/BMS/SEQ reached revision `0000008` with 100% traffic.
+Migration execution `job-genealogiq-migrate-prod-5rng5dy` succeeded before
+rollout. Customer-initiated backup `pre-release-20261007` completed at
+17:20:05 UTC before that migration.
+
+Read-only execution `job-genealogiq-migrate-prod-1qk39gg` verified the completed
+manual-coupon migration and exactly one active manual Gen2026 coupon: 100%,
+once, no Stripe IDs, zero production redemptions. No test sale was created.
+
+All four custom hostnames returned 200 for live, ready and sign-in; the Azure
+verification script passed all three generated hostnames and media settings.
+All eight alerts remain enabled. The October 7 06:00 UTC daily execution
+succeeded, and its scheduler image was updated to the release SHA. Its next
+scheduled execution is distinct from testing business effects now.
+
+The final public landing inspection exposed a legacy hardcoded portal link
+to `sequoia.rip` in `partner-links.ts`. A follow-up release corrects the shared
+header/closing/footer link to `sequoia.genealogiq.com.br/sign-in`. This was
+listed as remaining work in the domain cutover audit. Final follow-up
+deployment and cleanup evidence will be appended below.

@@ -26,6 +26,13 @@ No LLM/model stage exists in this implementation.
 
 ## Rules and why
 
+Partner portal links use `https://sequoia.genealogiq.com.br/sign-in`, the
+canonical production SEQ origin. All three landing CTAs share
+`PARTNER_PORTAL_HREF` in [partner-links.ts](../src/components/marketing/partner-links.ts).
+The October 7 release check caught the legacy `sequoia.rip` constant after the
+domain cutover; correcting runtime environment alone cannot change this
+bundled link. Rebuild APP and verify the public CTA opens SEQ sign-in.
+
 Feedback takes at least two seconds and optionally verifies Turnstile before sending an escaped email. Missing Turnstile configuration logs a warning and skips verification, so local feedback does not prove anti-bot service behavior. b0cfe7c added partner landing content.
 
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
@@ -114,6 +121,15 @@ The affiliate estimator's remaining UI scenario is to open /afiliados, independe
 
 ## Gaps and fixes
 
+### MARKETING-FEEDBACK-G3: Partner portal links retained the legacy origin
+
+- **Status:** fixed
+- **Found:** 2026-10-07, production release acceptance after the domain cutover.
+- **Evidence:** `/afiliados` on the canonical APP domain linked its portal CTAs to `sequoia.rip/sign-in`.
+- **Impact:** Visitors were directed away from the verified canonical Sequoia deployment.
+- **Root cause:** `PARTNER_PORTAL_HREF` was hardcoded and unaffected by runtime origin configuration.
+- **Resolution:** Updated the shared constant to `https://sequoia.genealogiq.com.br/sign-in`; header, closing and footer consume it. The [release audit](../../../docs/audits/PRODUCTION-RELEASE-2026-10-07.md) records the rebuild and browser destination check.
+
 ### MARKETING-FEEDBACK-G1: Feedback delivery and Turnstile lack provider replay evidence
 
 - **Status:** open
@@ -136,6 +152,7 @@ The affiliate estimator's remaining UI scenario is to open /afiliados, independe
 
 | Date | Commit / working changes | Verified by | Scope and evidence | Mismatches or limits → action |
 | --- | --- | --- | --- | --- |
+| 2026-10-07 | `f85ee37` + canonical portal correction | Production browser and source trace | Production landing showed expected BRL 6,000/month and BRL 72,000/year at 20 units, with partner photos; portal links still used the old constant. | Corrected shared destination; final deployment and destination evidence is in the release audit. No feedback email was sent. |
 | 2026-10-03 | `0353683` | Codex source diff | Rechecked affiliate calculator, landing photos and three locale files added after the baseline | Source only; no later marketing UI pass claimed |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
