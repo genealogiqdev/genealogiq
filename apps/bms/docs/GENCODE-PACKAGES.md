@@ -27,6 +27,13 @@ No LLM/model stage exists in this implementation.
 
 2c2ceb3 added standalone package purchasing: an active partner may buy without an annual contract. A package produces TOPUP credits for twelve months and minted codes; duplicate Stripe fulfillment must not mint twice (gencode-package.test.ts). Checkout lifetime is 23 hours in gencode-package.ts.
 
+`sendGenCodePackageLink` opens the Stripe checkout before sending its email.
+A missing Resend key can therefore report a link-generation failure after the
+checkout step has run. Identify the serving origin/revision before retrying;
+the local QA launcher disables mail even with a populated BMS `.env`. The
+[email runbook](../../../docs/EMAIL-DELIVERY.md#diagnose-and-refresh-a-deployed-resend-credential)
+separates missing runtime configuration, provider rejection and actual delivery.
+
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
@@ -127,6 +134,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
+| 2026-10-07 | Source `218d5aa`; existing Azure BMS image `6e06634a752b44bce24825b0aa25baf0b669fa16`; refreshed revision `resend-20261007` | Source trace, Azure CLI/container and local browser | Rechecked route/admin/schema/tenant/checkout/email boundaries. BMS Resend reference reapplied and new revision healthy with 100% traffic. All three deployed apps returned live/ready HTTP 200; 840 unit tests passed. Local BMS company save/reload, SQL persistence, restoration and anonymous redirect passed on port 3101. | Full checkout/email/webhook scenario n/a: no authorized message or payment generated. Screenshot origin unanswered. Local APP/SEQ baseline interrupted by dependency-resolution failures during concurrent workspace changes. [Audit](../../../docs/audits/RESEND-BMS-2026-10-07.md). |
 
 ## Related
 

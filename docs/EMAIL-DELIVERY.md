@@ -91,6 +91,37 @@ Follow [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for exact setup/start/readiness
 
 ## Runbooks
 
+### Diagnose and refresh a deployed Resend credential
+
+`Missing API key` is raised while constructing the Resend client, before an
+email request reaches the provider. It means the serving process has an empty
+`RESEND_API_KEY`; it does not establish a Stripe test-mode or unfinished-release
+problem. First identify the browser origin and the serving revision. The local
+QA launcher deliberately overrides this variable with an empty string even when
+`apps/bms/.env` contains a key.
+
+In Azure, verify the subscription and inspect only secret names/references.
+The BMS contract is `RESEND_API_KEY=secretref:resend-api-key`, backed by the
+versionless `resend-api-key` secret in `kv-gen-ohqluyie` and the existing
+`id-genealogiq-prod` managed identity. Compare the explicitly selected local
+credential with Key Vault privately; never print either value. If they already
+match, retain the existing secret rather than rotate a shared credential.
+
+Preview the BMS revision refresh with the current resource definition read using
+the preview template's API version (`2024-03-01`). Review the what-if before
+reapplying the existing Key Vault reference and copying the active BMS revision
+with `RESEND_API_KEY=secretref:resend-api-key`. Reuse the immutable image and
+require the new revision to be ready, healthy and receiving traffic. A secret
+reference in ARM alone does not prove the variable reached the running process.
+
+A credential restricted to sending can reject `GET /domains` with
+`restricted_api_key`; that response is not an invalid-key diagnosis. An empty
+`POST /emails` body has no recipient and cannot send a message. Its
+`missing_required_field` response is useful authentication/boundary evidence,
+but does not verify sender-domain permission, delivery or inbox receipt. A real
+message still requires the authorized recipient and scenario. The
+[2026-10-07 audit](audits/RESEND-BMS-2026-10-07.md) records this distinction.
+
 ### Change or diagnose this feature
 
 1. Read this document and [the applicable AGENTS.md](../AGENTS.md); trace the linked entry through session, schema, query/action and integration.
@@ -131,6 +162,7 @@ Follow [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for exact setup/start/readiness
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
+| 2026-10-07 | Source `218d5aa`; Azure image `6e06634a752b44bce24825b0aa25baf0b669fa16`; BMS revision `resend-20261007` | Azure CLI, container process and Resend boundary probe | Existing BMS `.env` and Key Vault keys matched privately. Reapplied the existing reference; new revision healthy with 100% traffic and a populated process variable. Empty email request returned HTTP 422 `missing_required_field`. Tests: 840 passed, one opt-in skip. | Authentication/configuration verified; no real message sent, sender permission/inbox delivery and screenshot origin remain unverified. [Audit](audits/RESEND-BMS-2026-10-07.md). |
 
 ## Related
 
