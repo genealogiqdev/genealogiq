@@ -49,7 +49,7 @@ const STEP_FIELDS: Record<StepIndex, (keyof CustomerCreateFormValues | string)[]
   0: ['entityType', 'businessSegment', 'name', 'tradeName', 'taxId', 'stateRegistration', 'municipalRegistration', 'birthDate'],
   1: ['email', 'phoneCountryCode', 'phone'],
   2: [],
-  3: ['owner.firstName', 'owner.lastName', 'owner.email'],
+  3: ['owner.firstName', 'owner.lastName', 'owner.email', 'initialGenCodes'],
   4: [],
 }
 
@@ -96,6 +96,9 @@ export function CustomerNewForm() {
         return
       }
     }
+    if (step === 2 && !form.getValues('owner.email')) {
+      setValue('owner.email', form.getValues('email'))
+    }
     setStep((s) => (s + 1) as StepIndex)
   }
 
@@ -109,7 +112,10 @@ export function CustomerNewForm() {
     if (!result.ok) {
       setServerError(result.message)
     } else {
-      if (result.message) toast.success(result.message)
+      if (result.message) {
+        if (result.data?.emailPending) toast.warning(result.message, { duration: 15_000 })
+        else toast.success(result.message)
+      }
       router.push('/customers')
     }
   }
@@ -370,6 +376,17 @@ export function CustomerNewForm() {
                   <Field data-invalid={fieldState.invalid}>
                     <FieldLabel>{t('owner.email')}</FieldLabel>
                     <Input {...field} type="email" autoComplete="off" aria-invalid={fieldState.invalid} />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )} />
+                <Controller name="initialGenCodes" control={control} render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor="initialGenCodes">{t('fields.initialGenCodes')}</FieldLabel>
+                    <Input id="initialGenCodes" name={field.name} ref={field.ref} onBlur={field.onBlur}
+                      type="number" min={0} max={10000} step={1} value={Number.isNaN(field.value) ? '' : field.value}
+                      onChange={(event) => field.onChange(event.target.value === '' ? Number.NaN : Number(event.target.value))}
+                      aria-invalid={fieldState.invalid} aria-describedby="initialGenCodesHint" />
+                    <p id="initialGenCodesHint" className="text-sm text-muted-foreground">{t('hints.initialGenCodes')}</p>
                     {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                   </Field>
                 )} />

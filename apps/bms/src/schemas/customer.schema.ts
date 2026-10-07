@@ -62,6 +62,7 @@ export function getOwnerSchema(t: Translator) {
 export function getCustomerCreateSchema(t: Translator) {
   return makeCustomerBaseSchema(t).extend({
     owner: getOwnerSchema(t),
+    initialGenCodes: z.number().int(t('invalidInitialGenCodes')).min(0, t('invalidInitialGenCodes')).max(10_000, t('invalidInitialGenCodes')).default(0),
   }).superRefine(makeTaxIdRefine(t))
 }
 
@@ -104,4 +105,5 @@ export const customerDefaultValues: CustomerFormValues = {
 export const customerCreateDefaultValues: CustomerCreateFormValues = {
   ...customerDefaultValues,
   owner: ownerDefaultValues,
+  initialGenCodes: 0,
 }

@@ -6,18 +6,8 @@ import { prisma } from '@/lib/prisma'
 import { sendSequoiaWelcomeEmail } from '@/lib/email'
 import { CHECKOUT_ORIGINS } from '@genealogiq/services/partner-checkout'
 
-/**
- * What is left of BMS's billing once the batch-of-codes model went away.
- *
- * Minting, settling and reversing a Sale all lived here. They are gone with the
- * table: a partner no longer buys stock, they subscribe, and the cycle that
- * grants their allowance is opened by @genealogiq/services/partner-billing off
- * a paid invoice.
- *
- * Opening Sequoia stayed, because it is the one thing only BMS does — a partner
- * who bought through an emailed link may never have signed in, so the first
- * payment is what grants them access.
- */
+// Compatibility for owners created under the former payment-gated onboarding.
+// New registrations already have active credentials, even with zero GenCodes.
 
 /** Matches the window createCustomer used to mint before access was payment-gated. */
 const RESET_TOKEN_TTL_MS = 72 * 60 * 60 * 1000
@@ -26,11 +16,7 @@ const RESET_TOKEN_TTL_MS = 72 * 60 * 60 * 1000
 export const BMS_ORIGIN = CHECKOUT_ORIGINS.bms
 
 /**
- * Opens Sequoia to a partner that has now paid for something.
- *
- * createCustomer writes the owner inactive, with no token and no email: a
- * customer who never buys must not get a login. This is the other half — it runs
- * on the first settled payment and does what registration used to do eagerly.
+ * Opens Sequoia to a legacy inactive owner after settlement.
  *
  * Idempotent, and that matters more than it looks. It runs on EVERY payment, not
  * just the first, and a partner who renews must not have their password reset

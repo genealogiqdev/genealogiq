@@ -51,9 +51,8 @@
       "invalidData": "Dados inválidos"
     },
     "customer": {
-      "accessNotProvisioned": "Este cliente ainda não tem acesso liberado — ele é criado com o primeiro pagamento.",
+      "accessNotProvisioned": "O responsável está inativo. Verifique o acesso antes de reenviar o e-mail.",
       "adminEmailInUse": "Este e-mail de administrador já está em uso",
-      "createdAwaitingPayment": "Cliente cadastrado. O acesso ao Sequoia é liberado após o primeiro pagamento.",
       "hasAppData": "Não é possível excluir: este cliente ainda tem {count} memorial(is)/assinatura(s) no app que seriam destruídos.",
       "hasDependents": "Não é possível excluir: o cliente tem registros dependentes.",
       "hasSales": "Não é possível excluir um cliente com registros de vendas.",
@@ -61,7 +60,11 @@
       "notFound": "Cliente não encontrado.",
       "passwordAlreadySet": "Este usuário já definiu sua senha.",
       "taxIdExists": "Já existe um cliente com este CNPJ/CPF",
-      "updated": "Cliente atualizado com sucesso."
+      "updated": "Cliente atualizado com sucesso.",
+      "createdWithAccess": "Cliente cadastrado com acesso liberado e GenCodes iniciais disponíveis. As credenciais foram enviadas ao responsável.",
+      "createdEmailPending": "Cliente cadastrado e GenCodes liberados, mas o e-mail não foi enviado. Em Clientes, use Reenviar e-mail para enviar um link de acesso. Não cadastre novamente.",
+      "emailFailed": "Não foi possível enviar o e-mail. Verifique o serviço de envio e tente novamente.",
+      "hasCredits": "Este cliente tem um histórico de créditos. Desative o cadastro para preservar os registros."
     },
     "discountCoupon": {
       "codeExists": "Já existe um cupom com este código.",
@@ -397,12 +400,14 @@
       "stateRegistration": "Inscrição estadual",
       "stateRegistrationShort": "Insc. est.",
       "tradeName": "Nome fantasia",
-      "type": "Tipo"
+      "type": "Tipo",
+      "initialGenCodes": "GenCodes iniciais"
     },
     "hints": {
       "addressOptional": "O endereço é opcional e pode ser preenchido depois.",
-      "admin": "Credenciais de acesso ao sistema Sequoia para o responsável por esta empresa. Um e-mail será enviado com um link para definir a senha.",
-      "modulesGray": "Itens em cinza são sempre acessíveis e não podem ser desativados."
+      "admin": "O acesso ao Sequoia será liberado ao salvar. O e-mail abaixo receberá o endereço de acesso e uma senha gerada automaticamente.",
+      "modulesGray": "Itens em cinza são sempre acessíveis e não podem ser desativados.",
+      "initialGenCodes": "Disponíveis assim que o cadastro for salvo, sem compra. Cada GenCode permite ativar um perfil e o crédito vale por 12 meses. Informe de 0 a 10.000."
     },
     "modules": {
       "groups": {
@@ -624,7 +629,8 @@
     "upperSnakeOnly": "Use apenas letras maiúsculas, números e underscore.",
     "wholeNumber": "Deve ser um número inteiro",
     "manualCouponTerms": "Cupons aplicados no BMS devem ter 100% de desconto e duração única.",
-    "manualCouponConfirmation": "Confirme a conferência do pagamento ou do estoque."
+    "manualCouponConfirmation": "Confirme a conferência do pagamento ou do estoque.",
+    "invalidInitialGenCodes": "Informe um número inteiro entre 0 e 10.000."
   },
   "ExtraUnitPrices": {
     "resource": {

@@ -51,9 +51,8 @@
       "invalidData": "Invalid data"
     },
     "customer": {
-      "accessNotProvisioned": "This customer has no access yet — it is created with the first payment.",
+      "accessNotProvisioned": "The administrator is inactive. Check their access before resending the email.",
       "adminEmailInUse": "This administrator email is already in use",
-      "createdAwaitingPayment": "Customer registered. Sequoia access is granted after the first payment.",
       "hasAppData": "Cannot delete: this customer still has {count} app memorial(s)/subscription(s) that would be destroyed.",
       "hasDependents": "Cannot delete: customer has dependent records.",
       "hasSales": "Cannot delete a customer with existing sales records.",
@@ -61,7 +60,11 @@
       "notFound": "Customer not found.",
       "passwordAlreadySet": "This user has already set their password.",
       "taxIdExists": "A customer with this tax ID already exists",
-      "updated": "Customer updated successfully."
+      "updated": "Customer updated successfully.",
+      "createdWithAccess": "Customer registered with immediate access and initial GenCodes. Credentials were emailed to the administrator.",
+      "createdEmailPending": "Customer registered and GenCodes granted, but email delivery failed. Use Resend email in Customers to send an access link. Do not register again.",
+      "emailFailed": "The email could not be sent. Check the email service and try again.",
+      "hasCredits": "This customer has credit history. Deactivate the customer to preserve the records."
     },
     "discountCoupon": {
       "codeExists": "A coupon with this code already exists.",
@@ -397,12 +400,14 @@
       "stateRegistration": "State Registration",
       "stateRegistrationShort": "State Reg.",
       "tradeName": "Trade Name",
-      "type": "Type"
+      "type": "Type",
+      "initialGenCodes": "Initial GenCodes"
     },
     "hints": {
       "addressOptional": "Address is optional and can be filled in later.",
-      "admin": "Access credentials for the Sequoia system for the person responsible for this company. An email will be sent with a link to set the password.",
-      "modulesGray": "Items shown in gray are always accessible and cannot be disabled."
+      "admin": "Sequoia access will be available when you save. The email below will receive the sign-in address and an automatically generated password.",
+      "modulesGray": "Items shown in gray are always accessible and cannot be disabled.",
+      "initialGenCodes": "Available as soon as registration is saved, without a purchase. Each GenCode activates one profile and its credit is valid for 12 months. Enter 0 to 10,000."
     },
     "modules": {
       "groups": {
@@ -624,7 +629,8 @@
     "upperSnakeOnly": "Use uppercase letters, numbers and underscores only.",
     "wholeNumber": "Must be a whole number",
     "manualCouponTerms": "BMS coupons must have a 100% discount and a one-time duration.",
-    "manualCouponConfirmation": "Confirm the payment or stock verification."
+    "manualCouponConfirmation": "Confirm the payment or stock verification.",
+    "invalidInitialGenCodes": "Enter a whole number from 0 to 10,000."
   },
   "ExtraUnitPrices": {
     "resource": {

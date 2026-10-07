@@ -8,6 +8,7 @@ import {
   sendWelcomeEmail as _welcome,
   sendFeedbackEmail as _feedback,
   sendSalePaymentLinkEmail as _paymentLink,
+  sendPartnerCredentialsEmail as _partnerCredentials,
   type FeedbackEmail,
 } from "@genealogiq/email"
 
@@ -25,5 +26,7 @@ export const sendAccountDeletionEmail = (to: string) => _delete({ to })
 export const sendWelcomeEmail        = (to: string, token: string) => _welcome({ to, token, baseUrl: BMS() })
 export const sendSequoiaWelcomeEmail = (to: string, token: string) => _welcome({ to, token, baseUrl: SEQUOIA(), productName: "Sequoia" })
 export const sendSalePaymentLinkEmail = _paymentLink
+export const sendPartnerCredentialsEmail = (to: string, password: string, initialGenCodes: number) =>
+  _partnerCredentials({ to, password, initialGenCodes, baseUrl: SEQUOIA() })
 
 export const sendFeedback = (data: Omit<FeedbackEmail, "to">) => _feedback({ ...data, to: FEEDBACK_TO })

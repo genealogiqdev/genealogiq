@@ -3,7 +3,7 @@
 > **Code:** [packages/email/src/index.ts](../packages/email/src/index.ts) · [apps/app/src/lib/email.ts](../apps/app/src/lib/email.ts) · [apps/bms/src/lib/email.ts](../apps/bms/src/lib/email.ts) · [apps/seq/src/lib/email.ts](../apps/seq/src/lib/email.ts)
 > **Entry points:** `Account/invitation/feedback/lifecycle actions calling email adapters`
 > **Depends on:** [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) · [DATABASE](DATABASE.md) · [CONFIGURATION](CONFIGURATION.md) · [TESTING](TESTING.md) · [OBSERVABILITY](OBSERVABILITY.md) · [RUNBOOKS](RUNBOOKS.md)
-> **Last verified against code:** 2026-10-03 at `6e06634`, including this task’s uncommitted documentation, launcher and test changes. Source verification is separate from runtime/UI below.
+> **Last verified against code:** 2026-10-07 at `c3fd642` plus the immediate partner onboarding change. Source, tests, local runtime/UI and deployment evidence are separated in the onboarding audit linked below; earlier verification history is preserved.
 
 This shared module supplies transactional email delivery. One lazy Resend client sends English templates from no-reply@rohling.com.br. App adapters supply their own base URL and product context. Feedback values are HTML-escaped; token links contain expiring account tokens and must not be copied into documentation.
 
@@ -26,11 +26,17 @@ No LLM/model stage exists in this implementation.
 
 ## Rules and why
 
-Imports work without a Resend key because the client initializes only when sending. Missing key/provider rejection is an integration failure, not proof of delivery. The current send helper awaits emails.send but ignores a resolved error field; origin not recorded.
+Imports work without a Resend key because the client initializes only when sending. Missing key/provider rejection is an integration failure, not proof of delivery. The send helper now rejects a returned Resend error as well as a thrown transport error; EMAIL-DELIVERY-G1 preserves the former ignored-error behavior.
 
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
+
+### Partner registration credentials
+
+[BMS partner registration](../apps/bms/docs/PARTNERS.md) sends `sendPartnerCredentialsEmail` after the account and optional initial GenCodes commit. The message contains the OWNER's login email, generated initial password, Sequoia sign-in URL and exact initial allowance. The password is persisted only as a bcrypt hash and is never returned in an action response or written to logs. Resend acceptance is required for the normal success message; both thrown errors and a resolved `{ error }` response produce an email-pending registration warning. Recovery uses an expiring setup link without changing the existing password or issuing more credits.
+
+The loopback mail fixture captures only `@genealogiq.test` recipients and simulates a provider rejection. Local capture verifies template content and usable credentials; it does not establish production inbox delivery. See [the onboarding audit](audits/PARTNER-ONBOARDING-2026-10-07.md).
 
 One lazy Resend client sends English templates from no-reply@rohling.com.br. App adapters supply their own base URL and product context. Feedback values are HTML-escaped; token links contain expiring account tokens and must not be copied into documentation.
 
@@ -80,7 +86,7 @@ Follow [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for exact setup/start/readiness
 ### Manual scenarios
 
 1. **Happy path:** Send one synthetic verification/feedback message to a disposable verified test inbox and compare independent recipient, URL base and escaped content. Requires test mail configuration and an inbox.
-2. **Boundary:** Return a recorded Resend {data:null,error:...} response and expect the caller to fail; current send helper does not inspect it, as recorded below.
+2. **Boundary:** Return a Resend {data:null,error:...} fixture and expect the transport to fail; onboarding must retain the committed registration and explicitly report pending email delivery.
 3. **Persistence/cleanup:** independently query the feature-owned rows or downstream result. Restore temporary edits; retain ledger/audit history. Only delete disposable fixtures when authorized by the task.
 
 ### QA evidence
@@ -140,12 +146,12 @@ message still requires the authorized recipient and scenario. The
 
 ### EMAIL-DELIVERY-G1: Resolved provider error is ignored
 
-- **Status:** open
+- **Status:** fixed
 - **Found:** 2026-10-03, repository memory/bootstrap audit at 6e06634.
 - **Evidence:** packages/email/src/index.ts send awaits resend().emails.send without checking the returned error field.
 - **Impact:** Callers can report success after Resend rejected the message.
 - **Root cause:** The present implementation/contract is described in the evidence; original decision not recorded.
-- **Resolution:** Not fixed in this task. Handle resolved errors explicitly and add deterministic transport-error tests.
+- **Resolution:** 2026-10-07 partner onboarding change: `send` checks the resolved Resend error and throws a sanitized failure. The email spec rejects a resolved provider error; BMS action tests preserve the successful registration and report email pending. The original incident above is retained. Actual inbox delivery remains EMAIL-DELIVERY-G2.
 
 ### EMAIL-DELIVERY-G2: No recorded email provider delivery fixture
 
@@ -163,6 +169,7 @@ message still requires the authorized recipient and scenario. The
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-10-07 | Source `218d5aa`; Azure image `6e06634a752b44bce24825b0aa25baf0b669fa16`; BMS revision `resend-20261007` | Azure CLI, container process and Resend boundary probe | Existing BMS `.env` and Key Vault keys matched privately. Reapplied the existing reference; new revision healthy with 100% traffic and a populated process variable. Empty email request returned HTTP 422 `missing_required_field`. Tests: 840 passed, one opt-in skip. | Authentication/configuration verified; no real message sent, sender permission/inbox delivery and screenshot origin remain unverified. [Audit](audits/RESEND-BMS-2026-10-07.md). |
+| 2026-10-07 | Immediate onboarding change after `c3fd642` | Source, deterministic tests, local PostgreSQL and browser | Credential template and resolved provider-error handling; EMAIL-DELIVERY-G1 fixed; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
 
 ## Related
 

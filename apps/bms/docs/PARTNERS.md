@@ -3,7 +3,7 @@
 > **Code:** [src/actions/customer.actions.ts](../src/actions/customer.actions.ts) · [src/queries/customers.ts](../src/queries/customers.ts) · [src/schemas/customer.schema.ts](../src/schemas/customer.schema.ts)
 > **Entry points:** `/customers` · `/customers/new` · `/customers/[id]` · `/api/entity-name`
 > **Depends on:** [AUTHENTICATION](../../../docs/AUTHENTICATION.md) · [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-07 at `9253152` plus the Gen2026 changes to the paths named below. Source, tests, runtime and UI are recorded separately; earlier observations remain in the verification log.
+> **Last verified against code:** 2026-10-07 at `c3fd642` plus the immediate partner onboarding change. Source, tests, local runtime/UI and deployment evidence are separated in the onboarding audit linked below; earlier verification history is preserved.
 
 The BMS application supplies partner registry and invitations. Customer forms describe a partner tenant and its contact/address fields; creation/invitation establishes SEQ staff access. Mutations check privileged BMS roles; taxId/email uniqueness is enforced by the Prisma schema and translated to form errors.
 
@@ -31,9 +31,19 @@ The enforcing files are linked above. Test names and literal assertions below re
 
 ## Contracts and data
 
+### Immediate access and initial GenCodes
+
+New registration creates an active OWNER with a cryptographically generated password, persisted only as a bcrypt hash. The administrator email defaults to the partner contact email in the wizard and remains editable. After the transaction commits, `sendPartnerCredentialsEmail` sends that OWNER's email, initial password and SEQ sign-in URL. Access is independent of purchasing and also works with zero credits. Existing inactive accounts are not changed retroactively.
+
+The administrator step accepts `initialGenCodes`, an integer from 0 to 10,000, default 0. `grantInitialGenCodes` in [partner-onboarding.ts](../../../packages/services/src/partner-onboarding.ts) writes a standalone TOPUP grant, one immutable GRANT transaction with the operator and registration reason, and exactly that many AVAILABLE codes. The credits expire after 12 calendar months and do not roll over. No order, coupon, subscription, charge or premium B2C trial is created. The tenant, OWNER, balance, ledger and codes share one transaction; zero skips all credit/code writes. Existing tenant taxId and OWNER email uniqueness prevent duplicate registrations. Credit history blocks deletion; use deactivation to preserve it.
+
+Mail is outside the database transaction. A provider rejection leaves a successful registration with an explicit email-pending warning. Do not register again. Customers → Reenviar e-mail sends an expiring password-setup link to an active OWNER, including one whose initial password already exists; it does not overwrite the current hash, mint credits or repeat the registration. The original generated password is never retrievable from the database. The shared transport now rejects Resend's returned `error` as well as thrown errors.
+
+### Historical payment-gated registration (superseded)
+
 ### Access after a manual settlement
 
-Registration stores the partner's OWNER inactive, without a password or invitation token. In addition to a verified Stripe payment, the [Gen2026 BMS action](DISCOUNT-COUPONS.md) now calls `provisionTenantAccess` after an audited manual package/B2B settlement. This enables the existing OWNER, creates a 72-hour password-setup token and invokes the existing welcome-mail adapter. An already active owner is left alone. A coupon does not create a second staff identity or change the customer's tenant.
+Before immediate onboarding, registration stored the partner's OWNER inactive, without a password or invitation token. In addition to a verified Stripe payment, the [Gen2026 BMS action](DISCOUNT-COUPONS.md) calls `provisionTenantAccess` after an audited manual package/B2B settlement. This compatibility path still enables an existing inactive OWNER, creates a 72-hour password-setup token and invokes the existing welcome-mail adapter. An already active owner is left alone. A coupon does not create a second staff identity or change the customer's tenant.
 
 A thrown provisioning/invitation error is reported as follow-up on a successful sale. The staff can inspect Customers and use `resendCustomerEmail` after fixing mail configuration; no second sale should be entered. The existing mail transport's reported-error and inbox-delivery gaps remain documented in [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md).
 
@@ -92,6 +102,8 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 
 ### Manual scenarios
 
+Current onboarding acceptance: create a partner with three initial GenCodes and capture its credential email in the loopback mail fixture; sign in to SEQ with the generated password, reload inventory and verify three funded codes with no order/contract. Create another with zero and verify access with empty inventory. Reject a negative/fractional quantity; simulate rejected mail, retain one registration/grant, and recover through the existing resend action. PostgreSQL tests also consume three credits, reject a fourth, verify rollback and reject a duplicate grant. Source/tests/runtime/UI evidence is appended in [the onboarding audit](../../../docs/audits/PARTNER-ONBOARDING-2026-10-07.md).
+
 1. **Happy path:** Create a synthetic partner with a disposable invitation email, save and reload /customers/<id>; verify the Tenant and invited User share the intended tenant. Requires a test mail recipient.
 2. **Boundary:** Submit a duplicate taxId or use an unprivileged viewer; expect a translated error with no second partner row. Requires role/duplicate fixtures.
 3. **Persistence/cleanup:** independently query the feature-owned rows or downstream result. Restore temporary edits; retain ledger/audit history. Only delete disposable fixtures when authorized by the task.
@@ -136,6 +148,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-10-07 | `218d5aa` + Gen2026 change | Action tests, real local state and SEQ browser | Coupon settlement now provisions first access; inactive OWNER rejected before, active OWNER signed in after; invitation-failure follow-up remained visible without repeating the sale. | [Audit](../../../docs/audits/GEN2026-2026-10-07.md); real mail delivery/password setup still requires its fixture. |
+| 2026-10-07 | Immediate onboarding change after `c3fd642` | Source, deterministic tests, local PostgreSQL and browser | Immediate active credentials, optional audited initial allowance, resend recovery and deletion guard; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](../../../docs/audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
 
 ## Related
 

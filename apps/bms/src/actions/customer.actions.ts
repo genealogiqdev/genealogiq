@@ -1,13 +1,15 @@
 'use server'
 
 import { randomBytes } from 'crypto'
+import bcrypt from 'bcryptjs'
 import { revalidatePath } from 'next/cache'
 import { getTranslations } from 'next-intl/server'
 import { Prisma } from '@genealogiq/db'
 import { prisma } from '@/lib/prisma'
-import { hashToken, done, fail, type ActionResult } from '@genealogiq/core'
+import { hashToken, done, ok, fail, type ActionResult } from '@genealogiq/core'
+import { grantInitialGenCodes } from '@genealogiq/services/partner-onboarding'
 import { verifyAdmin } from '@/lib/dal'
-import { sendSequoiaWelcomeEmail } from '@/lib/email'
+import { sendSequoiaWelcomeEmail, sendPartnerCredentialsEmail } from '@/lib/email'
 import {
   getCustomerSchema,
   getCustomerCreateSchema,
@@ -26,14 +28,14 @@ function buildAddressWrite(address: CustomerFormValues['address'], mode: 'create
     : { upsert: { create: address, update: address } }
 }
 
-export async function createCustomer(data: CustomerCreateFormValues): Promise<ActionResult> {
-  await verifyAdmin()
+export async function createCustomer(data: CustomerCreateFormValues): Promise<ActionResult<{ id: string; emailPending: boolean }>> {
+  const session = await verifyAdmin()
   const t = await getTranslations('Actions')
 
   const validated = getCustomerCreateSchema(identityTranslator).safeParse(data)
   if (!validated.success) return fail(t('common.invalidData'))
 
-  const { address, birthDate, owner, ...rest } = validated.data
+  const { address, birthDate, owner, initialGenCodes, ...rest } = validated.data
 
   const dupTax = await prisma.tenant.findFirst({ where: { taxId: rest.taxId }, select: { id: true } })
   if (dupTax) return fail(t('customer.taxIdExists'))
@@ -41,13 +43,13 @@ export async function createCustomer(data: CustomerCreateFormValues): Promise<Ac
   const existingOwner = await prisma.user.findUnique({ where: { email: owner.email }, select: { id: true } })
   if (existingOwner) return fail(t('customer.adminEmailInUse'))
 
-  // The owner row is written here because this is where the wizard collects the
-  // owner's details and there is nowhere else to keep them — but it is born
-  // INACTIVE, with no reset token and no welcome email. Sequoia access is what
-  // the first payment buys; provisionTenantAccess flips it when the money lands.
-  // Registering a customer who never buys must not hand out a login.
+  // Only the hash is persisted. Send the generated password once, after the
+  // account and its initial allowance have committed together.
+  const password = `Gq!${randomBytes(18).toString('base64url')}`
+  const passwordHash = await bcrypt.hash(password, 12)
+  let customerId: string
   try {
-    await prisma.$transaction(async (tx) => {
+    customerId = await prisma.$transaction(async (tx) => {
       const customer = await tx.tenant.create({
         data: {
           ...rest,
@@ -64,13 +66,17 @@ export async function createCustomer(data: CustomerCreateFormValues): Promise<Ac
           email:         owner.email,
           role:          'OWNER',
           tenantId:      customer.id,
-          password:      null,
+          password:      passwordHash,
           emailVerified: new Date(),
-          isActive:      false,
+          isActive:      true,
         },
         select: { id: true },
       })
-    })
+      await grantInitialGenCodes(tx, {
+        tenantId: customer.id, quantity: initialGenCodes, createdById: session.user.id,
+      })
+      return customer.id
+    }, { timeout: 15_000 })
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
       return fail(t('common.duplicate'))
@@ -79,7 +85,13 @@ export async function createCustomer(data: CustomerCreateFormValues): Promise<Ac
   }
 
   revalidatePath('/customers')
-  return done(t('customer.createdAwaitingPayment'))
+  try {
+    await sendPartnerCredentialsEmail(owner.email, password, initialGenCodes)
+  } catch {
+    // Mail failure must not encourage a second registration or a second grant.
+    return ok({ id: customerId, emailPending: true }, t('customer.createdEmailPending'))
+  }
+  return ok({ id: customerId, emailPending: false }, t('customer.createdWithAccess'))
 }
 
 export async function updateCustomer(id: string, data: CustomerFormValues): Promise<ActionResult> {
@@ -123,15 +135,17 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
   // silently destroy paid, end-user-facing memorials provisioned by SEQ. Guard
   // every dependent explicitly — a Cascade FK doesn't raise P2003, so the catch
   // below would never stop it.
-  const [salesCount, genCodeOrderCount, appUserCount, appSaleCount] = await Promise.all([
+  const [salesCount, genCodeOrderCount, appUserCount, appSaleCount, grantCount] = await Promise.all([
     prisma.partnerSubscription.count({ where: { tenantId: id } }),
     prisma.genCodeOrder.count({ where: { tenantId: id } }),
     prisma.appUser.count({ where: { tenantId: id } }),
     prisma.appSale.count({ where: { tenantId: id } }),
+    prisma.creditGrant.count({ where: { tenantId: id } }),
   ])
   if (salesCount > 0 || genCodeOrderCount > 0) {
     return fail(t('customer.hasSales'))
   }
+  if (grantCount > 0) return fail(t('customer.hasCredits'))
   const appDataCount = appUserCount + appSaleCount
   if (appDataCount > 0) {
     return fail(t('customer.hasAppData', { count: appDataCount }))
@@ -159,12 +173,11 @@ export async function resendCustomerEmail(tenantId: string): Promise<ActionResul
 
   const owner = await prisma.user.findFirst({
     where:  { tenantId, role: 'OWNER' },
-    select: { id: true, email: true, password: true, isActive: true },
+    select: { id: true, email: true, isActive: true },
   })
   if (!owner) return fail(t('customer.noOwner'))
-  if (owner.password) return fail(t('customer.passwordAlreadySet'))
-  // Resending is for an owner who lost their link, not a back door around the
-  // payment gate: an inactive owner has not paid for anything yet.
+  // Recovery sends a setup link without changing the current password. This
+  // also recovers a failed initial credentials email without repeating a grant.
   if (!owner.isActive) return fail(t('customer.accessNotProvisioned'))
 
   await prisma.passwordResetToken.deleteMany({ where: { userId: owner.id } })
@@ -174,7 +187,11 @@ export async function resendCustomerEmail(tenantId: string): Promise<ActionResul
     data: { token: hashToken(token), userId: owner.id, expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000) },
   })
 
-  await sendSequoiaWelcomeEmail(owner.email, token)
+  try {
+    await sendSequoiaWelcomeEmail(owner.email, token)
+  } catch {
+    return fail(t('customer.emailFailed'))
+  }
   return done()
 }
 

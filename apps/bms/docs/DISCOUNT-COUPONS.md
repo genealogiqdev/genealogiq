@@ -3,7 +3,7 @@
 > **Code:** [src/actions/discount-coupon.actions.ts](../src/actions/discount-coupon.actions.ts) · [src/queries/discount-coupons.ts](../src/queries/discount-coupons.ts) · [src/schemas/discount-coupon.schema.ts](../src/schemas/discount-coupon.schema.ts) · [src/actions/manual-coupon.actions.ts](../src/actions/manual-coupon.actions.ts) · [manual-coupon service](../../../packages/services/src/manual-coupon.ts)
 > **Entry points:** `/sales/discount-coupons` · `/sales/discount-coupons/new` · `/sales/discount-coupons/[id]` · `/sales/discount-coupons/redeem`
 > **Depends on:** [GENCODE-PACKAGES](GENCODE-PACKAGES.md) · [PARTNER-PLANS-CONTRACTS](PARTNER-PLANS-CONTRACTS.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-07, `218d5aa` plus the Gen2026 implementation in this change. Source, tests, runtime and UI evidence are separated in the [Gen2026 audit](../../../docs/audits/GEN2026-2026-10-07.md).
+> **Last verified against code:** 2026-10-07 at `c3fd642` plus the immediate partner onboarding change. Source, tests, local runtime/UI and deployment evidence are separated in the onboarding audit linked below; earlier verification history is preserved.
 
 The BMS application supplies discount coupon management. Coupons support percentage or currency-specific fixed amounts, expiry, usage and activation. The schema/SDK mapping determines the Stripe coupon; BMS mutations are privileged. Migration 20260825180000_coupon_tri_currency established the currency-specific shape.
 
@@ -30,6 +30,8 @@ A coupon must not be presented as valid for a currency with no configured amount
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ### Manual settlement with Gen2026
+
+The later [simplified partner registration](PARTNERS.md) releases access and optional initial GenCodes without a coupon or purchase. The settlement provisioning described below remains a compatibility path for legacy inactive OWNERs; it does not reset credentials or recreate the initial allowance of a newly registered partner.
 
 The user chose **application by the BMS team after checking external payment or old stock**. `Gen2026` is an active, unrestricted 100% coupon with `redemptionMode=manual`, `duration=once`, no expiry and no usage cap. The migration and local seed provision it without creating a Stripe object. The displayed code retains `Gen2026`; code matching and duplicate checks are case-insensitive.
 
@@ -187,6 +189,7 @@ Expect: stock tenant 5 + package quantity 2 = 7 codes and credits; a new B2B pla
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-10-07 | `218d5aa` + Gen2026 change | Source, deterministic tests, real PostgreSQL and normal Credentials/browser | Manual mode, all three products, stock preservation, duplicate reference, overlapping contract, non-admin 403, finite APP entitlement and new partner access exercised. | [Gen2026 audit](../../../docs/audits/GEN2026-2026-10-07.md) records separate evidence, exact counts and provider/deployment limits. Stripe replay gap G1 remains open. |
+| 2026-10-07 | Immediate onboarding change after `c3fd642` | Source, deterministic tests, local PostgreSQL and browser | Initial registration no longer requires a manual coupon; legacy settlement path retained; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](../../../docs/audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
 
 ## Related
 

@@ -15,7 +15,26 @@ function resend(): Resend {
 }
 
 async function send(to: string, subject: string, html: string): Promise<void> {
-  await resend().emails.send({ from: FROM, to, subject, html })
+  const result = await resend().emails.send({ from: FROM, to, subject, html })
+  if (result.error) throw new Error('Email delivery was rejected by the provider')
+}
+
+export function sendPartnerCredentialsEmail({ to, password, baseUrl, initialGenCodes }: {
+  to: string
+  password: string
+  baseUrl: string
+  initialGenCodes: number
+}): Promise<void> {
+  const url = `${baseUrl}/sign-in`
+  return send(to, 'Seu acesso ao Sequoia está disponível', `
+    <p>Seu acesso ao Sequoia já está liberado.</p>
+    <p>E-mail de acesso: <strong>${escapeHtml(to)}</strong></p>
+    <p>Senha inicial: <strong>${escapeHtml(password)}</strong></p>
+    <p><a href="${escapeHtml(url)}">Entrar no Sequoia</a></p>
+    <p>GenCodes iniciais disponíveis: <strong>${initialGenCodes}</strong>.</p>
+    <p>Cada GenCode permite ativar um perfil. Os créditos têm validade de 12 meses.</p>
+    <p>Recomendamos alterar sua senha nas configurações da conta após entrar.</p>
+  `)
 }
 
 export interface TokenEmail {

@@ -51,9 +51,8 @@
       "invalidData": "Datos inválidos"
     },
     "customer": {
-      "accessNotProvisioned": "Este cliente aún no tiene acceso — se crea con el primer pago.",
+      "accessNotProvisioned": "El responsable está inactivo. Revise su acceso antes de reenviar el correo.",
       "adminEmailInUse": "Este correo de administrador ya está en uso",
-      "createdAwaitingPayment": "Cliente registrado. El acceso a Sequoia se libera tras el primer pago.",
       "hasAppData": "No se puede eliminar: este cliente todavía tiene {count} memorial(es)/suscripción(es) en la app que se destruirían.",
       "hasDependents": "No se puede eliminar: el cliente tiene registros dependientes.",
       "hasSales": "No se puede eliminar un cliente con registros de ventas.",
@@ -61,7 +60,11 @@
       "notFound": "Cliente no encontrado.",
       "passwordAlreadySet": "Este usuario ya estableció su contraseña.",
       "taxIdExists": "Ya existe un cliente con este identificador fiscal",
-      "updated": "Cliente actualizado con éxito."
+      "updated": "Cliente actualizado con éxito.",
+      "createdWithAccess": "Cliente registrado con acceso inmediato y GenCodes iniciales. Las credenciales se enviaron al responsable.",
+      "createdEmailPending": "Cliente registrado y GenCodes disponibles, pero falló el correo. Use Reenviar correo en Clientes para enviar un enlace de acceso. No vuelva a registrar al cliente.",
+      "emailFailed": "No se pudo enviar el correo. Revise el servicio de envío e inténtelo de nuevo.",
+      "hasCredits": "Este cliente tiene un historial de créditos. Desactive el cliente para conservar los registros."
     },
     "discountCoupon": {
       "codeExists": "Ya existe un cupón con este código.",
@@ -397,12 +400,14 @@
       "stateRegistration": "Inscripción estatal",
       "stateRegistrationShort": "Insc. est.",
       "tradeName": "Nombre comercial",
-      "type": "Tipo"
+      "type": "Tipo",
+      "initialGenCodes": "GenCodes iniciales"
     },
     "hints": {
       "addressOptional": "La dirección es opcional y se puede completar más tarde.",
-      "admin": "Credenciales de acceso al sistema Sequoia para el responsable de esta empresa. Se enviará un correo con un enlace para establecer la contraseña.",
-      "modulesGray": "Los elementos en gris siempre están accesibles y no se pueden desactivar."
+      "admin": "El acceso a Sequoia estará disponible al guardar. El correo de abajo recibirá la dirección de acceso y una contraseña generada automáticamente.",
+      "modulesGray": "Los elementos en gris siempre están accesibles y no se pueden desactivar.",
+      "initialGenCodes": "Disponibles al guardar el registro, sin compra. Cada GenCode activa un perfil y el crédito tiene una vigencia de 12 meses. Ingrese de 0 a 10,000."
     },
     "modules": {
       "groups": {
@@ -624,7 +629,8 @@
     "upperSnakeOnly": "Usa solo letras mayúsculas, números y guiones bajos.",
     "wholeNumber": "Debe ser un número entero",
     "manualCouponTerms": "Los cupones de BMS deben tener un descuento del 100% y duración única.",
-    "manualCouponConfirmation": "Confirma la revisión del pago o del inventario."
+    "manualCouponConfirmation": "Confirma la revisión del pago o del inventario.",
+    "invalidInitialGenCodes": "Ingrese un número entero entre 0 y 10,000."
   },
   "ExtraUnitPrices": {
     "resource": {

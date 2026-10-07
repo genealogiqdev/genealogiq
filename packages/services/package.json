@@ -12,6 +12,7 @@
     "./partner-checkout": "./src/partner-checkout.ts",
     "./partner-lifecycle": "./src/partner-lifecycle.ts",
     "./partner-notifications": "./src/partner-notifications.ts",
+    "./partner-onboarding": "./src/partner-onboarding.ts",
     "./plan-sync": "./src/plan-sync.ts",
     "./rate-limit": "./src/rate-limit.ts",
     "./reconciliation": "./src/reconciliation.ts",
