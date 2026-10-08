@@ -179,10 +179,40 @@ The header and table fit the ordinary browser viewport; the tab was then closed.
 
 ## Production and remaining prerequisites
 
-Production deployment is authorized by the user but was **not yet performed** at
-initial audit creation. Record the exact source SHA, CI/deployment run, migration
-job, immutable images, active traffic and public health checks here after release.
-Do not interpret local readiness or capture as a production result.
+Source commit `8422e6cacd3af9d7aeb151afdd3259e6ad6e887d` was committed and pushed
+on the existing `main` branch. The expected enabled Azure subscription
+`c710b26f-e3c7-4a45-9477-eaaf3bdcc329` and existing GitHub identity were verified
+before publication. No new credential or browser authentication was required.
+
+[Deploy Azure run 37713635719](https://github.com/genealogiqdev/genealogiq/actions/runs/37713635719)
+and [CI run 37713635720](https://github.com/genealogiqdev/genealogiq/actions/runs/37713635720)
+both **completed successfully** for that exact SHA. CI's verification job and
+the APP/BMS/SEQ Linux container build/liveness jobs all passed. The deployment's
+five immutable image builds, migration, application rollout and health steps
+also passed. This verifies the normal standalone package in the clean production
+build context, separately from local QA output.
+
+The migration execution `job-genealogiq-migrate-prod-3fieoe8` used
+`acrgenohqluyie.azurecr.io/genealogiq-migration:8422e6cacd3af9d7aeb151afdd3259e6ad6e887d`
+and reported **Succeeded** (01:38:41–01:39:19 UTC on 2026-10-08, still the client's
+2026-10-07 evening). No foundation deployment, credential rotation or public
+database exposure was used.
+
+| Production app | Latest and ready revision | Image tag | Traffic | Canonical HTTPS checks |
+| --- | --- | --- | --- | --- |
+| APP | `ca-genealogiq-app-prod--0000011` | `8422e6cacd3af9d7aeb151afdd3259e6ad6e887d` | 100% latest | `https://genealogiq.com.br/api/health/live`: 200/ok; `/api/health/ready`: 200/ready |
+| BMS | `ca-genealogiq-bms-prod--0000011` | `8422e6cacd3af9d7aeb151afdd3259e6ad6e887d` | 100% latest | `https://bms.genealogiq.com.br/api/health/live`: 200/ok; `/api/health/ready`: 200/ready |
+| SEQ | `ca-genealogiq-seq-prod--0000011` | `8422e6cacd3af9d7aeb151afdd3259e6ad6e887d` | 100% latest | `https://sequoia.genealogiq.com.br/api/health/live`: 200/ok; `/api/health/ready`: 200/ready |
+
+The production browser's anonymous visit to
+`https://bms.genealogiq.com.br/consumers` redirected to `/sign-in` and rendered
+the normal login form. Its [screenshot](../../.local-qa/consumers/production-sign-in.png)
+was saved and the owned tab closed. No production customer was created and no
+production credential or email was submitted. The protected gift operation was
+exercised locally as recorded above; public health is not a production gift test.
+
+The final audit is saved in a documentation-only follow-up commit using
+`[skip ci]`; deployed application source remains the verified `8422e6c` image.
 
 Real recipient inbox placement and an existing Google account login remain
 **n/a** without dedicated external fixtures (CONSUMERS-G2). No real customer was

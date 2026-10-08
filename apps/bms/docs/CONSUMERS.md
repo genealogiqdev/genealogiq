@@ -3,7 +3,7 @@
 > **Code:** [consumer actions](../src/actions/consumer.actions.ts) · [schema](../src/schemas/consumer.schema.ts) · [directory queries](../src/queries/consumers.ts) · [form](../src/components/consumers/consumer-form.tsx) · [platform guard](../src/lib/consumer-access.ts) · [atomic grant](../../../packages/services/src/consumer-access.ts)
 > **Entry points:** BMS **Clientes → Clientes finais** (`/consumers`) and `/consumers/new`; existing customers can be selected from the directory.
 > **Depends on:** [AUTHENTICATION](../../../docs/AUTHENTICATION.md) · [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md) · [APP ACCOUNTS](../../app/docs/ACCOUNTS.md) · [BILLING-QUOTAS](../../app/docs/BILLING-QUOTAS.md)
-> **Last verified against code:** 2026-10-07 at `b8afb94` plus this change. See the [consumer access audit](../../../docs/audits/CONSUMER-ACCESS-2026-10-07.md) for source, tests, runtime/UI and production evidence separately.
+> **Last verified against code:** 2026-10-07 at `8422e6c`. See the [consumer access audit](../../../docs/audits/CONSUMER-ACCESS-2026-10-07.md) for source, tests, runtime/UI and production evidence separately.
 
 ## How it works
 
@@ -96,7 +96,7 @@ The [2026-10-07 consumer audit](../../../docs/audits/CONSUMER-ACCESS-2026-10-07.
 - **Evidence:** BMS exposed partner registration and coupon settlement for an existing APP user; neither created an independent consumer with a Premium gift.
 - **Impact:** The team could not finish the family's account and complimentary year in one BMS operation.
 - **Root cause:** Registration belonged to APP/SEQ, while BMS's consumer settlement required an existing identity and coupon.
-- **Resolution:** This change adds the platform-only directory/form, atomic account/gift/audit writer, direct credential email with recovery, and APP gift presentation. Source/tests/UI evidence and final revision are retained in the linked audit.
+- **Resolution:** Commit `8422e6c` adds the platform-only directory/form, atomic account/gift/audit writer, direct credential email with recovery, and APP gift presentation. Source/tests/UI and successful production release evidence are retained in the linked audit.
 
 ### CONSUMERS-G2: External mailbox and Google delivery path not exercised
 
@@ -113,6 +113,7 @@ The [2026-10-07 consumer audit](../../../docs/audits/CONSUMER-ACCESS-2026-10-07.
 | --- | --- | --- | --- |
 | 2026-10-07 | `b8afb94` + this change | Source and initial tests | Entry/DAL/schema/service/DB/mail/APP entitlement traced; initial 49 focused cases and nine disposable PostgreSQL cases passed. Final checks and UI evidence are recorded in the audit. |
 | 2026-10-07 | Same change | Final local acceptance | 969 deterministic tests and nine enabled PostgreSQL cases passed; typecheck, lint, all three local builds and contract checks passed. Normal BMS/APP UI verified new/existing access, duplicate prevention, email failure/retry and permission boundaries; final directory screenshot and build-cache incident/cleanup are retained in the audit. |
+| 2026-10-07 | `8422e6c` | Production release | CI and Deploy Azure completed successfully; migration execution succeeded; all three immutable images reached ready revision `0000011` with 100% traffic and six canonical HTTPS health checks passed. Anonymous `/consumers` rendered sign-in; protected gifts and inbox delivery were not exercised with real production customers. |
 
 ## Related
 
