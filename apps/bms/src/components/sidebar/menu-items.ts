@@ -9,6 +9,7 @@ import {
   PackageOpen,
   SquarePlus,
   TicketPercent,
+  Users,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -39,6 +40,7 @@ export const products: MenuItem[] = [
 
 export const customers: MenuItem[] = [
   { labelKey: 'items.customers', url: '/customers', icon: Building2 },
+  { labelKey: 'items.consumers', url: '/consumers', icon: Users },
 ]
 
 // Sales Reports is deliberately absent, not deleted: /sales/reports and its

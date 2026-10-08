@@ -9,11 +9,14 @@ import {
   sendFeedbackEmail as _feedback,
   sendSalePaymentLinkEmail as _paymentLink,
   sendPartnerCredentialsEmail as _partnerCredentials,
+  sendConsumerPremiumEmail as _consumerPremium,
+  type ConsumerPremiumEmail,
   type FeedbackEmail,
 } from "@genealogiq/email"
 
 const BMS = () => process.env.BMS_URL ?? ""
 const SEQUOIA = () => process.env.SEQUOIA_URL ?? ""
+const APP = () => process.env.APP_URL ?? ""
 
 // Site-owner inbox for the footer's "Report a bug" / "Send feedback" dialogs —
 // never client-controllable (not part of the submitted form/schema).
@@ -28,5 +31,7 @@ export const sendSequoiaWelcomeEmail = (to: string, token: string) => _welcome({
 export const sendSalePaymentLinkEmail = _paymentLink
 export const sendPartnerCredentialsEmail = (to: string, password: string, initialGenCodes: number) =>
   _partnerCredentials({ to, password, initialGenCodes, baseUrl: SEQUOIA() })
+export const sendConsumerPremiumEmail = (data: Omit<ConsumerPremiumEmail, 'baseUrl'>) =>
+  _consumerPremium({ ...data, baseUrl: APP() })
 
 export const sendFeedback = (data: Omit<FeedbackEmail, "to">) => _feedback({ ...data, to: FEEDBACK_TO })

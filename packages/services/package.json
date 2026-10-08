@@ -5,6 +5,7 @@
   "exports": {
     "./activation-trial": "./src/activation-trial.ts",
     "./credits": "./src/credits.ts",
+    "./consumer-access": "./src/consumer-access.ts",
     "./gencode-package": "./src/gencode-package.ts",
     "./manual-coupon": "./src/manual-coupon.ts",
     "./media-storage": "./src/media-storage.ts",

@@ -1,9 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { sendEmail } = vi.hoisted(() => ({ sendEmail: vi.fn() }))
 vi.mock('resend', () => ({ Resend: class { emails = { send: sendEmail } } }))
-import { sendFeedbackEmail, sendVerificationEmail, sendPartnerCredentialsEmail } from './index'
+import { sendFeedbackEmail, sendVerificationEmail, sendPartnerCredentialsEmail, sendConsumerPremiumEmail } from './index'
 beforeEach(() => vi.resetAllMocks())
 describe('transactional email contracts', () => {
+  it('delivers direct APP credentials, an exact expiry and an explicit no-charge gift', async () => {
+    sendEmail.mockResolvedValue({ data: { id: 'fixture-email' }, error: null })
+    await sendConsumerPremiumEmail({ to: 'ana@genealogiq.test', name: '<Ana>', password: 'fixture<&password', baseUrl: 'http://localhost:5000', expiresAt: new Date('2027-10-07T15:00:00Z') })
+    const message = sendEmail.mock.calls[0][0]
+    expect(message.to).toBe('ana@genealogiq.test')
+    expect(message.html).toContain('http://localhost:5000/sign-in')
+    expect(message.html).toContain('&lt;Ana&gt;')
+    expect(message.html).toContain('fixture&lt;&amp;password')
+    expect(message.html).toContain('7 de outubro de 2027')
+    expect(message.html).toContain('sem cobrança ou renovação automática')
+    expect(message.html).not.toContain('reset-password')
+  })
+  it('keeps existing credentials and uses a recovery link only for an explicit resend', async () => {
+    sendEmail.mockResolvedValue({ data: { id: 'fixture-email' }, error: null })
+    await sendConsumerPremiumEmail({ to: 'ana@genealogiq.test', name: 'Ana', token: 'fixture-token', baseUrl: 'http://localhost:5000', expiresAt: new Date('2027-10-07T15:00:00Z') })
+    const html = sendEmail.mock.calls[0][0].html
+    expect(html).toContain('use sua senha atual')
+    expect(html).toContain('http://localhost:5000/reset-password?token=fixture-token')
+    expect(html).toContain('72h')
+    expect(html).not.toContain('Senha inicial')
+  })
   it('rejects a resolved provider error rather than reporting successful delivery', async () => {
     sendEmail.mockResolvedValue({ data: null, error: { name: 'validation_error', message: 'Rejected' } })
     await expect(sendPartnerCredentialsEmail({ to: 'owner@genealogiq.test', password: 'fixture-password', baseUrl: 'http://localhost:3002', initialGenCodes: 3 }))

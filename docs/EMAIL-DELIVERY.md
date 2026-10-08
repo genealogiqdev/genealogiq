@@ -32,6 +32,12 @@ The enforcing files are linked above. Test names and literal assertions below re
 
 ## Contracts and data
 
+### Direct consumer Premium access
+
+[BMS final-customer registration](../apps/bms/docs/CONSUMERS.md) sends `sendConsumerPremiumEmail` after the independent APP account, finite Premium AppSale and audit commit. New login accounts receive their email, generated initial password, APP sign-in link and expiry; existing accounts retain their password/Google login and receive confirmation. No checkout or GenCode is needed. `ConsumerAccessGrant.emailSentAt` records provider acceptance, not inbox delivery. Registration remains successful with explicit pending email when transport/provider acceptance fails. Replays do not mail a newly generated password that was never assigned. A privileged resend sends a hashed 72-hour setup link without changing the existing password or gift term.
+
+The BMS adapter uses the existing `APP_URL`; there is no new provider secret or configuration. Names, credentials, URLs and dates in this template are escaped. See [the consumer audit](audits/CONSUMER-ACCESS-2026-10-07.md) for local capture/rejection and APP sign-in evidence.
+
 ### Partner registration credentials
 
 [BMS partner registration](../apps/bms/docs/PARTNERS.md) sends `sendPartnerCredentialsEmail` after the account and optional initial GenCodes commit. The message contains the OWNER's login email, generated initial password, Sequoia sign-in URL and exact initial allowance. The password is persisted only as a bcrypt hash and is never returned in an action response or written to logs. Resend acceptance is required for the normal success message; both thrown errors and a resolved `{ error }` response produce an email-pending registration warning. Recovery uses an expiring setup link without changing the existing password or issuing more credits.
@@ -170,6 +176,7 @@ message still requires the authorized recipient and scenario. The
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-10-07 | Source `218d5aa`; Azure image `6e06634a752b44bce24825b0aa25baf0b669fa16`; BMS revision `resend-20261007` | Azure CLI, container process and Resend boundary probe | Existing BMS `.env` and Key Vault keys matched privately. Reapplied the existing reference; new revision healthy with 100% traffic and a populated process variable. Empty email request returned HTTP 422 `missing_required_field`. Tests: 840 passed, one opt-in skip. | Authentication/configuration verified; no real message sent, sender permission/inbox delivery and screenshot origin remain unverified. [Audit](audits/RESEND-BMS-2026-10-07.md). |
 | 2026-10-07 | `2632307` | Source, deterministic tests, local PostgreSQL and browser | Credential template and resolved provider-error handling; EMAIL-DELIVERY-G1 fixed; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
+| 2026-10-07 | `b8afb94` + direct consumer email | Source, tests, loopback capture and browser | New credential email enabled normal APP login. Existing customer email omitted a new password. Simulated provider rejection left access active; retry delivered a hashed 72-hour recovery link without changing expiry. | [Consumer audit](audits/CONSUMER-ACCESS-2026-10-07.md); real inbox placement remains unverified. |
 
 ## Related
 

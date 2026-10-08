@@ -36,6 +36,8 @@ The enforcing files are linked above. Test names and literal assertions below re
 
 ## Contracts and data
 
+BMS now applies `isBmsStaff` as the shared Credentials/Google extra gate: tenant-owned staff cannot sign into BMS except the platform `SUPER_ADMIN` role, which tenant user forms cannot assign. Internal staff have `tenantId=null`. The [direct consumer workflow](../apps/bms/docs/CONSUMERS.md) also reloads current activation, role and tenant scope through `verifyConsumerAdmin` on every directory/mutation request; this rejects earlier tenant sessions and revoked operators for that feature. This narrower live check does not resolve AUTHENTICATION-G1 for all other existing routes.
+
 NextAuth creates a separate HTTP-only, SameSite=Lax cookie per app; JWT maxAge is 30 days. Node resolves credentials/OAuth identity; edge verifies sessions and redirects. createTenantDal reads tenant scope from session.user.customerId and returns the verified scope as top-level session.customerId. Google may create APP accounts but BMS/SEQ require an invited existing identity.
 
 Inputs, defaults and output types live in the linked schema/actions/query files. APP/BMS/SEQ actions generally return [ActionResult (`done`/`ok`/`fail`)](../packages/core/src/result.ts); redirects/forbidden errors propagate from the DAL. Shared helpers retain their declared return types.
@@ -142,6 +144,7 @@ Follow [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for exact setup/start/readiness
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | pass for the baseline: independent Credentials sign-in in all three apps, one scoped save/reload per staff app, and anonymous protected-route checks. OAuth, reset email, cross-tenant IDs and active-session revocation were not exercised. | Only the named exercised behavior is verified. |
 | 2026-10-03 | `7d267f7` + domain configuration | Azure CLI, HTTP and production browser | Latest revisions ready; Credentials callbacks use the three new canonical origins, www uses apex; anonymous protected routes render sign-in on the new domains. [Cutover audit](audits/AZURE-DOMAINS-2026-10-03.md) | Google was absent from live provider discovery; production sign-in/OAuth and tenant mutations remain unverified. |
+| 2026-10-07 | `b8afb94` + consumer platform scope | Source, tests and local Credentials/browser | BMS uses the shared extra gate for Credentials/Google; new consumer reads/actions also reload activation, role and tenant. Normal browser denied tenant OWNER sign-in and returned 403 for non-admin consumer access. | [Consumer audit](audits/CONSUMER-ACCESS-2026-10-07.md); Google and historical role revocation elsewhere remain unverified/open. |
 
 ## Related
 

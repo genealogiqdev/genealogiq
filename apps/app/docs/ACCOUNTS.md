@@ -37,6 +37,12 @@ Manual Gen2026 sales preserve the existing consumer deletion path. AppSale still
 
 ## Contracts and data
 
+### Independent accounts registered by Genealogiq
+
+The [BMS direct consumer flow](../../bms/docs/CONSUMERS.md) creates active verified `APP_USER` identities with `tenantId=null`, a bcrypt-hashed random password and an atomic complimentary Premium grant. The credentials email goes directly to the supplied APP email after commit. Existing independent identities keep their profile/password/Google login; an old invitation without a login method receives its first password. No funeral-home User or Tenant is created. Normal APP Credentials sign-in works immediately and normal password recovery/change remains available.
+
+`ConsumerAccessGrant` retains permanent recipient/result/request/operator identities when a consumer deletes their account. Its AppUser/AppSale foreign keys become null while AppSale follows the existing account cascade. Replaying that original request cannot recreate access. The feature's disposable PostgreSQL suite exercises this deletion boundary; production mailbox delivery and Google integration remain separate prerequisites.
+
 Zod auth schemas parse account inputs. Verified active APP_USER accounts use app.session-token; Google may create password=null accounts. Token fields are hashed/expiring; nullable password originated in 20260331141146_nullable_password.
 
 Inputs, defaults and output types live in the linked schema/actions/query files. APP/BMS/SEQ actions generally return [ActionResult (`done`/`ok`/`fail`)](../../../packages/core/src/result.ts); redirects/forbidden errors propagate from the DAL. Shared helpers retain their declared return types.
@@ -158,6 +164,7 @@ For email-change regression QA, use the normal local Credentials account and an 
 | 2026-10-07 | `218d5aa` + email-change fix | Source trace and real-portal regression | Rechecked history since `6e06634` and the current dialog → profile form → session/schema/action → token → email adapter → confirmation route. Two tests reproduced the cancellation before the fix and passed afterward. Full suite: 842 passed, one opt-in skip. APP typecheck, lint (eight existing warnings) and production build passed; documentation checks passed. | Server contracts unchanged; other concurrent workspace edits are outside this fix. |
 | 2026-10-07 | Same email-change fix | Local browser, PostgreSQL and mail sink | Invalid password, valid button/Enter submission, pending token, confirmation/consumption and independent profile persistence checks exercised. | See the dated audit for restoration, process ownership and the real-delivery limitation. |
 | 2026-10-07 | `9253152` + Gen2026 changes | Source and real PostgreSQL lifecycle regression | Traced `deleteAccount` → AppUser deletion → AppSale cascade. A disposable consumer was deleted without blocking; its manual receipt, amount, usage count and retry identity remained. | [Gen2026 audit](../../../docs/audits/GEN2026-2026-10-07.md); this is database-boundary evidence, not a new deletion-mail/UI pass. |
+| 2026-10-07 | `b8afb94` + direct consumer access | Source, PostgreSQL and normal APP sign-in | BMS-created tenantless APP_USER logs in with the captured initial password; existing account keeps its password and identity. Deletion retains the detached gift audit in the integration suite. | [Consumer audit](../../../docs/audits/CONSUMER-ACCESS-2026-10-07.md); Google and real inbox delivery remain n/a. |
 
 ## Related
 

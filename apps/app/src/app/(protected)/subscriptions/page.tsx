@@ -35,7 +35,7 @@ export default async function SubscriptionsPage({ searchParams }: Props) {
   }
 
   const activePlan = await getActivePlan(session.user.id)
-  const subscriptions = await getActiveSubscriptions(activePlan?.couponRedemption ? activePlan.subscription.id : undefined)
+  const subscriptions = await getActiveSubscriptions(activePlan?.couponRedemption || activePlan?.consumerAccessGrant ? activePlan.subscription.id : undefined)
 
   const flashStatus = status === "success" ? "success" : status === "cancel" ? "cancel" : null
 
@@ -57,9 +57,12 @@ export default async function SubscriptionsPage({ searchParams }: Props) {
               {activePlan && (
                 <p className={cn(
                   "text-xs",
-                  activePlan.cancelAtPeriodEnd ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground",
+                  activePlan.consumerAccessGrant ? 'text-foreground font-medium'
+                    : activePlan.cancelAtPeriodEnd ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground",
                 )}>
-                  {activePlan.couponRedemption
+                  {activePlan.consumerAccessGrant
+                    ? t('giftActive', { date: longDate.format(activePlan.currentPeriodEnd) })
+                    : activePlan.couponRedemption
                     ? t('manualActive', { plan: activePlan.subscription.name, date: longDate.format(activePlan.currentPeriodEnd) })
                     : activePlan.cancelAtPeriodEnd
                     ? t("cancelingOn", { plan: activePlan.subscription.name, date: longDate.format(activePlan.currentPeriodEnd) })

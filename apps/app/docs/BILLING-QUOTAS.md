@@ -38,6 +38,12 @@ The enforcing files are linked above. Test names and literal assertions below re
 
 ## Contracts and data
 
+### Complimentary Premium from Genealogiq
+
+The [BMS direct consumer flow](../../bms/docs/CONSUMERS.md) can create an independent APP account and grant 12 calendar months of active Premium without a coupon, purchase, GenCode or Stripe subscription. `ConsumerAccessGrant` audits the operator, request and granted dates; its AppSale has zero value, no tenant, no Stripe ID, a finite expiry and no automatic renewal. Existing compatible manually held Premium days are preserved before adding the first gift. Live recurring or different-plan subscriptions block a new gift; repeated gifts during a valid granted period do not extend it.
+
+APP resolves the same database-backed Premium quotas and guardian inheritance as ordinary active AppSales. The subscription page includes the held plan even if later removed from the public catalog, displays **Presente Genealogiq · sem cobrança** and the exact expiry, and hides checkout controls during the gift. `createCheckoutSession` independently rejects a live gift, even when called outside the UI. Expired AppSales stop granting quotas through the existing period predicate; there is no auto-renewal or payment call. Plan prices remain catalog data and are not presented as charges for this gift.
+
 ### BMS-confirmed external subscriptions
 
 The [BMS Gen2026 workflow](../../bms/docs/DISCOUNT-COUPONS.md) grants an existing active APP_USER a finite AppSale after the team confirms an external receipt or old-stock allocation. `CouponRedemption` links the operator's audit to the sale. `value=0`, no Stripe subscription and `cancelAtPeriodEnd=true` prevent another charge or automatic renewal. Monthly release is one calendar month; annual release is the subscription's `termLength`. Extending the same manual plan starts from the existing paid-through date. Any live Stripe or different-plan subscription blocks the manual writer, including a shorter subscription hidden behind a later manual end date.
@@ -171,6 +177,7 @@ For changes to subscription navigation, sign in normally and start at `/home` wi
 | 2026-10-07 | Same header changes | Local runtime/browser attempt | Runtime: isolated Next 16.3.1 started on 3310 with the canonical local DB and disabled external providers. UI: n/a; shared-server interruption and stalled isolated compilation prevented the navigation scenario. | Full production build and browser acceptance remain unverified. Temporary servers were stopped; pre-existing compose services and other sessions' processes were preserved. |
 | 2026-10-07 | Same header changes | Final shared-tree review | The seeded sale still reads `PREMIUM`, `active`, period end `2027-10-03 11:32:57.503`, with cancellation disabled. Final documentation check reported an unrelated concurrent `DOCUMENTS.md` link to the not-yet-created `APP-TEXT-ENCODING-2026-10-07.md` audit. | No sale mutation was made. Recheck documentation after the concurrent audit exists. Automatic approval review blocked deletion of the temporary source export; it was retained with the ignored QA logs. |
 | 2026-10-07 | `9253152` + Gen2026 change | Source, tests, PostgreSQL and normal APP browser | Manual checkout guard and account-specific plan query verified; BMS activation and APP login/reload showed the finite Gen2026 plan with 128 tree members, 64 documents and 2 pets. | [Detailed evidence](../../../docs/audits/GEN2026-2026-10-07.md); separate from the earlier header-navigation audit and live Stripe verification. |
+| 2026-10-07 | `b8afb94` + direct consumer access | Source, tests, PostgreSQL and APP browser | Zero-value finite Premium gift, overlapping-checkout guard and gift card verified. Existing manual end 15 December 2026 extended to 15 December 2027; APP login/reload retained quotas and gift expiry. | [Consumer audit](../../../docs/audits/CONSUMER-ACCESS-2026-10-07.md); no real Stripe mutation performed. |
 
 ## Related
 

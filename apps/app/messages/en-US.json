@@ -1676,7 +1676,9 @@
       }
     },
     "manualActive": "{plan} activated by the team until {date}, with no automatic renewal.",
-    "manualPrice": "Activated with {code}"
+    "manualPrice": "Activated with {code}",
+    "giftActive": "Your Premium is a gift from Genealogiq, valid until {date}, with no charge or automatic renewal.",
+    "giftPrice": "A gift from Genealogiq · no charge"
   },
   "Tributes": {
     "backToProfile": "Back to profile",

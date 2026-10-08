@@ -9,12 +9,12 @@ Run every command below from `C:/Users/Tiger/Desktop/dev/personal/genealogiq`. T
 
 | Layer | Command | Prerequisite | Latest observed result / scope |
 | --- | --- | --- | --- |
-| Unit/schema/helper/mock action | `pnpm test` | Installed workspace | 2026-10-07 final: 106 files / 906 tests passed; two opt-in integration files / nine tests skipped |
+| Unit/schema/helper/mock action | `pnpm test` | Installed workspace | 2026-10-07 consumer access: 111 files / 969 tests passed; four opt-in integration files / 22 tests skipped |
 | Reviewed APP text recovery | `node --test scripts/azure/tests/repair-app-text.test.cjs` | Node.js >=22; no database | 12 tests cover strict UTF-8 input, intact text/punctuation, allowed targets, read-only preview, atomic stale-row rejection, idempotence and receipt-scoped rollback |
 | Single schema | `pnpm check:schema-parity` | Repository files | Pass; one packages/db schema, no app duplicates |
-| Migration shape | `pnpm check:migrations` | Repository files | Pass; 75 SQL files uniquely ordered; does not replay DDL |
+| Migration shape | `pnpm check:migrations` | Repository files | Pass; 76 SQL files uniquely ordered; does not replay DDL |
 | Locale key parity | `pnpm check:i18n-parity` | Nine locale JSON files | Pass across APP/BMS/SEQ |
-| Locale references | `pnpm check:i18n-keys` | Source and locale files | Zero errors; 83 dynamic calls skipped and one unmapped columns file |
+| Locale references | `pnpm check:i18n-keys` | Source and locale files | Zero errors; 84 dynamic calls skipped and one unmapped columns file |
 | Documentation contracts | `node scripts/check-docs.mjs` | Guides/feature docs | Verifies indexed files, relative source/doc links, required sections, source references and gap format; ignored .local-qa evidence links are counted separately and optional in a fresh checkout |
 | Prisma generation | `pnpm db:generate` | DATABASE_URL, installed Prisma | Run once before compile/schema checks; sequential with other generation |
 | TypeScript | `pnpm typecheck` | Generated client | All apps/packages checked; final result in audit |
@@ -26,6 +26,8 @@ Root Vitest provides DATABASE_URL=postgresql://unit:unit@127.0.0.1:1/unit. This 
 The 2026-10-03 added specs pin activity viewer scope, daily bearer/independent-step behavior, QR input/429/atomic arguments, company permission/input rejection, cash/installment/trial constraints, checkout tenant/locale/callbacks, dashboard independent aggregate rows, and email escaping/base URL/thrown transport errors. They do not pin a success for missing integrations or bless the recorded permission/provider-error gaps.
 
 ## Real local manual-coupon transactions
+
+The [direct consumer integration suite](../packages/services/src/consumer-access.integration.test.ts) uses the same disposable loopback-copy preparation, with `CONSUMER_ACCESS_TEST_DATABASE_URL` instead of the coupon variable. Apply the consumer access migration to that copy, then run `pnpm exec vitest run --project services packages/services/src/consumer-access.integration.test.ts`. Nine cases cover finite Premium without purchases, concurrency, existing-account preservation, partner/Stripe rejection, final-audit rollback, deletion retention and renewal after expiry. The suite temporarily adds a failure constraint to its disposable database; never target the normal local database. Source, test, runtime and UI results are retained in the [consumer access audit](audits/CONSUMER-ACCESS-2026-10-07.md).
 
 [manual-coupon.integration.test.ts](../packages/services/src/manual-coupon.integration.test.ts) opts in only with `MANUAL_COUPON_TEST_DATABASE_URL`. It rejects non-loopback hosts and database names outside `genealogiq_coupon_qa_*` before connecting. Use a disposable copy of the already migrated **local** schema with Gen2026 provisioned by the migration. Do not point it at the normal local database or a deployed database. The legacy empty-database migration limitation in [DATABASE](DATABASE.md) still applies.
 
@@ -131,6 +133,7 @@ Store raw local logs/screenshots/session evidence under ignored .local-qa; track
 | 2026-10-07 | 218d5aa + text repair/tests and concurrent working changes | APP text regression | Full pnpm test: 104 files / 894 tests passed, two integration files / six tests skipped. Focused document specs: 24 passed. Separate recovery command: 12 passed. Real local DB and browser evidence is recorded in [the text audit](audits/APP-TEXT-ENCODING-2026-10-07.md); these results do not establish production recovery. |
 | 2026-10-07 | `9253152` + initial Gen2026 change | Initial deterministic and database validation | `pnpm test`: 905 passed, eight opt-in skips; separately enabled manual PostgreSQL suite: seven passed. Sequential typecheck passed 11 tasks; lint passed with 0 errors and 51 warnings. Schema/migration/nine-locale checks passed, with 83 dynamic references skipped. |
 | 2026-10-07 | Same change plus audit retention and layout correction | Final regression validation | `pnpm test`: 906 passed, nine opt-in skips; separately enabled manual PostgreSQL suite: eight passed (40 combined with the 32 service unit cases). Builds, runtime/UI, cleanup and provider limits are recorded in the [Gen2026 audit](audits/GEN2026-2026-10-07.md). |
+| 2026-10-07 | `b8afb94` + direct consumer access | Deterministic, local database and manual UI | Full suite: 969 passed / 22 opt-in skips; separately enabled consumer PostgreSQL suite: nine passed. Typecheck: 11 tasks passed. Final checks and normal BMS/APP happy, duplicate, mail failure/retry, existing-period and permission scenarios are recorded in the [consumer audit](audits/CONSUMER-ACCESS-2026-10-07.md). |
 
 ## Related
 

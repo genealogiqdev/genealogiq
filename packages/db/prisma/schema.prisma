@@ -260,9 +260,34 @@ model AppSale {
   subscription         Subscription @relation(fields: [subscriptionId], references: [id])
   tenant               Tenant?      @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   couponRedemption     CouponRedemption?
+  consumerAccessGrant  ConsumerAccessGrant?
 
   @@index([appUserId])
   @@map("app_sales")
+}
+
+/// A complimentary 12-month Premium release by Genealogiq. Permanent identities
+/// retain the audit and request deduplication after consumer/sale deletion.
+model ConsumerAccessGrant {
+  id            String   @id @default(cuid())
+  requestId     String   @unique @map("request_id")
+  requestHash   String   @map("request_hash")
+  recipientId   String   @map("recipient_id")
+  resultId      String   @unique @map("result_id")
+  appUserId     String?  @map("app_user_id")
+  appSaleId     String?  @unique @map("app_sale_id")
+  createdById   String   @map("created_by_id")
+  startsAt      DateTime @map("starts_at")
+  expiresAt     DateTime @map("expires_at")
+  notes         String?  @db.VarChar(500)
+  emailSentAt   DateTime? @map("email_sent_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  appUser       AppUser? @relation(fields: [appUserId], references: [id], onDelete: SetNull)
+  appSale       AppSale? @relation(fields: [appSaleId], references: [id], onDelete: SetNull)
+
+  @@index([recipientId, expiresAt])
+  @@index([appUserId, createdAt(sort: Desc)])
+  @@map("consumer_access_grants")
 }
 
 /// Immutable evidence of one BMS-authorized, fully discounted sale. The result
@@ -557,6 +582,7 @@ model AppUser {
   actorNotifications        Notification[]       @relation("ActorNotifications")
   notifications             Notification[]       @relation("UserNotifications")
   appSales                  AppSale[]            @relation("AppSaleBuyer")
+  consumerAccessGrants      ConsumerAccessGrant[]
   tributesAuthored          Tribute[]            @relation("TributeAuthor")
   tributesReceived          Tribute[]            @relation("TributeProfile")
   guardianRequestsMade      AppUserGuardian[]    @relation("GuardianRequestedBy")

@@ -21,7 +21,7 @@ The pnpm/Turbo monorepo has three Next.js apps and shared workspace packages. Th
 | App | Agent guide | Product responsibility | Local origin |
 | --- | --- | --- | --- |
 | APP | [apps/app/AGENTS.md](apps/app/AGENTS.md) | Consumer accounts, public profiles, memorials, genealogy, media and consumer billing | http://localhost:3000 |
-| BMS | [apps/bms/AGENTS.md](apps/bms/AGENTS.md) | Back-office company/staff, partner catalog, contracts, pricing, package sales and reporting | http://localhost:3001 |
+| BMS | [apps/bms/AGENTS.md](apps/bms/AGENTS.md) | Back-office company/staff, partner catalog, contracts, pricing, package sales, direct consumer access and reporting | http://localhost:3001 |
 | SEQ | [apps/seq/AGENTS.md](apps/seq/AGENTS.md) | Tenant staff, customers/suppliers, GenCode inventory, purchasing and operations | http://localhost:3002 |
 
 | Shared package | Responsibility |
@@ -43,7 +43,7 @@ The pnpm/Turbo monorepo has three Next.js apps and shared workspace packages. Th
 | [MEDIA-MIGRATION](docs/MEDIA-MIGRATION.md) | Resumable legacy-media migration | `packages/services/src/media-migration.ts` | `pnpm test` |
 | [EMAIL-DELIVERY](docs/EMAIL-DELIVERY.md) | Transactional email delivery | `packages/email/src/index.ts` | `pnpm test` |
 
-The app indexes contain 18 APP, nine BMS and seven SEQ feature documents; the five shared documents bring the inventory to 39. Feature boundaries describe independently entered contracts, not promises of complete test or UI coverage.
+The app indexes contain 18 APP, ten BMS and seven SEQ feature documents; the five shared documents bring the inventory to 40. Feature boundaries describe independently entered contracts, not promises of complete test or UI coverage.
 
 ## Invariants
 
@@ -51,10 +51,11 @@ The app indexes contain 18 APP, nine BMS and seven SEQ feature documents; the fi
 - APP identities are AppUser; BMS/SEQ staff are User. BMS partners are Tenant; SEQ consumers are AppUser. The DAL returns verified SEQ tenant scope as session.customerId, which queries map to tenantId columns.
 - UI visibility is not authorization. Recheck scope/permissions on every mutation. The current DAL reads session roles; immediate role revocation is an open gap, not an established guarantee.
 - New BMS partner registration immediately creates active OWNER credentials and optionally grants 0–10,000 initial GenCodes without a purchase. Keep the tenant, owner and audited 12-month allowance atomic; email is sent after commit and delivery failure must not invite another registration. [PARTNERS](apps/bms/docs/PARTNERS.md) owns this contract.
+- BMS direct final customers are tenantless APP_USER identities with an audited, complimentary 12-calendar-month Premium AppSale. Account, entitlement and audit commit together; preserve existing identity/paid-through days and prevent duplicate gifts. BMS tenant staff cannot grant this access; recheck the operator's live platform scope. [CONSUMERS](apps/bms/docs/CONSUMERS.md) owns this contract.
 - Use done/ok/fail from @genealogiq/core and schema factories with translated errors. Do not revive removed digital-license/quota fields from historical notes.
 - Preserve recorded sale prices, purchased extra-unit quantities, partner-cycle snapshots, credit idempotency and ledger history when catalogs change. APP base quotas currently read the live Subscription; they are not purchase-time snapshots. Payment redirects do not establish paid entitlement.
 - Manual 100% coupons are applied only by privileged BMS staff after external-payment or old-stock confirmation. Keep CouponRedemption and the finite entitlement atomic; reuse shared package/cycle writers and provision first-time partner access after settlement. [Discount coupons](apps/bms/docs/DISCOUNT-COUPONS.md) owns the contract and audit.
-- Generate Prisma once and run generation/typecheck/lint/build sequentially. Concurrent Turbo tasks can race on generated Windows files; build after stopping dev servers that share .next.
+- Generate Prisma once and run generation/typecheck/lint/build sequentially. Concurrent Turbo tasks can race on generated Windows files; build after stopping dev servers that share .next. LOCAL_QA_DIST_DIR builds omit standalone copying to avoid recursively copying older local outputs; production container builds verify the standalone package in a clean context.
 - Follow current Azure infrastructure/runbooks for cloud operations. Local baseline work uses the loopback database/Azurite launcher. Use existing credentials without printing them; cloud writes, mail, checkout, pushes and deployments follow the scope explicitly authorized by the task.
 
 ## Cross-cutting runbooks

@@ -96,7 +96,9 @@ When the standard ports belong to another task, use `node scripts/local-qa.mjs -
 
 After normal local setup and the manual-coupon migration, `pnpm exec tsx scripts/seed-coupon-qa.ts --run=20261007` adds a stock tenant (five codes/credits), new B2B tenant, inactive first-access OWNER, non-admin BMS viewer, B2C account and three priced catalog items. It prints only fixture IDs/emails; it copies the normal seed's public test password hash internally. It refuses a non-loopback URL or database other than `genealogiq`. Rerunning preserves previous grants and redemptions. See [DISCOUNT-COUPONS](../apps/bms/docs/DISCOUNT-COUPONS.md) for the exact 5 + 2 = 7, 20-credit and finite B2C scenarios.
 
-The app configs accept `LOCAL_QA_DIST_DIR` for isolated local build output; Git and ESLint ignore `.next-qa*`. Next may add that session's generated-type include paths to tsconfig.json. Remove only those generated session additions after stopping the owned apps; preserve another task's edits. For a build while another task owns ordinary `.next`, use a separate output directory and call each app's Next build directly in sequence with the same provider-disabled local environment. Do not reuse another task's server or compile output.
+The app configs accept `LOCAL_QA_DIST_DIR` for isolated local build output; Git and ESLint ignore `.next-qa*`. When it is set, builds compile and prerender normally but omit the standalone file-copy stage. Old standalone outputs can be traced through workspace package links and copied recursively, exhausting the workstation disk. Production builds leave this variable unset; the clean Docker context excludes all `.next-qa*` outputs and verifies the actual standalone package and Linux liveness in CI.
+
+Next may add that session's generated-type include paths to tsconfig.json. Remove only those generated session additions after stopping the owned apps; preserve another task's edits. For a build while another task owns ordinary `.next`, use a separate output directory and call each app's Next build directly in sequence with the same provider-disabled local environment. Do not reuse another task's server or compile output.
 
 ## Baseline product/manual QA
 
@@ -159,6 +161,7 @@ Do not stop unrelated Docker services or delete volumes merely to finish QA. A d
 | 503 readiness / connection refused | Compose state, DB URL, listener owner | Start repository DB and correct local URL; avoid another service's database |
 | Providers missing/disabled | Launcher mode and owning settings | Supply isolated test service/fixture for that scenario; leave it n/a meanwhile |
 | Unexpected .next/build problems | Dev server and build sharing .next | Stop launcher before build; restart and reauthenticate afterward |
+| ENOSPC while copying repeated standalone paths | Local build included previous output via workspace package links | Stop the owned build; remove only its verified generated-output directories without following links. Use LOCAL_QA_DIST_DIR for local compile/prerender checks; validate standalone in the clean container context |
 
 ## Gaps and fixes
 
@@ -171,6 +174,15 @@ Do not stop unrelated Docker services or delete volumes merely to finish QA. A d
 - **Root cause:** Setup/seed existed but no all-app environment overlay and owned-process lifecycle were documented.
 - **Resolution:** 2026-10-03, added scripts/local-qa.mjs and this startup/authentication/baseline/cleanup runbook. All three Credentials sessions, save/reload and anonymous boundaries were exercised. The launcher uses normal auth and the existing loopback-guarded seed; no auth bypass was added. Changes are uncommitted.
 
+### LOCAL-DEVELOPMENT-G2: Recursive local standalone output exhausts disk
+
+- **Status:** fixed
+- **Found:** 2026-10-07, final consumer-access build verification.
+- **Evidence:** BMS's standalone copy nested older APP/BMS/SEQ QA outputs through workspace links and reported ENOSPC after successful compilation and type checking.
+- **Impact:** Local packaging could consume all free disk space and was not a valid deployment artifact.
+- **Root cause:** Isolated local builds enabled standalone copying in a workspace already containing older standalone outputs.
+- **Resolution:** LOCAL_QA_DIST_DIR now omits that copy stage in all three apps; clean production Docker builds retain standalone output. Owned failed output was removed without following links. Rerun and final production container evidence are recorded in the [consumer audit](audits/CONSUMER-ACCESS-2026-10-07.md).
+
 ## Verification log
 
 | Date | Revision | Scope | Evidence / limits |
@@ -179,6 +191,7 @@ Do not stop unrelated Docker services or delete volumes merely to finish QA. A d
 | 2026-10-03 | Same | Runtime | Compose, db push/generate/seed, three app startup/readiness and opt-in Azurite test exercised. |
 | 2026-10-03 | Same | UI | Three-app baseline save/reload/favorite/tree and anonymous boundaries passed; provider/full-feature scenarios remain incomplete as listed. |
 | 2026-10-07 | `9253152` + Gen2026 changes | Launcher, three apps and persistence | Offset 1000 with canonical 127.0.0.1: all three readiness endpoints returned 200; normal Credentials callbacks stayed on 4000/4001/4002. BMS history, APP finite Gen2026 plan and SEQ OWNER's 20 funded codes persisted across restart. Local fixture and separate PostgreSQL tests are in the [audit](audits/GEN2026-2026-10-07.md). |
+| 2026-10-07 | `b8afb94` + consumer access | Local product and build recovery | Offset 2000: all three readiness endpoints passed; BMS/APP consumer happy, duplicate, mail failure/retry, existing-period and permission cases exercised. Recursive local standalone copying exhausted free disk; owned output removal restored space and local QA output now omits the copy stage. [Consumer audit](audits/CONSUMER-ACCESS-2026-10-07.md) records final build and cleanup evidence. |
 
 ## Related
 

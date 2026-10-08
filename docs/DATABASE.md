@@ -3,7 +3,7 @@
 > **Code:** [schema.prisma](../packages/db/prisma/schema.prisma), [Prisma configuration](../packages/db/prisma.config.ts), [client initialization](../packages/db/src/index.ts), [migration gate](../scripts/check-migrations.mjs)
 > **Last verified against code:** 2026-10-07 at `9253152` plus the Gen2026 schema and migration; earlier audits remain below.
 
-All three apps consume @genealogiq/db. The schema contains 44 models and the migration tree contains 75 migration.sql files, including the 2026-10-07 manual coupon settlement change. These counts were recomputed from files. The single-schema check verifies that no app keeps a competing Prisma schema.
+All three apps consume @genealogiq/db. The schema contains 45 models and the migration tree contains 76 migration.sql files, including the 2026-10-07 manual coupon settlement and direct consumer access changes. These counts were recomputed from files. The single-schema check verifies that no app keeps a competing Prisma schema.
 
 ## Model/table and creation provenance
 
@@ -12,6 +12,7 @@ All three apps consume @genealogiq/db. The schema contains 44 models and the mig
 | `Subscription` | `subscriptions` | Existing/introspected table; original creation SQL not recorded in this tree |
 | `DiscountCoupon` | `discount_coupons` | Existing/introspected table; original creation SQL not recorded in this tree |
 | `CouponRedemption` | `coupon_redemptions` | [20261007000000_manual_coupon_redemptions](../packages/db/prisma/migrations/20261007000000_manual_coupon_redemptions/migration.sql) |
+| `ConsumerAccessGrant` | `consumer_access_grants` | [20261007010000_consumer_access_grants](../packages/db/prisma/migrations/20261007010000_consumer_access_grants/migration.sql) |
 | `AppSale` | `app_sales` | Existing/introspected table; original creation SQL not recorded in this tree |
 | `StripeEvent` | `stripe_events` | [20260517000000_align_app_sale_stripe](../packages/db/prisma/migrations/20260517000000_align_app_sale_stripe/migration.sql) |
 | `ExtraUnitPrice` | `app_extra_unit_prices` | [20260805000000_extra_unit_purchases](../packages/db/prisma/migrations/20260805000000_extra_unit_purchases/migration.sql) |
@@ -57,6 +58,8 @@ All three apps consume @genealogiq/db. The schema contains 44 models and the mig
 The table names above come from @@map. Column names come from each field's @map; do not infer snake_case from a Prisma property. For example, Favorite.userId/targetId map to app_favorites.app_user_id/app_target_id, with a composite primary key and no standalone id. APP consumer ownership uses AppUser.tenantId, while a verified SEQ session exposes the tenant as customerId.
 
 ## Current amendments and removed contracts
+
+Direct consumer gifts add an audit table with unique request and result IDs, permanent recipient/operator IDs, granted period, optional note and email acceptance time. Nullable AppUser/AppSale relations use SET NULL on deletion so a completed request cannot recreate a deleted consumer. No existing data or columns change. The [consumer feature](../apps/bms/docs/CONSUMERS.md) owns the atomic writer, period policy and deletion/replay integration tests.
 
 | Migration | Contract |
 | --- | --- |
@@ -196,6 +199,7 @@ save/reload, live read-only diagnosis and unresolved source text.
 | 2026-10-07 | 9253152 recovery command; source unchanged at 074d7bd | Approved production data repair | 67 fields updated across 49 rows. Independent READ ONLY verification: 72 targets checked, zero mismatches, five excluded fields unchanged and seven fields still partly/fully unresolved. Apply receipt retained privately; no schema/deployment change. |
 | 2026-10-07 | `9253152` + initial Gen2026 change | Source, incremental migration and local PostgreSQL | 44 models, 75 migrations; initial incremental SQL replay and seven real transaction/concurrency/rollback tests passed. Persisted entitlements checked independently of the UI. Full historical empty-database replay remains n/a. |
 | 2026-10-07 | Same change plus durable result identity | Final migration and deletion regression | Final SQL replayed in `genealogiq_coupon_qa_20261007_final`; eight integration tests passed, including consumer deletion without losing the receipt or permitting reuse. The normal local amendment preserved its four existing receipts and entitlements. [Audit](audits/GEN2026-2026-10-07.md). |
+| 2026-10-07 | `b8afb94` + consumer access migration | Incremental local migration and transactions | 45 models / 76 migrations. Exact additive SQL applied to normal local and disposable-copy databases; nine integration cases passed, including concurrency, audit rollback and detached retention. [Consumer audit](audits/CONSUMER-ACCESS-2026-10-07.md); historical empty-database replay remains separate. |
 
 ## Related
 

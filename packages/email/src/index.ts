@@ -37,6 +37,33 @@ export function sendPartnerCredentialsEmail({ to, password, baseUrl, initialGenC
   `)
 }
 
+export interface ConsumerPremiumEmail {
+  to: string
+  name: string
+  expiresAt: Date
+  baseUrl: string
+  password?: string
+  token?: string
+}
+
+export function sendConsumerPremiumEmail({ to, name, expiresAt, baseUrl, password, token }: ConsumerPremiumEmail): Promise<void> {
+  const date = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeZone: 'UTC' }).format(expiresAt)
+  const signIn = escapeHtml(`${baseUrl}/sign-in`)
+  const recovery = escapeHtml(token ? `${baseUrl}/reset-password?token=${encodeURIComponent(token)}` : `${baseUrl}/forgot-password`)
+  return send(to, 'Seu acesso Premium à Genealogiq está liberado', `
+    <p>Olá ${escapeHtml(name)},</p>
+    <p>A Genealogiq presenteou você com <strong>12 meses de acesso Premium</strong> para preservar as histórias da sua família.</p>
+    <p>Seu Premium está disponível até <strong>${escapeHtml(date)}</strong>, sem cobrança ou renovação automática.</p>
+    <p>E-mail de acesso: <strong>${escapeHtml(to)}</strong></p>
+    ${password ? `<p>Senha inicial: <strong>${escapeHtml(password)}</strong></p>
+    <p>Você já pode entrar. Recomendamos alterar a senha nas configurações após o primeiro acesso.</p>`
+    : `<p>Se você já tem conta, use sua senha atual ou entre com o Google.</p>`}
+    <p><a href="${signIn}">Entrar na Genealogiq</a></p>
+    ${!password ? `<p><a href="${recovery}">${token ? 'Definir uma nova senha (link válido por 72h)' : 'Esqueci minha senha'}</a></p>` : ''}
+    <p>Equipe Genealogiq</p>
+  `)
+}
+
 export interface TokenEmail {
   to: string
   token: string

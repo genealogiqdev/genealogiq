@@ -6,7 +6,7 @@ export const authConfig = createEdgeAuthConfig({
     protected: [
       "/profile", "/dashboard", "/system",
       "/gencodes", "/subscriptions", "/extra-unit-prices",
-      "/customers", "/sales",
+      "/customers", "/consumers", "/sales",
     ],
     auth: ["/sign-in", "/setup", "/forgot-password"],
     afterLogin: "/dashboard",

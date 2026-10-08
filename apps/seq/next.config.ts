@@ -7,7 +7,8 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   distDir: process.env.LOCAL_QA_DIST_DIR ?? '.next',
-  output: "standalone",
+  // Local QA builds must not copy nested standalone output from older sessions.
+  output: process.env.LOCAL_QA_DIST_DIR ? undefined : "standalone",
   outputFileTracingRoot: path.join(__dirname, "../.."),
   transpilePackages: ["@genealogiq/auth", "@genealogiq/core", "@genealogiq/i18n", "@genealogiq/email", "@genealogiq/db", "@genealogiq/services", "@genealogiq/ui"],
   experimental: {

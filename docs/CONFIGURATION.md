@@ -33,7 +33,7 @@ There is no single environment-validation schema. Settings are read at import, r
 | NODE_ENV | development in local-qa | Next / APP register-service-worker.tsx | Production worker registration; stop dev before building |
 | RUN_AZURITE_TESTS | false unless true | packages/services/src/media-storage.integration.test.ts | Opt-in local integration; skip is not a pass |
 | MANUAL_COUPON_TEST_DATABASE_URL | unset | packages/services/src/manual-coupon.integration.test.ts | Opt-in integration; only a loopback `genealogiq_coupon_qa_*` database is accepted; never point it at normal local data |
-| LOCAL_QA_DIST_DIR | `.next` | each app's next.config.ts | Local launcher uses `.next-qa-<port>` to separate generated output; direct build invocations can use a separate `.next-qa-build`; not a production runtime setting |
+| LOCAL_QA_DIST_DIR | unset; output directory defaults to `.next` | each app's next.config.ts | Local launcher uses `.next-qa-<port>` to separate output. When set, local builds omit standalone copying to avoid recursively including older QA outputs. Production leaves it unset and uses standalone; not a production runtime setting |
 
 ## Local, test and deployed modes
 
@@ -98,6 +98,7 @@ webhooks do not change automatically with runtime environment variables.
 | 2026-10-03 | Same | Runtime/UI | Credentials/DB and Azurite mode exercised; no payment/mail/OAuth/push/production identity proof. |
 | 2026-10-03 | `7d267f7` + domain changes | Azure runtime/browser | All three latest revisions `--0000007` ready; shared public origins and per-app AUTH_URL checked against literal new URLs; four custom HTTPS hosts and canonical Credentials callbacks verified. [Audit](audits/AZURE-DOMAINS-2026-10-03.md) records external-provider and browser-bundle limits. |
 | 2026-10-07 | `9253152` + Gen2026 changes | Local runtime/build/browser | Provider-disabled builds passed for all three apps; normal Credentials callbacks used the configured 127.0.0.1 host after restart. Manual settlement worked without Stripe; absent Resend produced the separate invitation follow-up. [Audit](audits/GEN2026-2026-10-07.md). |
+| 2026-10-07 | `b8afb94` + consumer access | Isolated build output | LOCAL_QA_DIST_DIR disables standalone copying after the observed recursive-copy/ENOSPC incident. Production keeps standalone with the variable unset. Final local builds, BMS restart/browser and clean production container evidence are separated in the [consumer audit](audits/CONSUMER-ACCESS-2026-10-07.md). |
 
 ## Related
 

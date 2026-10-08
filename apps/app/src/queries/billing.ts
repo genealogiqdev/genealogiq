@@ -21,6 +21,7 @@ export async function getActivePlan(userId: string) {
       cancelAtPeriodEnd:    true,
       stripeSubscriptionId: true,
       couponRedemption:     { select: { code: true } },
+      consumerAccessGrant:  { select: { id: true } },
       subscription: { select: { id: true, code: true, name: true, termLength: true } },
     },
   })

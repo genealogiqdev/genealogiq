@@ -1676,7 +1676,9 @@
       }
     },
     "manualActive": "{plan} ativado pela equipe até {date}, sem renovação automática.",
-    "manualPrice": "Ativado com {code}"
+    "manualPrice": "Ativado com {code}",
+    "giftActive": "Seu Premium é um presente da Genealogiq, válido até {date}, sem cobrança ou renovação automática.",
+    "giftPrice": "Presente Genealogiq · sem cobrança"
   },
   "Tributes": {
     "backToProfile": "Voltar ao perfil",

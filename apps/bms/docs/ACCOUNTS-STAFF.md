@@ -28,6 +28,8 @@ No LLM/model stage exists in this implementation.
 
 ## Rules and why
 
+BMS sign-in now applies `isBmsStaff` from [staff-scope.ts](../src/lib/staff-scope.ts) to both Credentials and Google. Internal staff have no tenant; platform SUPER_ADMIN may also carry a local/operational tenant. Tenant OWNER/ADMIN credentials belong to SEQ and cannot sign into BMS. The consumer gift feature additionally rechecks the stored scope/privilege for older sessions. This was necessary because sharing the User table and role names alone did not distinguish Genealogiq staff from a funeral-home owner. General existing-session revocation elsewhere remains AUTHENTICATION-G1.
+
 Use verifyAdmin before staff mutations; an authenticated BMS viewer alone is insufficient (user.actions.test.ts). Keep normal form submit/reload semantics. Auth lockout/session policy is shared with AUTHENTICATION; origin not recorded.
 
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
@@ -134,6 +136,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | pass: company trade name saved as Genealogiq Local QA 2026-10-03, persisted after reload, and restored to Genealogiq Local. After sign-out /system/company redirected to sign-in. PostgreSQL confirmed the restored value. | Only the named exercised behavior is verified. |
+| 2026-10-07 | `b8afb94` + platform scope gate | Source, unit tests and normal BMS browser | Tenant OWNER with privately verified valid credentials rejected from BMS; internal USER could sign in but `/consumers` returned 403; platform administrator completed registration. | [Consumer audit](../../../docs/audits/CONSUMER-ACCESS-2026-10-07.md); shared immediate role revocation outside the new consumer boundary remains open. |
 
 ## Related
 

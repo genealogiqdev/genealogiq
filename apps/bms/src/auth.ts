@@ -2,6 +2,7 @@ import { createAuth, googleCredentialsFromEnv } from "@genealogiq/auth"
 import type { Profile } from "next-auth"
 import { prisma } from "@/lib/prisma"
 import { authConfig } from "@/auth.config"
+import { isBmsStaff } from '@/lib/staff-scope'
 
 function syncGoogleLink(row: { id: string; emailVerified: Date | null }, profile: Profile) {
   return prisma.user.update({
@@ -22,6 +23,7 @@ export const { handlers, auth, signIn, signOut } = createAuth({
   loadUserByEmail: (email) => prisma.user.findUnique({ where: { email } }),
   resetLockout: (id) =>
     prisma.user.update({ where: { id }, data: { failedLoginAttempts: 0, lockedUntil: null } }),
+  extraGate: (user) => isBmsStaff(user),
   toPrincipal: (u) => ({
     id:    u.id,
     email: u.email,

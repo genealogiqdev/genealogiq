@@ -3,6 +3,7 @@
 import * as React from 'react'
 import * as Sentry from '@sentry/nextjs'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import {
   Breadcrumb,
@@ -57,6 +58,7 @@ function useResolvedNames(segments: string[]) {
 }
 
 export function AppBreadcrumb() {
+  const consumers = useTranslations('Consumers')
   const pathname = usePathname()
   const segments = pathname.split('/').filter(Boolean)
   const resolvedNames = useResolvedNames(segments)
@@ -69,7 +71,9 @@ export function AppBreadcrumb() {
         {segments.map((segment, index) => {
           const href = '/' + segments.slice(0, index + 1).join('/')
           const isLast = index === segments.length - 1
-          const label = resolvedNames[segment] ?? formatSegment(segment)
+          const label = segment === 'consumers' ? consumers('title')
+            : segment === 'new' && segments[index - 1] === 'consumers' ? consumers('newTitle')
+            : resolvedNames[segment] ?? formatSegment(segment)
 
           return (
             <React.Fragment key={href}>

@@ -25,7 +25,8 @@ export async function createCheckoutSession(
   const manualPlan = await prisma.appSale.findFirst({
     where: {
       appUserId: session.user.id, status: { in: ['active', 'trialing'] },
-      currentPeriodEnd: { gt: new Date() }, couponRedemption: { isNot: null },
+      currentPeriodEnd: { gt: new Date() },
+      OR: [{ couponRedemption: { isNot: null } }, { consumerAccessGrant: { isNot: null } }],
     },
     select: { id: true },
   })

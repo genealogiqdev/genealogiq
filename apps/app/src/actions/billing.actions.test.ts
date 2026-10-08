@@ -71,7 +71,7 @@ describe("createCheckoutSession", () => {
     expect(ensureStripeCustomer).not.toHaveBeenCalled()
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled()
     expect(prismaMock.appSale.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({
-      appUserId: 'user-1', couponRedemption: { isNot: null }, status: { in: ['active', 'trialing'] },
+      appUserId: 'user-1', OR: [{ couponRedemption: { isNot: null } }, { consumerAccessGrant: { isNot: null } }], status: { in: ['active', 'trialing'] },
     }) }))
   })
   it("fails with planNotFound when no active plan matches (never touches Stripe)", async () => {
