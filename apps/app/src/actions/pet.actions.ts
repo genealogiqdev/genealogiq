@@ -31,6 +31,9 @@ async function getAuthorizedHumanOwners(rootId: string, actorId: string, ownerId
 }
 
 function revalidatePetOwnershipPaths(petId: string, guardianId: string, ownerIds: string[]) {
+  revalidatePath("/home")
+  revalidatePath(`/profile/${guardianId}`)
+  revalidatePath(`/profile/${guardianId}/memorialized`)
   revalidatePath(`/profile/${petId}`)
   revalidatePath(`/profile/${guardianId}/pets`)
   for (const ownerId of new Set(ownerIds)) {

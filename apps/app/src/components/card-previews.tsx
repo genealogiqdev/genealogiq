@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server"
 import { getAvatarColor, getAvatarGradient } from "@/lib/avatar-color"
 import type { TributeAuthorPreview } from "@/queries/tribute"
 import type { FavoriteRow } from "@/queries/favorite"
-import type { MemorialRow } from "@/queries/memorial"
+import type { GuardedProfileRow } from "@/queries/memorial"
 
 export async function TreePreview({ memberCount = 0 }: { memberCount?: number }) {
   if (memberCount <= 1) {
@@ -372,7 +372,7 @@ export async function FavoritesPreview({ favorites }: { favorites: FavoriteRow[]
   )
 }
 
-export async function GuardianPreview({ memorials }: { memorials: MemorialRow[] }) {
+export async function GuardianPreview({ memorials }: { memorials: GuardedProfileRow[] }) {
   if (memorials.length === 0) {
     const t = await getTranslations("Profile")
     return (
@@ -385,8 +385,8 @@ export async function GuardianPreview({ memorials }: { memorials: MemorialRow[] 
   return (
     <div className="space-y-2">
       {memorials.slice(0, 3).map((m) => {
-        const name = `${m.firstName} ${m.lastName}`
-        const initials = `${m.firstName[0]}${m.lastName[0]}`.toUpperCase()
+        const name = `${m.firstName} ${m.lastName}`.trim()
+        const initials = `${m.firstName[0] ?? ""}${m.lastName[0] ?? ""}`.toUpperCase()
         return (
           <div key={m.id} className="flex items-center gap-2.5">
             <div className="h-7 w-7 rounded-full bg-gradient-brand flex items-center justify-center text-white text-[10px] font-semibold overflow-hidden shrink-0">

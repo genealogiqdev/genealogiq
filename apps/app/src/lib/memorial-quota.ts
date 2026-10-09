@@ -1,6 +1,7 @@
 import { getMemorialFeatures } from "@/lib/subscription"
 import { countMemorialsByCreatorId } from "@/queries/memorial"
 import { getExtraUnits } from "@/lib/extra-units"
+import type { Prisma } from "@genealogiq/db"
 
 export interface MemorialCreationStatus {
   count: number
@@ -16,11 +17,14 @@ export interface MemorialCreationStatus {
 // (features.memorialsMax) plus any extra slots purchased on top. This is now
 // the ONLY memorial cap: the old per-sale bulk-slot binding (maxProfiles /
 // nextSale) went with the B2B package channel it belonged to.
-export async function getMemorialCreationStatus(guardianId: string): Promise<MemorialCreationStatus> {
+export async function getMemorialCreationStatus(
+  guardianId: string,
+  db?: Prisma.TransactionClient,
+): Promise<MemorialCreationStatus> {
   const [count, features, extra] = await Promise.all([
-    countMemorialsByCreatorId(guardianId),
-    getMemorialFeatures(guardianId),
-    getExtraUnits(guardianId, "MEMORIAL"),
+    countMemorialsByCreatorId(guardianId, db),
+    db ? getMemorialFeatures(guardianId, db) : getMemorialFeatures(guardianId),
+    db ? getExtraUnits(guardianId, "MEMORIAL", db) : getExtraUnits(guardianId, "MEMORIAL"),
   ])
   const limit = features.memorialsMax + extra
   return { count, limit, allowed: count < limit }

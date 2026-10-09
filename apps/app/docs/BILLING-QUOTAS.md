@@ -38,6 +38,10 @@ The enforcing files are linked above. Test names and literal assertions below re
 
 ## Contracts and data
 
+### Reusing a tree profile
+
+The [tree-to-memorial shortcut](MEMORIALS-GUARDIANS.md) checks the acting guardian's current `memorialsMax` plus purchased memorial extras before promoting an existing human node. It also checks other accepted guardians, whose counts would be affected by the same role change. Count reads and promotion use a serializable transaction with bounded conflict retries. A quota failure returns the current limit/tier for the existing upgrade dialog and does not alter the profile. Existing memorials and pets remain their original profiles, consume no additional slot, and can still be opened after downgrade. The combined guarded-profile list includes pets, while quota readers continue to count human memorials and pets separately. Source, 38 new focused tests and the pending local product prerequisite are recorded in the [2026-10-09 audit](../../../docs/audits/TREE-MEMORIALS-2026-10-09.md).
+
 ### Complimentary Premium from Genealogiq
 
 The [BMS direct consumer flow](../../bms/docs/CONSUMERS.md) can create an independent APP account and grant 12 calendar months of active Premium without a coupon, purchase, GenCode or Stripe subscription. `ConsumerAccessGrant` audits the operator, request and granted dates; its AppSale has zero value, no tenant, no Stripe ID, a finite expiry and no automatic renewal. Existing compatible manually held Premium days are preserved before adding the first gift. Live recurring or different-plan subscriptions block a new gift; repeated gifts during a valid granted period do not extend it.
@@ -178,6 +182,7 @@ For changes to subscription navigation, sign in normally and start at `/home` wi
 | 2026-10-07 | Same header changes | Final shared-tree review | The seeded sale still reads `PREMIUM`, `active`, period end `2027-10-03 11:32:57.503`, with cancellation disabled. Final documentation check reported an unrelated concurrent `DOCUMENTS.md` link to the not-yet-created `APP-TEXT-ENCODING-2026-10-07.md` audit. | No sale mutation was made. Recheck documentation after the concurrent audit exists. Automatic approval review blocked deletion of the temporary source export; it was retained with the ignored QA logs. |
 | 2026-10-07 | `9253152` + Gen2026 change | Source, tests, PostgreSQL and normal APP browser | Manual checkout guard and account-specific plan query verified; BMS activation and APP login/reload showed the finite Gen2026 plan with 128 tree members, 64 documents and 2 pets. | [Detailed evidence](../../../docs/audits/GEN2026-2026-10-07.md); separate from the earlier header-navigation audit and live Stripe verification. |
 | 2026-10-07 | `b8afb94` + direct consumer access | Source, tests, PostgreSQL and APP browser | Zero-value finite Premium gift, overlapping-checkout guard and gift card verified. Existing manual end 15 December 2026 extended to 15 December 2027; APP login/reload retained quotas and gift expiry. | [Consumer audit](../../../docs/audits/CONSUMER-ACCESS-2026-10-07.md); no real Stripe mutation performed. |
+| 2026-10-09 | `08b2b1c` + tree profile reuse | Source, unit/DOM and static review | Existing-ID promotion, accepted scope, transactional plan/count/extras, separate pet quotas and refreshed guarded lists; 38 new regression tests passed. [Audit](../../../docs/audits/TREE-MEMORIALS-2026-10-09.md) records build and all check results. | Runtime: PostgreSQL/Docker unavailable. UI/persistence: not exercised; exact remaining scenarios are in the audit. |
 
 ## Related
 

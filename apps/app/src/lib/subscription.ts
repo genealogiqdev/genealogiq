@@ -2,9 +2,12 @@ import "server-only"
 
 import { cache } from "react"
 import { prisma } from "@/lib/prisma"
+import type { Prisma } from "@genealogiq/db"
 import { type PlanQuotas } from "@/lib/plan-quotas"
 
 export type { PlanQuotas } from "@/lib/plan-quotas"
+
+type SubscriptionReader = Pick<Prisma.TransactionClient, "appUser" | "appUserGuardian" | "appSale" | "subscription" | "planPrice">
 
 // Field names match PlanQuotas 1:1 — selecting this shape off a Subscription
 // row IS a PlanQuotas object, no mapping needed.
@@ -23,8 +26,8 @@ const QUOTA_SELECT = {
 
 // Cached per request — the FREE plan's own quotas, looked up once instead of
 // re-querying for every profile that falls through to the free default.
-const getFreeQuotas = cache(async (): Promise<PlanQuotas> => {
-  const free = await prisma.subscription.findUnique({ where: { code: "FREE" }, select: QUOTA_SELECT })
+const getFreeQuotas = cache(async (db: SubscriptionReader): Promise<PlanQuotas> => {
+  const free = await db.subscription.findUnique({ where: { code: "FREE" }, select: QUOTA_SELECT })
   if (!free) throw new Error("FREE subscription row not found")
   return free
 })
@@ -61,20 +64,20 @@ export function isSaleLive(sale: { status: string | null; currentPeriodEnd: Date
  *
  * Cached per (profileId, request) so repeated callers share the same lookups.
  */
-export const getMemorialFeatures = cache(async (profileId: string): Promise<PlanQuotas> => {
-  const profile = await prisma.appUser.findUnique({
+export const getMemorialFeatures = cache(async (profileId: string, db: SubscriptionReader = prisma): Promise<PlanQuotas> => {
+  const profile = await db.appUser.findUnique({
     where: { id: profileId },
     select: { role: true },
   })
 
   if (profile?.role === "APP_MEMO" || profile?.role === "APP_PET") {
-    const guardians = await prisma.appUserGuardian.findMany({
+    const guardians = await db.appUserGuardian.findMany({
       where:  { appUserId: profileId, status: "ACCEPTED" },
       select: { guardianId: true },
     })
 
     if (guardians.length > 0) {
-      const liveSales = await prisma.appSale.findMany({
+      const liveSales = await db.appSale.findMany({
         where: {
           appUserId:        { in: guardians.map((g) => g.guardianId) },
           status:           { in: ["active", "trialing"] },
@@ -88,7 +91,7 @@ export const getMemorialFeatures = cache(async (profileId: string): Promise<Plan
         // USD is the yardstick because it is the one currency every plan is
         // priced in — comparing a BRL amount against a USD one would rank by
         // exchange rate rather than by tier.
-        const prices = await prisma.planPrice.findMany({
+        const prices = await db.planPrice.findMany({
           where: {
             subscriptionId: { in: liveSales.map((s) => s.subscriptionId) },
             currency: "USD", isActive: true, effectiveTo: null,
@@ -103,10 +106,10 @@ export const getMemorialFeatures = cache(async (profileId: string): Promise<Plan
       }
     }
 
-    return getFreeQuotas()
+    return getFreeQuotas(db)
   }
 
-  const sale = await prisma.appSale.findFirst({
+  const sale = await db.appSale.findFirst({
     where: {
       appUserId:        profileId,
       status:           { in: ["active", "trialing"] },
@@ -117,5 +120,5 @@ export const getMemorialFeatures = cache(async (profileId: string): Promise<Plan
   })
   if (sale) return sale.subscription
 
-  return getFreeQuotas()
+  return getFreeQuotas(db)
 })

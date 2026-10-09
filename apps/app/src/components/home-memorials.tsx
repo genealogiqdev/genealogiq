@@ -6,11 +6,10 @@ import { getCountryName } from "@genealogiq/core"
 import { ProfileMiniCard, type MiniProfile } from "@/components/profile-mini-card"
 import { getProfileGradient } from "@/lib/avatar-color"
 import { formatDateShort, formatMonthYear } from "@/lib/format-date"
-import type { MemorialRow } from "@/queries/memorial"
+import type { GuardedProfileRow } from "@/queries/memorial"
 
-/** How many cards this section renders — also the point above which a
- *  "see all" link is worth showing. Exported so the two cannot drift. */
-export const VISIBLE = 6
+/** Home preview size; profile management is also reachable when empty. */
+const VISIBLE = 6
 
 function shuffle<T>(arr: T[]): T[] {
   const copy = [...arr]
@@ -23,20 +22,21 @@ function shuffle<T>(arr: T[]): T[] {
 
 type Translate = (key: string, values?: Record<string, string>) => string
 
-function toMiniProfile(m: MemorialRow, locale: string, t: Translate): MiniProfile {
+function toMiniProfile(m: GuardedProfileRow, locale: string, t: Translate): MiniProfile {
+  const isPet = m.role === "APP_PET"
   return {
     id: m.id,
-    name: `${m.firstName} ${m.lastName}`,
-    subtitle: m.birthPlace
+    name: `${m.firstName} ${m.lastName}`.trim(),
+    subtitle: isPet ? [m.petSpecies, m.petBreed].filter(Boolean).join(" · ") || t("petBadge") : m.birthPlace
       ? `${m.birthPlace}${m.birthCountry ? `, ${getCountryName(m.birthCountry, locale)}` : ""}`
       : t("memorializedProfile"),
-    status: "Memorialized",
+    status: isPet ? "Pet" : "Memorialized",
     metric: m.deathDate
       ? t("deathMetric", { date: formatDateShort(m.deathDate, locale) })
       : m.birthDate
         ? t("bornMetric", { date: formatMonthYear(m.birthDate, locale) })
         : "",
-    initials: `${m.firstName[0]}${m.lastName[0]}`.toUpperCase(),
+    initials: `${m.firstName[0] ?? ""}${m.lastName[0] ?? ""}`.toUpperCase(),
     gradient: getProfileGradient(m.id),
     href: `/profile/${m.id}`,
     avatarUrl: m.avatarUrl,
@@ -44,7 +44,7 @@ function toMiniProfile(m: MemorialRow, locale: string, t: Translate): MiniProfil
 }
 
 interface Props {
-  items: MemorialRow[]
+  items: GuardedProfileRow[]
 }
 
 export function HomeMemorials({ items }: Props) {
@@ -54,8 +54,7 @@ export function HomeMemorials({ items }: Props) {
 
   useEffect(() => {
     setOrder(shuffle(items))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [items])
 
   const visible = order.slice(0, VISIBLE)
 

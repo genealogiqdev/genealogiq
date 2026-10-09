@@ -6,7 +6,7 @@ import { GlassIcon } from "@/components/glass-icon"
 import { AuroraBackdrop } from "@/components/aurora-backdrop"
 import { HomeSearch } from "@/components/home-search"
 import { HomeFavorites, VISIBLE as FAVORITES_VISIBLE } from "@/components/home-favorites"
-import { HomeMemorials, VISIBLE as GUARDED_VISIBLE } from "@/components/home-memorials"
+import { HomeMemorials } from "@/components/home-memorials"
 import { RecentlyViewedSection } from "@/components/recently-viewed-section"
 import { RecentlyViewedCount } from "@/components/recently-viewed-count"
 import { Greeting } from "@/components/greeting"
@@ -14,7 +14,7 @@ import { ScanQrButton } from "@/components/scan-qr-button"
 import { InstallBanner } from "@/components/install-banner"
 import { prisma } from "@/lib/prisma"
 import { getFavoritesByUserId } from "@/queries/favorite"
-import { getMemorialsByCreatorId } from "@/queries/memorial"
+import { getGuardedProfilesByGuardianId } from "@/queries/memorial"
 
 export default async function HomePage() {
   const session = await verifySession()
@@ -23,7 +23,7 @@ export default async function HomePage() {
 
   const [favorites, memorials, currentUser] = await Promise.all([
     getFavoritesByUserId(userId, userId),
-    getMemorialsByCreatorId(userId),
+    getGuardedProfilesByGuardianId(userId),
     prisma.appUser.findUnique({ where: { id: userId }, select: { firstName: true } }),
   ])
 
@@ -122,10 +122,9 @@ export default async function HomePage() {
           icon={BrickWall}
           title={t("guardedTitle")}
           subtitle={t("guardedSubtitle")}
-          seeAllLabel={t("seeAll")}
+          seeAllLabel={t("manageGuarded")}
           delay={320}
-          // Only worth offering once there is more than this section shows.
-          seeMoreHref={memorials.length > GUARDED_VISIBLE ? `/profile/${userId}/memorialized` : undefined}
+          seeMoreHref={`/profile/${userId}/memorialized`}
           emptyIcon={BrickWall}
           emptyText={t("guardedEmpty")}
         >

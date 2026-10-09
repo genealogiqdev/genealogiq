@@ -7,35 +7,37 @@ import { type MiniProfile } from "@/components/profile-mini-card"
 import { getProfileGradient } from "@/lib/avatar-color"
 import { verifySession } from "@/lib/dal"
 import { getProfileById } from "@/queries/profile"
-import { getMemorialsByCreatorId } from "@/queries/memorial"
+import { getGuardedProfilesByGuardianId } from "@/queries/memorial"
 import { getMemorialFeatures } from "@/lib/subscription"
 import { getMemorialCreationStatus } from "@/lib/memorial-quota"
 import { getPetCreationStatus } from "@/lib/pet-quota"
 import { UpgradeHint } from "@/components/upgrade-hint"
 import { formatDateShort, formatMonthYear } from "@/lib/format-date"
-import type { MemorialRow } from "@/queries/memorial"
+import type { GuardedProfileRow } from "@/queries/memorial"
 
 interface MiniProfileContext {
   locale: string
   fallbackSubtitle: string
+  petSubtitle: string
   bornLabel: (date: string) => string
 }
 
-function toMiniProfile(m: MemorialRow, ctx: MiniProfileContext): MiniProfile {
+function toMiniProfile(m: GuardedProfileRow, ctx: MiniProfileContext): MiniProfile {
+  const isPet = m.role === "APP_PET"
   return {
     id: m.id,
-    name: `${m.firstName} ${m.lastName}`,
-    subtitle: m.birthPlace
+    name: `${m.firstName} ${m.lastName}`.trim(),
+    subtitle: isPet ? [m.petSpecies, m.petBreed].filter(Boolean).join(" · ") || ctx.petSubtitle : m.birthPlace
       ? `${m.birthPlace}${m.birthCountry ? `, ${m.birthCountry}` : ""}`
       : ctx.fallbackSubtitle,
     // status is a discriminator consumed by the shared ProfileMiniCard (not owned here); kept as the literal value
-    status: "Memorialized",
+    status: isPet ? "Pet" : "Memorialized",
     metric: m.deathDate
       ? `✦ ${formatDateShort(m.deathDate, ctx.locale)}`
       : m.birthDate
         ? ctx.bornLabel(formatMonthYear(m.birthDate, ctx.locale))
         : "",
-    initials: `${m.firstName[0]}${m.lastName[0]}`.toUpperCase(),
+    initials: `${m.firstName[0] ?? ""}${m.lastName[0] ?? ""}`.toUpperCase(),
     gradient: getProfileGradient(m.id),
     href: `/profile/${m.id}`,
     avatarUrl: m.avatarUrl,
@@ -56,7 +58,7 @@ export default async function MemorializedPage({ params }: Props) {
 
   const [profile, memorials, creationStatus, petCreationStatus, features] = await Promise.all([
     getProfileById(id),
-    getMemorialsByCreatorId(id),
+    getGuardedProfilesByGuardianId(id),
     isOwn ? getMemorialCreationStatus(id) : Promise.resolve(null),
     isOwn ? getPetCreationStatus(id) : Promise.resolve(null),
     isOwn ? getMemorialFeatures(id) : Promise.resolve(null),
@@ -69,6 +71,7 @@ export default async function MemorializedPage({ params }: Props) {
   const miniProfileCtx: MiniProfileContext = {
     locale,
     fallbackSubtitle: t("card.fallbackSubtitle"),
+    petSubtitle: t("list.newPet"),
     bornLabel: (date) => t("card.born", { date }),
   }
 
@@ -103,6 +106,7 @@ export default async function MemorializedPage({ params }: Props) {
           tier={currentTier}
           newHref={`/profile/${id}/memorialized/new`}
           newPetHref={`/profile/${id}/pets/new`}
+          fromTreeHref={`/profile/${id}/memorialized/from-tree`}
           upgradeHint={atLimit ? <UpgradeHint context="memorialized" currentTier={currentTier} /> : undefined}
         />
       </main>

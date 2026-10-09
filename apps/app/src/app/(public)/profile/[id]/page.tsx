@@ -4,7 +4,7 @@ import { auth } from "@/auth"
 import { getProfileById, redactLivingProfile } from "@/queries/profile"
 import { isFavoritedByUser, getFavoriteCount, getFavoritesByUserId } from "@/queries/favorite"
 import { getGeolocationForViewer } from "@/queries/geolocation"
-import { getMemorialsByCreatorId } from "@/queries/memorial"
+import { getGuardedProfilesByGuardianId } from "@/queries/memorial"
 import { getPetsByOwnerId } from "@/queries/pet"
 import { countTreeMembers } from "@/queries/family-tree"
 import { getGalleryImageUrls, getGalleryCount, getGalleryHasVideos } from "@/queries/gallery"
@@ -101,7 +101,7 @@ export default async function ProfileByIdPage({ params }: Props) {
     getTributeAuthors(id, 5),
     getTributeCountByProfileId(id),
     !isMemorialized && !isPet ? getFavoritesByUserId(id, sessionUserId) : Promise.resolve([]),
-    !isMemorialized && !isPet ? getMemorialsByCreatorId(id) : Promise.resolve([]),
+    !isMemorialized && !isPet ? getGuardedProfilesByGuardianId(id) : Promise.resolve([]),
     !isPet ? getPetsByOwnerId(id) : Promise.resolve([]),
     getBioByUserId(id),
     countTreeMembers(id),

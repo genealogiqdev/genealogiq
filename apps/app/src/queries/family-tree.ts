@@ -1,5 +1,6 @@
 import "server-only"
 import { prisma } from "@/lib/prisma"
+import type { Prisma } from "@genealogiq/db"
 
 export interface TreePerson {
   id:           string
@@ -194,11 +195,14 @@ export async function getFamilyTree(rootId: string, viewer: TreeViewer): Promise
  * stranger's relation graph by inviting them, and (b) self-anchor a PENDING edge
  * and then forge an auto-ACCEPTED second relation to that stranger.
  */
-export async function getTreeMemberIds(rootId: string): Promise<Set<string>> {
+export async function getTreeMemberIds(
+  rootId: string,
+  db: Pick<Prisma.TransactionClient, "familyRelation"> = prisma,
+): Promise<Set<string>> {
   const discovered = new Set<string>([rootId])
   let frontier = [rootId]
   while (frontier.length > 0) {
-    const rels = await prisma.familyRelation.findMany({
+    const rels = await db.familyRelation.findMany({
       where:  {
         type: { in: [...GENEALOGICAL_RELATION_TYPES] },
         status: "ACCEPTED",

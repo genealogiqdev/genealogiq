@@ -31,6 +31,8 @@ No LLM/model stage exists in this implementation.
 
 Automatic layout is retained by bf57287; layout/index.test.ts pins geometry and termination. WikiTree mapper omits partial YYYY00 dates rather than inventing values (wikitree-mapper.test.ts). The seed has seven humans and two pets; UI displays four generations, correcting older three-generation guidance.
 
+The [memorial selector](MEMORIALS-GUARDIANS.md) can now reuse a managed `APP_GHOST` person as a public memorial while preserving the same tree node, relationships and content. It requires accepted guardianship in addition to accepted membership in the current user's tree. The selector includes attached managed pets as existing profiles; PetOwnership never joins the other owners' human trees. `getTreeMemberIds` accepts a transaction client so the conversion can recheck the accepted graph inside its serializable transaction. The tree's member count does not increase when an existing person is promoted.
+
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
@@ -131,7 +133,10 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | pass: local tree displayed seven people, four generations and two pets; zoom/fit and Rex search/sheet worked. No WikiTree import or graph mutation was exercised. | Only the named exercised behavior is verified. |
+| 2026-10-09 | `08b2b1c` + tree profile reuse | Source, unit/DOM and static review | Existing-ID promotion, accepted scope, transactional plan/count/extras, separate pet quotas and refreshed guarded lists; 38 new regression tests passed. [Audit](../../../docs/audits/TREE-MEMORIALS-2026-10-09.md) records build and all check results. | Runtime: PostgreSQL/Docker unavailable. UI/persistence: not exercised; exact remaining scenarios are in the audit. |
 
 ## Related
+
+2026-10-09 source review at `08b2b1c` plus the shortcut found no intervening changes to the core tree action/query since `6e06634`. Selection/BFS scope and role-only conversion have deterministic coverage; the new manual promotion/reload scenario is tracked separately in the [tree memorial audit](../../../docs/audits/TREE-MEMORIALS-2026-10-09.md).
 
 [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md) · [Audit](../../../docs/audits/AGENT-MEMORY-2026-10-03.md) · [PETS](PETS.md) · [MEMORIALS-GUARDIANS](MEMORIALS-GUARDIANS.md) · [MEDIA-STORAGE](../../../docs/MEDIA-STORAGE.md)

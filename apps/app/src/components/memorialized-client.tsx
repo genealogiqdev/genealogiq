@@ -2,13 +2,14 @@
 
 import { useState, type ReactNode } from "react"
 import Link from "next/link"
-import { ArrowDownUp, PawPrint, Plus, UserRound } from "lucide-react"
+import { ArrowDownUp, Network, PawPrint, Plus, UserRound } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ProfileMiniCard, type MiniProfile } from "@/components/profile-mini-card"
@@ -30,6 +31,7 @@ interface Props {
   tier:         PlanTier
   newHref:      string
   newPetHref:   string
+  fromTreeHref: string
   upgradeHint?: ReactNode
 }
 
@@ -44,6 +46,7 @@ export function MemorializedClient({
   tier,
   newHref,
   newPetHref,
+  fromTreeHref,
   upgradeHint,
 }: Props) {
   const t = useTranslations("Memorialized")
@@ -87,6 +90,13 @@ export function MemorializedClient({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link href={fromTreeHref}>
+                    <Network className="h-4 w-4" />
+                    {t("list.fromTree")}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 {atLimit ? (
                   <DropdownMenuItem onSelect={() => setLimitContext("memorials")}>
                     <UserRound className="h-4 w-4" />

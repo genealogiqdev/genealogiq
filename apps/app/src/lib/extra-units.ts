@@ -1,6 +1,7 @@
 import "server-only"
 
 import type Stripe from "stripe"
+import type { Prisma } from "@genealogiq/db"
 import { prisma } from "@/lib/prisma"
 
 export type ExtraUnitResource = "GEO_PLACE" | "QR_CODE" | "MEMORIAL"
@@ -9,8 +10,12 @@ export type ExtraUnitResource = "GEO_PLACE" | "QR_CODE" | "MEMORIAL"
 // codes, memorial-creation slots) — one-time purchases, never expire.
 // See createExtraUnitCheckoutSession (actions/extra-units.actions.ts) for
 // how a purchase is created, and the Stripe webhook for how it's recorded.
-export async function getExtraUnits(buyerId: string, resource: ExtraUnitResource): Promise<number> {
-  const result = await prisma.extraUnitPurchase.aggregate({
+export async function getExtraUnits(
+  buyerId: string,
+  resource: ExtraUnitResource,
+  db: Pick<Prisma.TransactionClient, "extraUnitPurchase"> = prisma,
+): Promise<number> {
+  const result = await db.extraUnitPurchase.aggregate({
     where: { buyerId, resource },
     _sum: { quantity: true },
   })

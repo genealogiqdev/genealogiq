@@ -121,6 +121,11 @@
       "cannotTributeSelf": "Você não pode deixar uma homenagem no seu próprio perfil.",
       "notAuthorized": "Sem autorização.",
       "notFound": "Homenagem não encontrada."
+    },
+    "treeMemorial": {
+      "unavailable": "Este perfil não está disponível na sua árvore ou você ainda não é um guardião autorizado.",
+      "coGuardianLimit": "Outro guardião deste perfil atingiu o limite de memoriais do plano. É necessário liberar capacidade antes de adicionar este memorial.",
+      "retry": "O perfil ou o limite do plano mudou durante a solicitação. Tente novamente."
     }
   },
   "Auth": {
@@ -784,7 +789,7 @@
     "greetingFallbackName": "olá",
     "guardedEmpty": "Nenhum perfil sob sua guarda ainda.",
     "guardedShort": "sob sua guarda",
-    "guardedSubtitle": "Memoriais cuidados com zelo silencioso",
+    "guardedSubtitle": "Pessoas e pets cuidados com carinho",
     "guardedTitle": "Perfis sob minha guarda",
     "livingBadge": "Em vida",
     "memorializedBadge": "Memorial",
@@ -800,7 +805,8 @@
     "searchPlaceholder": "Buscar perfil por nome...",
     "searching": "Buscando…",
     "seeAll": "Ver todos",
-    "tagline": "Escaneie, busque e visite um perfil"
+    "tagline": "Escaneie, busque e visite um perfil",
+    "manageGuarded": "Gerenciar perfis"
   },
   "InstallPrompt": {
     "banner": {
@@ -1196,8 +1202,8 @@
       "other": "Outro"
     },
     "list": {
-      "emptyGuarded": "Nenhum perfil memorializado sob sua guarda ainda.",
-      "emptyOwn": "Nenhum perfil memorializado ainda.",
+      "emptyGuarded": "Nenhum memorial ou pet sob sua guarda ainda.",
+      "emptyOwn": "Nenhum memorial ou pet ainda.",
       "new": "Novo",
       "newPerson": "Memorial de pessoa",
       "newPet": "Pet",
@@ -1205,12 +1211,13 @@
       "sortAria": "Ordenar perfis",
       "sortAsc": "A → Z",
       "sortDesc": "Z → A",
-      "tagline": "Memoriais cuidados com amor e carinho"
+      "tagline": "Memoriais e pets cuidados com amor e carinho",
+      "fromTree": "Selecionar da árvore"
     },
     "listPage": {
       "backToProfile": "Voltar ao perfil",
       "profileCount": "{count, plural, one {# perfil} other {# perfis}}",
-      "title": "Memoriais"
+      "title": "Perfis sob guarda"
     },
     "newPage": {
       "backToGuarded": "Voltar aos perfis sob sua guarda",
@@ -1255,6 +1262,32 @@
       "fixFields": "Corrija os campos destacados.",
       "formReset": "Formulário redefinido.",
       "saved": "Perfil salvo."
+    },
+    "fromTree": {
+      "title": "Selecionar da árvore",
+      "description": "Reaproveite o perfil de uma pessoa ou pet da sua árvore, com os dados e vínculos já cadastrados.",
+      "scopeHint": "Aqui aparecem os membros da sua árvore que você tem autorização para gerenciar. Pets e memoriais existentes já estão sob sua guarda e não usam outra vaga.",
+      "searchLabel": "Buscar na árvore",
+      "searchPlaceholder": "Nome da pessoa ou do pet",
+      "filterLabel": "Filtrar membros",
+      "all": "Todos",
+      "people": "Pessoas",
+      "pets": "Pets",
+      "person": "Pessoa",
+      "pet": "Pet",
+      "empty": "Nenhum membro disponível. Adicione pessoas ou pets à sua árvore para encontrá-los aqui.",
+      "noResults": "Nenhum membro encontrado para essa busca.",
+      "openTree": "Abrir minha árvore",
+      "alreadyAdded": "Já está sob sua guarda",
+      "viewProfile": "Ver perfil",
+      "add": "Adicionar como memorial",
+      "confirmTitle": "Adicionar {name} como memorial?",
+      "confirmDescription": "O perfil desta pessoa passará a ser um memorial público. Seus dados, fotos e vínculos na árvore serão preservados. Essa ação usa uma vaga de memorial do plano.",
+      "cancel": "Cancelar",
+      "confirm": "Adicionar memorial",
+      "adding": "Adicionando…",
+      "success": "Memorial adicionado aos perfis sob sua guarda.",
+      "error": "Não foi possível adicionar o memorial. Tente novamente."
     }
   },
   "Messages": {
@@ -1433,7 +1466,7 @@
     "editProfileAria": "Editar perfil",
     "emptyDocuments": "Nenhum documento ainda",
     "emptyFavorites": "Nenhum favorito ainda",
-    "emptyGuarded": "Nenhum memorial ainda",
+    "emptyGuarded": "Nenhum perfil ainda",
     "emptyMedia": "Nenhuma mídia ainda",
     "emptyPets": "Nenhum pet ainda",
     "emptyRelatives": "Nenhum familiar ainda",
@@ -1449,11 +1482,11 @@
     "geoDescription": "Um lugar para se reencontrar, de qualquer lugar",
     "geoEmptyMetric": "Não definido",
     "geoTitle": "Geolocalização",
-    "guardianDescription": "Memoriais cuidados com carinho silencioso",
-    "guardianEmptyMetric": "Nenhum memorial ainda",
+    "guardianDescription": "Memoriais e pets cuidados com amor e carinho",
+    "guardianEmptyMetric": "Nenhum perfil ainda",
     "guardianLabel": "{count, plural, one {Guardião:} other {Guardiões:}}",
     "guardianMetric": "{count, plural, one {# perfil} other {# perfis}}",
-    "guardianTitle": "Memoriais",
+    "guardianTitle": "Perfis sob guarda",
     "mapAlt": "Mapa",
     "memorialized": "Memorial",
     "petBadge": "Pet",
@@ -1636,7 +1669,7 @@
       "mediaVideos": "Upload de até {count} vídeos na galeria",
       "memorials": "{count, plural, one {# memorial completo} other {# memoriais completos}}",
       "petsCount": "{count} perfis de pets",
-      "qrCodeCount": "{count, plural, one {# QR Code gratuito} other {# QR Codes gratuitos}}",
+      "qrCodeCount": "{count, plural, one {# QR Code pessoal incluído} other {# QR Codes pessoais incluídos}}",
       "qrExtra": "Adquira QR Codes extras",
       "qrExtraCheaper": "Adquira QR Codes extras mais barato",
       "treeMembers": "{count} membros na árvore genealógica"

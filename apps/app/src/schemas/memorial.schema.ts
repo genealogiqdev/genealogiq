@@ -18,3 +18,9 @@ export function getMemorialSchema(t: Translator) {
 }
 
 export type MemorialValues = z.infer<ReturnType<typeof getMemorialSchema>>
+
+export function getMemorialFromTreeSchema(t: Translator) {
+  return z.object({
+    profileId: z.string().cuid(t("required")),
+  })
+}
