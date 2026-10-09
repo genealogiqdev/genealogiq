@@ -32,6 +32,12 @@ No LLM/model stage exists in this implementation.
 
 Anonymous readers of private living profiles and APP_GHOST encounter the sign-in wall; public memorials/pets and opted-in living profiles use previews. redactLivingProfile removes precise details from nonmanagers (profile.test.ts). toggleFavorite rejects self-favorites before DB access (favorite.actions.test.ts).
 
+Profile names preserve the stored Unicode firstName and lastName values.
+Question marks already stored in a name cannot identify the original spelling;
+confirm that spelling and use the [reviewed recovery runbook](../../../docs/DATABASE.md#recover-damaged-app-text).
+The [2026-10-09 follow-up](../../../docs/audits/APP-TEXT-ENCODING-2026-10-09.md)
+records a confirmed given-name repair without changing rendering or access.
+
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
@@ -132,6 +138,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | pass: Rex favorite removed and restored through the UI; reload showed one favorite. Independent PostgreSQL COUNT(app_favorites) for the fixture viewer/target was 1. | Only the named exercised behavior is verified. |
+| 2026-10-09 | `e80c449`; unchanged recovery command from `9253152` | User-confirmed data update, independent production reads and 12 command tests | One previously excluded given name restored. All 72 original audit fields match their current approved expectations; 68 fields have approved changes, four remain untouched. [Evidence](../../../docs/audits/APP-TEXT-ENCODING-2026-10-09.md). | Local UI n/a because Docker pipe access was denied; production visual verification n/a because the browser tool could not initialize. Six unresolved fields remain under DATABASE-G2. |
 
 ## Related
 

@@ -87,7 +87,8 @@ live Azure/HTTPS/browser evidence, local baseline, cleanup and provider limits.
 
 **Stored-text investigation:** 2026-10-07, [APP text audit](docs/audits/APP-TEXT-ENCODING-2026-10-07.md).
 Current source preserves accents; the live read-only audit found damaged
-persisted content. The approved recovery restored 67 fields in production;
-seven fields still contain uncertain characters. Review the recovery runbook
+persisted content. The approved recovery restored 68 fields in production;
+six fields still contain uncertain characters. The [2026-10-09 follow-up](docs/audits/APP-TEXT-ENCODING-2026-10-09.md)
+records one user-confirmed name. Review the recovery runbook
 and remaining originals before assuming a locale/font change can repair stored
 question marks.
