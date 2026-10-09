@@ -9,6 +9,8 @@ The SEQ application supplies tenant consumers, categories and memorial records. 
 
 **QR download source recheck:** 2026-10-09 at `4eb3d5c` plus the customer QR download change. The affected SEQ query, table and detail route had no committed changes since `6e06634`; the pre-existing working changes were outside these source files. Runtime/UI limitations are recorded below.
 
+**Plan/download follow-up:** 2026-10-09 at `08b2b1c` plus this change. The earlier download fix is committed as `77d4bc0`. [The follow-up audit](../../../docs/audits/SEQ-MEMORIALS-2026-10-09.md) separates scoped source, automated tests, real QR decoding and the unavailable local database/Chrome session.
+
 ## How it works
 
 | # | Step | Kind | Code / symbol | Produces |
@@ -29,12 +31,21 @@ No LLM/model stage exists in this implementation.
 | [src/queries/customer-categories.ts](../src/queries/customer-categories.ts) | See exports/component in file | Scoped data reads and output shaping |
 | [src/components/memorialized/qr-code-download-dialog.tsx](../src/components/memorialized/qr-code-download-dialog.tsx) | `QrCodeDownloadDialog` | Opens QR presets directly from the customer's memorial table |
 | [src/components/memorialized/qr-code-presets.tsx](../src/components/memorialized/qr-code-presets.tsx) | `QrCodePresets` | Generates PNG/SVG locally; SVG waits for generation before download |
+| [src/actions/memorial-qr.actions.ts](../src/actions/memorial-qr.actions.ts) | `getCustomerMemorialQr` | Revalidates tenant/customer, accepted guardianship and live plan before preview/export |
+| [packages/core/src/memorial-qr.ts](../../../packages/core/src/memorial-qr.ts) | `getMemorialQrStatus` | Shared per-type QR allowance, stable ordering and purchased-code preservation |
+| [src/components/memorialized/qr-code-presets.config.ts](../src/components/memorialized/qr-code-presets.config.ts) | `QR_PRESETS`, `QR_OPTIONS` | Six readable palettes and four-module quiet zones |
 
 ## Rules and why
 
 Use customerId from the verified tenant session for every consumer/category query. The action suites pin role, input and ownership boundaries; preserving typed memorials avoids reviving digital-license paths removed in 2504132.
 
-The customer's memorial list and count include only `ACCEPTED` guardianships. A linked living, deceased or pet profile can have no direct tenant assignment: APP creation records the guardian relation without copying the customer's tenant. QR access therefore follows the already scoped customer and accepted relation. Clicking **Baixar** opens a dialog in the table, preserves its pagination/filter state, and offers the existing six PNG/SVG presets. It does not route through the memorial edit query, whose direct tenant check remains applicable to edits.
+The customer's memorial list includes only `ACCEPTED` guardianships of `APP_MEMO` humans and `APP_PET` pets, matching the APP's guarded profiles. A human memorial need not have a death date. Ordinary APP_USER accounts, ghosts and pending/rejected guardianships are excluded. A linked profile can have no direct tenant assignment: APP creation records the guardian relation without copying the customer's tenant. The customer itself must be an APP_USER in the verified session tenant.
+
+Memorial availability is `max(0, humanLimit - humans) + max(0, petLimit - pets)`. The limits come from the customer's own live AppSale/Subscription, or the database FREE fallback; purchased MEMORIAL quantities extend human creation capacity only. Standard FREE permits one human and no pets; standard PREMIUM permits five humans and five pets. The local seed now matches those Premium limits. GenCode purchase counts are displayed separately, scoped to this company, and never grant or subtract memorial creation slots. Existing profiles above a limit remain visible.
+
+FREE has no included memorial QR export. PREMIUM includes one QR export for each human/pet slot, using separate oldest-first lists with a stable ID tie-break; the customer's personal QR does not consume those slots. Read configured quotas rather than hardcode five. Activated plaques remain independently unlocked and do not consume included QR slots. Purchased QR_CODE quantities retain their human QR allowance; extra MEMORIAL capacity does not itself buy a QR. Custom human QR plans retain their existing allowance beyond the personal slot.
+
+Clicking **Baixar** opens a dialog in the table and preserves its pagination/filter state. `getCustomerMemorialQr(customerId, profileId)` validates IDs and reloads the scoped customer, accepted relation and live plan on opening and each PNG/SVG export. The client cannot provide the destination or entitlement. Locked rows explain Premium/limit requirements. Request and rendering failures show retry controls and create no file; both formats wait for a generated preview. The direct memorial edit query keeps its direct tenant check; its download also uses this customer gate, with the optional customer context validated against accepted guardians in the same tenant. Inventory printing retains its separate physical-GenCode scope.
 
 Use a stored `QrCode.url` when present, preserving activated code destinations. Otherwise build `/profile/<id>` from server-side `APP_URL` (trailing slashes removed; fallback `https://genealogiq.app`). Downloading renders bytes in the browser and does not allocate a GenCode, create a QR database row, change a profile or mark a code printed/installed.
 
@@ -52,6 +63,8 @@ Inputs, defaults and output types live in the linked schema/actions/query files.
 | `AppUserCategory` | `app_user_categories` | Existing/introspected baseline; creation SQL not recorded in the current migration tree |
 | `AppUserGuardian` | `app_user_guardians` | Existing/introspected baseline; creation SQL not recorded in the current migration tree |
 | `QrCode` | `qr_codes` | [20260601000000_qr_code_table](../../../packages/db/prisma/migrations/20260601000000_qr_code_table/migration.sql) |
+| `Subscription`, `AppSale` | `subscriptions`, `app_sales` | Existing baseline; current consumer plan/period read without writes |
+| `ExtraUnitPurchase` | `app_extra_unit_purchases` | [20260805000000_extra_unit_purchases](../../../packages/db/prisma/migrations/20260805000000_extra_unit_purchases/migration.sql) |
 | `Address` | `addresses` | [20260403000000_expand_schema_address_categories](../../../packages/db/prisma/migrations/20260403000000_expand_schema_address_categories/migration.sql) |
 
 Column mappings, keys, enums, deletes and nullability are authoritative in [schema.prisma](../../../packages/db/prisma/schema.prisma). Later amendments and the legacy baseline limitation are indexed in [DATABASE](../../../docs/DATABASE.md). Models listed here are read or written by the feature; ownership is shared where explicitly noted.
@@ -131,9 +144,27 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 
 ### Diagnose a QR download returning not found
 
-Check whether the customer is in the session tenant and the guardian relation is accepted. Do not assign the linked profile to the tenant or remove the edit authorization to make a download work. The table's Baixar control must open `QrCodeDownloadDialog` using `getCustomer`'s `profileUrl`; it must not navigate to `/memorialized/[id]`. Verify stored QR URLs and `APP_URL` separately from QR generation. Existing **Ver**/edit routes still require direct tenant ownership.
+Check whether the customer is in the session tenant and the guardian relation is accepted. Do not assign the linked profile to the tenant or remove the edit authorization to make a download work. The table's Baixar control must open `QrCodeDownloadDialog`, which obtains `getCustomer`'s `profileUrl` through `getCustomerMemorialQr`; it must not navigate to `/memorialized/[id]`. Inspect the customer's live AppSale, configured human/pet quotas and purchased units when the row is locked; the number of acquired GenCodes is not plan capacity. Verify stored QR URLs and `APP_URL` separately from QR generation. Existing **Ver**/edit routes still require direct tenant ownership. Reproduce renderer failures and run the real palette/decoder regression before changing a QR style.
 
 ## Gaps and fixes
+
+### CUSTOMERS-MEMORIALS-G3: Plan capacity and memorial QR access disagreed
+
+- **Status:** fixed
+- **Found:** 2026-10-09, user clarification: FREE has one memorial without a plaque GenCode; PREMIUM has five humans and five pets.
+- **Evidence:** The customer page calculated available memorials as GenCodes bought minus all accepted guardianships; the table offered an unconditional QR export. APP's combined personal/memorial QR rank used the default single personal QR even for Premium. The previous route fix (`77d4bc0`) did not address these plan rules.
+- **Impact:** A Premium customer could see zero available memorials despite unused plan slots, while FREE downloads were offered by SEQ. The human Premium QR route could remain locked.
+- **Root cause:** Physical inventory, consumer creation quotas and QR allowance were conflated; the customer download lacked a live plan check.
+- **Resolution:** This change based on `08b2b1c` adds accepted human/pet projections, current plan counts, shared per-type QR policy, per-request customer authorization and retryable exports. Literal core/query/action/DOM regressions and the APP quota specs are recorded in [the audit](../../../docs/audits/SEQ-MEMORIALS-2026-10-09.md). Existing paid QR rights and records remain intact. No migration or deployment was performed.
+
+### CUSTOMERS-MEMORIALS-G4: Soft QR palette could not be decoded
+
+- **Status:** fixed
+- **Found:** 2026-10-09, independent decoding of real exports during this follow-up.
+- **Evidence:** The Soft PNG using foreground `#7B90AB` and background `#F5F1EA` failed jsQR decoding for the literal human-profile fixture; the other initial palettes decoded. The renderer also lacked rejection handling and allowed PNG while the preview was still empty.
+- **Impact:** Some exported codes were unreadable, and generation failures could leave a blank preview without a useful recovery path.
+- **Root cause:** Insufficient palette contrast and unhandled renderer errors.
+- **Resolution:** Darkened Soft to `#53657F`, kept a four-module quiet zone, disabled pending exports and added error/retry handling. [qr-code-presets.test.ts](../src/components/memorialized/qr-code-presets.test.ts) independently decodes 18 real PNGs with jsQR and checks vector SVG output. A separate real rasterized-SVG check decoded all 36 PNG/SVG files; browser/device scanning remains a distinct prerequisite in the audit.
 
 ### CUSTOMERS-MEMORIALS-G2: QR download opens an incompatible memorial edit route
 
@@ -155,6 +186,8 @@ Check whether the customer is in the session tenant and the guardian relation is
 
 ## Verification log
 
+The 2026-10-09 plan/download follow-up has 77 passing focused tests in eight files, including real QR encoding/decoding, separately from mocked tenant/query tests and DOM interaction. See [the follow-up audit](../../../docs/audits/SEQ-MEMORIALS-2026-10-09.md) for the full-suite failures in unrelated concurrent work, static/build results and unavailable authenticated product QA.
+
 | Date | Commit / working changes | Verified by | Scope and evidence | Mismatches or limits → action |
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
@@ -162,7 +195,10 @@ Check whether the customer is in the session tenant and the guardian relation is
 | 2026-10-09 | `4eb3d5c` + QR download change | Source trace and focused regressions | Source: customer tenant → accepted guardian relation → minimal profile URL → table Dialog → local PNG/SVG; direct memorial edit scope is retained. Query and real-portal DOM evidence is separate from runtime. | PostgreSQL/Docker unavailable; user stopped Computer Use and waived the full manual QA battery. No owned product server or database fixture needs cleanup. |
 | 2026-10-09 | Same working tree, including pre-existing unrelated changes | Automated checks | `pnpm test`: 113 files / 980 tests passed, four integration files / 24 tests skipped; the QR query/DOM specs contributed eight passes. SEQ typecheck passed. SEQ lint: zero errors / 22 existing warnings, none in the changed source. Documentation and `git diff --check` passed. | Initial test configuration needed automatic JSX for shared UI; QR mocks were typed to their Promise overloads. Both were corrected before the passing runs. Real PostgreSQL/session/download decoding remains unverified. |
 | 2026-10-09 | Same QR download change | SEQ build and cleanup | Provider-disabled local `next build` passed using `LOCAL_QA_DIST_DIR=.next-qa-qr-download-20261009`, including TypeScript and 26/26 generated pages. Logs are retained under `.local-qa/2026-10-09/qr-download/`. The build exited and its two generated tsconfig include paths were removed while preserving the prior file contents. | Standalone packaging is intentionally omitted in local QA mode. Compilation is not an authenticated runtime/UI or cloud deployment pass. No product server or database fixture was created. |
+| 2026-10-09 | `08b2b1c` + memorial plan/download follow-up | Source, scoped tests and real QR decoding | 77 focused tests passed; 36 PNG/SVG files independently decoded. APP/SEQ types and local production builds passed; SEQ lint had zero errors/20 existing warnings. | Full-suite and locale-reference failures belong to concurrent work; PostgreSQL/Chrome product acceptance remains n/a. Build-cache removal was blocked by automatic review; [audit](../../../docs/audits/SEQ-MEMORIALS-2026-10-09.md). |
 
 ## Related
+
+[The plan/download follow-up audit](../../../docs/audits/SEQ-MEMORIALS-2026-10-09.md) specifies FREE, Premium 5+5, sixth-slot, expired-plan, second-tenant, stored-destination and no-write/persistence scenarios. The earlier G2 browser attempt above remains historical evidence, not a pass for this follow-up.
 
 [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md) · [Audit](../../../docs/audits/AGENT-MEMORY-2026-10-03.md) · [AUTHENTICATION](../../../docs/AUTHENTICATION.md) · [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md)

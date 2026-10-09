@@ -17,6 +17,8 @@
 
 Use [CONVENTIONS](docs/CONVENTIONS.md) for existing schema/form/media/UI choices. Profile content is scoped by owner or co-guardian; public readers are selected/redacted separately. Physical QR/GenCode ownership is not a consumer subscription. Tree positions remain in schema for history, but the current canvas uses automatic layout. Media quotas come from database-backed effective entitlements; do not hardcode a plan or revive maxProfiles.
 
+Premium human memorial QR exports use the guardian's memorial quota independently of the personal QR allowance. Free memorial creation does not include QR export; accepted guardianship, activated plaques and purchased extra QR units retain their separate checks. APP and SEQ share the policy in `packages/core/src/memorial-qr.ts`.
+
 The app uses Next.js App Router, server-side queries, server actions and Zod schema factories. Shared database/auth/services/email/core/UI/i18n contracts are indexed in [root AGENTS.md](../../AGENTS.md). Default local origin is http://localhost:3000; use the launcher's configured canonical host/port for auth redirects and cookies. See [LOCAL-DEVELOPMENT](../../docs/LOCAL-DEVELOPMENT.md) for isolated sessions.
 
 ## Feature index

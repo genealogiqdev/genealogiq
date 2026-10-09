@@ -22,6 +22,8 @@ The subsequent 0353683 marketing source check also records [MARKETING-FEEDBACK-G
 
 ## All feature gaps
 
+The [2026-10-09 memorial audit](audits/SEQ-MEMORIALS-2026-10-09.md) resolves [CUSTOMERS-MEMORIALS-G3/G4](../apps/seq/docs/CUSTOMERS-MEMORIALS.md) and [MEMORIALS-GUARDIANS-G3](../apps/app/docs/MEMORIALS-GUARDIANS.md): plan-based human/pet capacity, Free/Premium QR rules, live customer export checks and a readable Soft palette. Authenticated Chrome/PostgreSQL acceptance remains unavailable; the audit separates this from 77 focused passes and real QR decoding.
+
 Entries include fixed history; the linked **Status** is authoritative. SUPPLIERS-CATEGORIES-G2 was resolved by recovering the documented decision to retain both uniqueness constraints.
 
 | App / feature | Permanent entry | Evidence / remaining prerequisite |

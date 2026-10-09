@@ -7,24 +7,10 @@ import { Copy, Download } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@genealogiq/ui/button'
 import { Card } from '@genealogiq/ui/card'
+import { QR_PRESETS, QR_OPTIONS, QR_PNG_WIDTH, type QrPreset } from './qr-code-presets.config'
 
 // Loose translator type so QrCard can receive the namespaced translator.
 type Translator = (key: string, values?: Record<string, string | number | Date>) => string
-
-type Preset = {
-  key: string
-  fg:  string
-  bg:  string
-}
-
-const PRESETS: Preset[] = [
-  { key: 'classic',  fg: '#0F172A', bg: '#FFFFFF' },
-  { key: 'indigo',   fg: '#454575', bg: '#FFFFFF' },
-  { key: 'inverted', fg: '#FFFFFF', bg: '#0F172A' },
-  { key: 'soft',     fg: '#7B90AB', bg: '#F5F1EA' },
-  { key: 'bronze',   fg: '#7A5230', bg: '#F8F1E4' },
-  { key: 'forest',   fg: '#1F4032', bg: '#FFFFFF' },
-]
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -37,35 +23,48 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url)
 }
 
-function QrCard({ preset, url, filename, t }: { preset: Preset; url: string; filename: string; t: Translator }) {
+function QrCard({ preset, url, filename, t, authorizeDownload }: {
+  preset: QrPreset; url: string; filename: string; t: Translator
+  authorizeDownload?: () => Promise<string | null>
+}) {
   const [svg, setSvg] = useState('')
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
+  const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
     let active = true
     QRCode.toString(url, {
+      ...QR_OPTIONS,
       type:                 'svg',
-      errorCorrectionLevel: 'H',
-      margin:               2,
       color:                { dark: preset.fg, light: preset.bg },
     }).then((s) => { if (active) setSvg(s) })
+      .catch(() => { if (active) setFailed(true) })
     return () => { active = false }
-  }, [url, preset.fg, preset.bg])
+  }, [url, preset.fg, preset.bg, attempt])
 
-  const handleSvg = () => {
-    downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), `${filename}-${preset.key}.svg`)
-    toast.success(t('qr.svgDownloaded'))
-  }
-
-  const handlePng = async () => {
-    const dataUrl = await QRCode.toDataURL(url, {
-      errorCorrectionLevel: 'H',
-      margin:               2,
-      width:                1024,
-      color:                { dark: preset.fg, light: preset.bg },
-    })
-    const res = await fetch(dataUrl)
-    downloadBlob(await res.blob(), `${filename}-${preset.key}.png`)
-    toast.success(t('qr.pngDownloaded'))
+  const handleDownload = async (format: 'png' | 'svg') => {
+    if (!svg || downloading) return
+    setDownloading(true)
+    try {
+      const currentUrl = authorizeDownload ? await authorizeDownload() : url
+      if (!currentUrl) return
+      const options = { ...QR_OPTIONS, color: { dark: preset.fg, light: preset.bg } }
+      if (format === 'svg') {
+        const currentSvg = await QRCode.toString(currentUrl, { ...options, type: 'svg' })
+        downloadBlob(new Blob([currentSvg], { type: 'image/svg+xml' }), `${filename}-${preset.key}.svg`)
+        toast.success(t('qr.svgDownloaded'))
+      } else {
+        const dataUrl = await QRCode.toDataURL(currentUrl, { ...options, width: QR_PNG_WIDTH })
+        const res = await fetch(dataUrl)
+        downloadBlob(await res.blob(), `${filename}-${preset.key}.png`)
+        toast.success(t('qr.pngDownloaded'))
+      }
+    } catch {
+      toast.error(t('qr.generationFailed'))
+    } finally {
+      setDownloading(false)
+    }
   }
 
   return (
@@ -75,15 +74,21 @@ function QrCard({ preset, url, filename, t }: { preset: Preset; url: string; fil
         style={{ background: preset.bg }}
         dangerouslySetInnerHTML={{ __html: svg }}
       />
+      {failed && (
+        <div className="space-y-2">
+          <p role="alert" className="text-sm text-destructive">{t('qr.generationFailed')}</p>
+          <Button type="button" variant="outline" size="sm" onClick={() => { setFailed(false); setAttempt((value) => value + 1) }}>{t('qr.retry')}</Button>
+        </div>
+      )}
       <div className="space-y-0.5">
         <h3 className="text-sm font-semibold">{t(`qr.presets.${preset.key}.name`)}</h3>
         <p className="text-xs text-muted-foreground leading-snug">{t(`qr.presets.${preset.key}.description`)}</p>
       </div>
       <div className="flex gap-2 mt-auto">
-        <Button onClick={handlePng} variant="outline" size="sm" className="flex-1 gap-1.5">
+        <Button onClick={() => handleDownload('png')} disabled={!svg || downloading} variant="outline" size="sm" className="flex-1 gap-1.5">
           <Download className="h-3.5 w-3.5" />PNG
         </Button>
-        <Button onClick={handleSvg} disabled={!svg} variant="outline" size="sm" className="flex-1 gap-1.5">
+        <Button onClick={() => handleDownload('svg')} disabled={!svg || downloading} variant="outline" size="sm" className="flex-1 gap-1.5">
           <Download className="h-3.5 w-3.5" />SVG
         </Button>
       </div>
@@ -94,14 +99,21 @@ function QrCard({ preset, url, filename, t }: { preset: Preset; url: string; fil
 interface Props {
   profileUrl: string
   filename:   string
+  // Inventory prints already belong to a scoped physical GenCode. Customer
+  // memorial exports supply a live tenant/guardian/plan check via the dialog.
+  authorizeDownload?: () => Promise<string | null>
 }
 
-export function QrCodePresets({ profileUrl, filename }: Props) {
+export function QrCodePresets({ profileUrl, filename, authorizeDownload }: Props) {
   const t = useTranslations('Memorialized')
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(profileUrl)
-    toast.success(t('qr.linkCopied'))
+    try {
+      await navigator.clipboard.writeText(profileUrl)
+      toast.success(t('qr.linkCopied'))
+    } catch {
+      toast.error(t('qr.copyFailed'))
+    }
   }
 
   return (
@@ -116,8 +128,8 @@ export function QrCodePresets({ profileUrl, filename }: Props) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {PRESETS.map((p) => (
-          <QrCard key={p.key} preset={p} url={profileUrl} filename={filename} t={t} />
+        {QR_PRESETS.map((p) => (
+          <QrCard key={`${p.key}:${profileUrl}`} preset={p} url={profileUrl} filename={filename} t={t} authorizeDownload={authorizeDownload} />
         ))}
       </div>
     </div>

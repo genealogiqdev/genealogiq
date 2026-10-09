@@ -29,10 +29,8 @@ export default async function QrCodePage({ params }: Props) {
   // A memorial's QR Code is accessible only to its guardian(s).
   if (profile.role === "APP_MEMO" && !isGuardian) notFound()
 
-  // A memorial's QR quota rides the viewing guardian's own bucket (self +
-  // every memorial they manage, ranked together) — mirrors the guardian
-  // cascade used everywhere else. A living user's own profile is simply
-  // ranked against itself.
+  // Memorial QR exports use the viewing guardian's plan, independently of
+  // their personal QR allowance and any other co-guardian's subscription.
   const quotaGuardianId = profile.role === "APP_MEMO" ? session.user.id : profile.id
   const [quota, features] = await Promise.all([
     getQrQuotaStatus(quotaGuardianId, profile.id),
@@ -62,7 +60,7 @@ export default async function QrCodePage({ params }: Props) {
         {quota.unlocked ? (
           <QrCodeClient profileUrl={profileUrl} />
         ) : (
-          <QrLockedCard limit={quota.limit} tier={features.code} />
+          <QrLockedCard limit={quota.limit} tier={features.code} memorialQr={profile.role === 'APP_MEMO'} />
         )}
       </main>
     </div>

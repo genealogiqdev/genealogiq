@@ -16,6 +16,9 @@ export type MemorializedRow = {
   birthDate: Date | null
   deathDate: Date | null
   profileUrl: string
+  customerId: string
+  role: string
+  qrAccess: 'allowed' | 'premiumRequired' | 'limitReached'
 }
 
 function formatDate(d: Date | null | undefined, locale: string): string {
@@ -30,7 +33,7 @@ function ActionsCell({ row, t }: { row: { original: MemorializedRow }; t: Transl
     <RowActions
       menuLabel={t('actions.openMenu')}
       items={[
-        { kind: 'link', label: t('actions.view'), href: `/memorialized/${profile.id}` },
+        { kind: 'link', label: t('actions.view'), href: `/memorialized/${profile.id}?customerId=${encodeURIComponent(profile.customerId)}` },
       ]}
     />
   )
@@ -43,6 +46,11 @@ export function getColumns(t: Translator, locale: string): ColumnDef<Memorialize
       accessorFn: (row) => `${row.firstName} ${row.lastName}`,
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('table.name')} />,
       cell: ({ row }) => `${row.original.firstName} ${row.original.lastName}`,
+    },
+    {
+      accessorKey: 'role',
+      header: t('table.type'),
+      cell: ({ row }) => t(row.original.role === 'APP_PET' ? 'table.pet' : 'table.human'),
     },
     {
       accessorKey: 'birthDate',
@@ -62,7 +70,9 @@ export function getColumns(t: Translator, locale: string): ColumnDef<Memorialize
       cell: ({ row }) => (
         <QrCodeDownloadDialog
           name={`${row.original.firstName} ${row.original.lastName}`.trim()}
-          profileUrl={row.original.profileUrl}
+          customerId={row.original.customerId}
+          profileId={row.original.id}
+          access={row.original.qrAccess}
         />
       ),
     },

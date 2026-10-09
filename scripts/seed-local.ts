@@ -256,8 +256,8 @@ async function main() {
       mediaMaxVideos: 32,
       documentsMax: 64,
       geoPlacesMax: 6,
-      memorialsMax: 10,
-      petsMax: 10,
+      memorialsMax: 5,
+      petsMax: 5,
       qrCodeMax: 1,
     },
     create: {
@@ -271,8 +271,8 @@ async function main() {
       mediaMaxVideos: 32,
       documentsMax: 64,
       geoPlacesMax: 6,
-      memorialsMax: 10,
-      petsMax: 10,
+      memorialsMax: 5,
+      petsMax: 5,
       qrCodeMax: 1,
     },
   })

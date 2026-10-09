@@ -15,6 +15,18 @@ beforeEach(() => {
 })
 
 describe("getMemorialCreationStatus", () => {
+  it.each([[0, true], [1, false]] as const)("allows exactly one Free human memorial (count=%s)", async (count, allowed) => {
+    vi.mocked(countMemorialsByCreatorId).mockResolvedValue(count)
+    vi.mocked(getMemorialFeatures).mockResolvedValue({ code: 'FREE', memorialsMax: 1 } as never)
+    expect(await getMemorialCreationStatus('guardian-free')).toEqual({ count, limit: 1, allowed })
+  })
+
+  it.each([[4, true], [5, false]] as const)("allows exactly five Premium human memorials (count=%s)", async (count, allowed) => {
+    vi.mocked(countMemorialsByCreatorId).mockResolvedValue(count)
+    vi.mocked(getMemorialFeatures).mockResolvedValue({ code: 'PREMIUM', memorialsMax: 5 } as never)
+    expect(await getMemorialCreationStatus('guardian-premium')).toEqual({ count, limit: 5, allowed })
+  })
+
   it("allows creation when under the FREE limit", async () => {
     vi.mocked(countMemorialsByCreatorId).mockResolvedValue(1)
     vi.mocked(getMemorialFeatures).mockResolvedValue({ memorialsMax: 2 } as never)

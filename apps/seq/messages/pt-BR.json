@@ -77,7 +77,9 @@
       "updated": "Perfil atualizado com sucesso."
     },
     "qrCode": {
-      "notFound": "Perfil nao encontrado."
+      "notFound": "Perfil nao encontrado.",
+      "premiumRequired": "O plano Free deste cliente não inclui GenCode para memoriais.",
+      "limitReached": "Este memorial excede o limite de GenCodes do plano do cliente."
     },
     "sale": {
       "created": "Venda registrada e acesso enviado com sucesso.",
@@ -337,8 +339,12 @@
     "memorialized": {
       "acquiredQrCodesLabel": "GenCodes adquiridos\npor esse cliente",
       "availableProfilesLabel": "Memoriais\nainda disponíveis",
-      "createdProfilesLabel": "Memoriais\njá criados por esse cliente",
-      "title": "Memoriais"
+      "createdProfilesLabel": "Memoriais sob guarda\n(humanos e pets)",
+      "title": "Memoriais",
+      "description": "Perfis sob minha guarda, incluindo memoriais humanos e pets.",
+      "planUsage": "{plan}: {humans}/{humanLimit} humanos · {pets}/{petLimit} pets.",
+      "freeQrHint": "O Free não inclui a geração de GenCode para lápide.",
+      "premiumQrHint": "O Premium inclui GenCode para os memoriais humanos e pets dentro dos limites do plano."
     },
     "new": "Novo cliente",
     "placeholders": {
@@ -622,7 +628,13 @@
       "printedOn": "Impresso: {date}",
       "scans": "{count, plural, one {# leitura} other {# leituras}} — última: {date}",
       "statusTitle": "Status do QR Code",
-      "svgDownloaded": "SVG baixado."
+      "svgDownloaded": "SVG baixado.",
+      "premiumRequired": "Disponível no Premium",
+      "limitReached": "Limite de GenCodes atingido",
+      "loading": "Carregando QR Code…",
+      "generationFailed": "Não foi possível gerar o QR Code. Tente novamente.",
+      "retry": "Tentar novamente",
+      "copyFailed": "Não foi possível copiar o link."
     },
     "saveChanges": "Salvar alterações",
     "sections": {
@@ -642,7 +654,10 @@
       "empty": "Nenhum perfil memorializado encontrado.",
       "filterPlaceholder": "Filtrar por nome…",
       "name": "Nome",
-      "qrCode": "QR Code"
+      "qrCode": "QR Code",
+      "type": "Tipo",
+      "human": "Humano",
+      "pet": "Pet"
     },
     "toasts": {
       "updated": "Perfil atualizado com sucesso."

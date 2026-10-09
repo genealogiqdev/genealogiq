@@ -34,6 +34,8 @@ No LLM/model stage exists in this implementation.
 
 Owner/manager authorization is checked server-side on every mutation. Per-guardian memorial capacity replaced removed maxProfiles/bulk-sale binding (2498328, a0aa99b). Origin of individual edit-form choices is not recorded.
 
+**Memorial QR allowance:** The standard FREE plan permits one human memorial but includes no memorial QR export. PREMIUM's human memorial exports use `memorialsMax` (normally five), independently of the personal `qrCodeMax`. [qr-quota.ts](../src/lib/qr-quota.ts) resolves the viewing guardian's live plan and accepted human profiles, then uses the [shared policy](../../../packages/core/src/memorial-qr.ts) also used by SEQ. Oldest-first allocation has a stable ID tie-break; activated plaques consume no included slot and purchased QR units remain available. Unknown/non-accepted profiles are never unlocked by spare capacity. The locked memorial dialog explains that Premium increases memorial QR access; the personal QR wording remains separate.
+
 **Novo → Selecionar da árvore** reuses an `APP_GHOST` person as an `APP_MEMO` without another AppUser, guardian or relation. Confirmation explicitly explains that the profile becomes a public memorial. Only `role` changes: names, dates (including unknown/null dates), photos, biography and other content keep their existing IDs and values. Real `APP_USER` accounts cannot be converted through this shortcut.
 
 Tree membership is not permission to assume guardianship. The selector and mutation require the actor's `ACCEPTED` guardianship of the selected profile, and membership in the actor's accepted human graph or a pet attached to that graph. Pending relations/guardianships and a pet's co-owners cannot expand this scope. The action rechecks scope inside its transaction; it does not trust the earlier page or a submitted guardian ID.
@@ -133,6 +135,15 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 
 ## Gaps and fixes
 
+### MEMORIALS-GUARDIANS-G3: Personal QR allowance blocked Premium memorials
+
+- **Status:** fixed
+- **Found:** 2026-10-09, SEQ memorial-plan/download follow-up.
+- **Evidence:** The old rank combined the guardian's personal profile and memorials while both standard plans had `qrCodeMax=1`. Premium's `memorialsMax=5` did not grant its five human QR exports; a sufficiently old Free memorial could take the personal slot.
+- **Impact:** QR access disagreed with the stated Free/Premium memorial contract.
+- **Root cause:** One personal QR count was reused as the memorial allowance.
+- **Resolution:** This change based on `08b2b1c` separates the personal allowance from accepted human memorial ranks and shares the policy with SEQ. [qr-quota.test.ts](../src/lib/qr-quota.test.ts), [memorial-quota.test.ts](../src/lib/memorial-quota.test.ts) and the shared core regression pin Free 1, Premium 5, sixth-slot rejection, non-guardian rejection and purchased rights. [Audit and remaining product prerequisites](../../../docs/audits/SEQ-MEMORIALS-2026-10-09.md).
+
 ### MEMORIALS-GUARDIANS-G2: Tree profiles could not be reused from the memorial list
 
 - **Status:** fixed
@@ -158,8 +169,11 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-10-09 | `08b2b1c` + tree profile reuse | Source, unit/DOM and static review | Existing-ID promotion, accepted scope, transactional plan/count/extras, separate pet quotas and refreshed guarded lists; 38 new regression tests passed. [Audit](../../../docs/audits/TREE-MEMORIALS-2026-10-09.md) records build and all check results. | Runtime: PostgreSQL/Docker unavailable. UI/persistence: not exercised; exact remaining scenarios are in the audit. |
+| 2026-10-09 | `08b2b1c` + shared memorial QR follow-up | Source and automated checks | Free 1/Premium 5 creation boundaries, independent Premium memorial QR capacity, personal QR preservation, accepted-only scope and purchased rights are covered in the 77 focused passes. APP types/build/lint passed. | Runtime/UI n/a: local database and Chrome authentication unavailable. [SEQ memorial audit](../../../docs/audits/SEQ-MEMORIALS-2026-10-09.md) separates full-suite failures, decoding and cleanup. |
 
 ## Related
+
+The [SEQ memorial-plan audit](../../../docs/audits/SEQ-MEMORIALS-2026-10-09.md) records the shared QR rule, focused automated results, real export decoding and the blocked local database/Chrome session. It does not claim new browser evidence for this APP route.
 
 The [2026-10-09 tree memorial audit](../../../docs/audits/TREE-MEMORIALS-2026-10-09.md) records source, actual checks, runtime/UI prerequisites and process cleanup separately.
 

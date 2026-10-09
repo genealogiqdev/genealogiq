@@ -40,6 +40,7 @@ interface Props {
   context: LimitReachedContext
   limit: number
   tier: PlanTier
+  memorialQr?: boolean
 }
 
 const CONTEXT_ICON: Record<LimitReachedContext, LucideIcon> = {
@@ -90,7 +91,7 @@ const CONTEXT_EXTRA_RESOURCE: Partial<Record<LimitReachedContext, ExtraUnitResou
   memorials: "MEMORIAL",
 }
 
-export function LimitReachedDialog({ open, onOpenChange, context, limit, tier }: Props) {
+export function LimitReachedDialog({ open, onOpenChange, context, limit, tier, memorialQr = false }: Props) {
   const t = useTranslations("LimitReached")
   const router = useRouter()
   const pathname = usePathname()
@@ -117,11 +118,9 @@ export function LimitReachedDialog({ open, onOpenChange, context, limit, tier }:
   // "Your plan allows up to 0 pets" reads as broken, so swap in dedicated copy.
   const isPetsLocked = context === "pets" && tier === "FREE" && limit === 0
 
-  // qrCodeMax is identical across FREE/PREMIUM (both 1) — upgrading never
-  // raises the count, it's purchasable as an extra at either tier (just
-  // cheaper once PREMIUM). The generic "upgrade for a higher limit" suffix
-  // is factually wrong here, so override it.
-  const suffixKey = context === "qrCode" && variant === "upgradeOrExtra" ? "qrUpgradeOrExtra" : variant
+  // Only personal QR capacity is unchanged by an upgrade. Premium includes
+  // the human memorial exports, so their upgrade explanation stays visible.
+  const suffixKey = context === "qrCode" && !memorialQr && variant === "upgradeOrExtra" ? "qrUpgradeOrExtra" : variant
 
   const handleBuyExtra = () => {
     if (!extraResource) return

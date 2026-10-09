@@ -1,11 +1,9 @@
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { getCustomer } from '@/queries/customers'
 import { getCustomerCategories } from '@/queries/customer-categories'
 import { CustomerForm } from '@/components/customers/customer-form'
 import { MemorializedDataTable } from '@/components/memorialized/memorialized-data-table'
-import { Button } from '@genealogiq/ui/button'
 import { StatCard } from '@/components/ui/stat-card'
 import { Separator } from '@genealogiq/ui/separator'
 import type { AppUserFormValues } from '@/schemas/app-user.schema'
@@ -56,11 +54,9 @@ export default async function EditCustomerPage({ params }: { params: Promise<{ i
   }
 
   const acquiredQRCodes   = customer._count.genCodesBought
-  const createdProfiles   = customer._count.guardiansOf
-  // Codes bought but not yet turned into a memorial. The customer redeems them
-  // themselves at /qr/<genCode>; there is no longer a path for us to do it for
-  // them, so this is a follow-up prompt, not a to-do list.
-  const availableProfiles = Math.max(0, acquiredQRCodes - createdProfiles)
+  const { humans, pets, planName, planCode } = customer.memorialQuota
+  const createdProfiles = humans.count + pets.count
+  const availableProfiles = humans.available + pets.available
 
   const memorializedProfiles = customer.guardiansOf.map(({ appUser }) => appUser)
 
@@ -81,10 +77,18 @@ export default async function EditCustomerPage({ params }: { params: Promise<{ i
           <h2 className="scroll-m-20 text-4xl font-semibold tracking-tight text-balance">{t('memorialized.title')}</h2>
         </div>
 
+        <p className="text-sm text-muted-foreground">{t('memorialized.description')}</p>
+
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:max-w-3xl">
           <StatCard label={t('memorialized.acquiredQrCodesLabel')} value={acquiredQRCodes} valueClassName="text-amber-600" />
           <StatCard label={t('memorialized.availableProfilesLabel')} value={availableProfiles} />
           <StatCard label={t('memorialized.createdProfilesLabel')} value={createdProfiles} valueClassName="text-green-600" />
+        </div>
+
+        <div className="space-y-1 text-sm text-muted-foreground">
+          <p>{t('memorialized.planUsage', { plan: planName, humans: humans.count, humanLimit: humans.limit, pets: pets.count, petLimit: pets.limit })}</p>
+          {planCode === 'FREE' && <p>{t('memorialized.freeQrHint')}</p>}
+          {planCode === 'PREMIUM' && <p>{t('memorialized.premiumQrHint')}</p>}
         </div>
 
         {/* my-2 (8px) on top of the section's gap-4 (16px) = 24px each side, matching a gap-6 separator */}

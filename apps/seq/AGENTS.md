@@ -17,6 +17,8 @@
 
 Resolve tenant scope with verifyTenantSession; never trust a browser tenantId. SEQ customer records use AppUser.tenantId. Administrative staff actions use verifyAdmin; operational inventory uses its documented gates. Current purchasing checks tenant membership only, which is an open policy gap. Supplier module flags still gate real supplier screens; retired digital-license screens must not return.
 
+Customer memorials are accepted APP_MEMO/APP_PET guardianships. Read human/pet capacity from the customer's live consumer plan; GenCode inventory is independent. The QR dialog rechecks customer tenant, guardianship and plan on opening and each export, including from the memorial detail screen.
+
 The app uses Next.js App Router, server-side queries, server actions and Zod schema factories. Shared database/auth/services/email/core/UI/i18n contracts are indexed in [root AGENTS.md](../../AGENTS.md). Default local origin is http://localhost:3002; use the launcher's configured canonical host/port for auth redirects and cookies. See [LOCAL-DEVELOPMENT](../../docs/LOCAL-DEVELOPMENT.md) for isolated sessions.
 
 ## Feature index

@@ -1,14 +1,23 @@
 import { notFound } from 'next/navigation'
 import { getDeceased } from '@/queries/deceased'
+import { getCustomer } from '@/queries/customers'
 import { MemorializedForm } from '@/components/memorialized/memorialized-form'
-import { QrCodePresets } from '@/components/memorialized/qr-code-presets'
+import { QrCodeDownloadDialog } from '@/components/memorialized/qr-code-download-dialog'
 import { QrStatusCard } from '@/components/memorialized/qr-status-card'
 import type { DeceasedFormValues } from '@/schemas/deceased.schema'
 
-export default async function MemorializedDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function MemorializedDetailPage({ params, searchParams }: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ customerId?: string }>
+}) {
   const { id } = await params
   const deceased = await getDeceased(id)
   if (!deceased) notFound()
+  const { customerId: requestedCustomerId } = await searchParams
+  if (requestedCustomerId && !deceased.guardianCustomerIds.includes(requestedCustomerId)) notFound()
+  const customerId = requestedCustomerId ?? deceased.guardianCustomerIds[0]
+  const customer = customerId ? await getCustomer(customerId) : null
+  const qrProfile = customer?.guardiansOf.find(({ appUser }) => appUser.id === id)?.appUser
 
   const defaultValues: DeceasedFormValues = {
     firstName:          deceased.firstName,
@@ -46,9 +55,6 @@ export default async function MemorializedDetailPage({ params }: { params: Promi
     notes:              deceased.notes              ?? '',
   }
 
-  const profileUrl = deceased.qrCode?.url ?? `https://genealogiq.app/profile/${id}`
-  const filename = `qr-${deceased.firstName}-${deceased.lastName}`.toLowerCase().replace(/\s+/g, '-')
-
   return (
     <div className="flex flex-col gap-6">
       <h1 className="scroll-m-20 text-4xl font-semibold tracking-tight text-balance">
@@ -64,7 +70,12 @@ export default async function MemorializedDetailPage({ params }: { params: Promi
             {deceased.qrCode && (
               <QrStatusCard appUserId={id} qrCode={deceased.qrCode} />
             )}
-            <QrCodePresets profileUrl={profileUrl} filename={filename} />
+            {qrProfile && <QrCodeDownloadDialog
+              name={`${deceased.firstName} ${deceased.lastName}`.trim()}
+              customerId={qrProfile.customerId}
+              profileId={id}
+              access={qrProfile.qrAccess}
+            />}
           </div>
         </aside>
       </div>

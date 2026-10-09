@@ -31,6 +31,11 @@ export async function getDeceased(id: string) {
       otherSocial: true,
       website:     true,
       notes:       true,
+      guardedBy: {
+        where: { status: 'ACCEPTED', guardian: { tenantId: customerId, role: 'APP_USER' } },
+        select: { guardianId: true },
+        orderBy: [{ createdAt: 'asc' }, { guardianId: 'asc' }],
+      },
       geolocation: {
         select: {
           lat:      true,
@@ -61,10 +66,11 @@ export async function getDeceased(id: string) {
 
   if (!record) return null
 
-  const { deathPlace, geolocation, qrCode, ...rest } = record
+  const { deathPlace, geolocation, qrCode, guardedBy, ...rest } = record
   return {
     ...rest,
     qrCode,
+    guardianCustomerIds: guardedBy.map(({ guardianId }) => guardianId),
     deathCity:          deathPlace         ?? '',
     burialDate:         geolocation?.date?.toISOString().slice(0, 10) ?? '',
     burialLatitude:     geolocation?.lat   ?? null,

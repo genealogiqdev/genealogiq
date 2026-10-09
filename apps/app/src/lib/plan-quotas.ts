@@ -32,7 +32,8 @@ export interface PlanQuotas {
   // memorialsMax, kept as a separate counter since pets are a distinct
   // resource (don't share the memorial pool).
   petsMax: number
-  // How many QR codes (own profile + guarded memorials, combined) are free.
+  // Personal QR allowance. Premium memorial/pet QR exports use their own
+  // memorialsMax/petsMax slots; a FREE memorial has no included QR export.
   qrCodeMax: number
 }
 

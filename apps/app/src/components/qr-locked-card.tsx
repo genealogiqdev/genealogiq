@@ -9,13 +9,14 @@ import type { PlanTier } from "@/lib/plan-quotas"
 interface Props {
   limit: number
   tier: PlanTier
+  memorialQr?: boolean
 }
 
 // Replaces the old bespoke "Unlock your QR Code" card — the dialog now
 // carries the explanation + upgrade CTA (opens automatically, since finding
 // out the QR is locked IS the reason to visit this page); this stays behind
 // it as a quiet placeholder plus a way to reopen the dialog after dismissing.
-export function QrLockedCard({ limit, tier }: Props) {
+export function QrLockedCard({ limit, tier, memorialQr }: Props) {
   const t = useTranslations("Qr")
   const [open, setOpen] = useState(true)
 
@@ -38,7 +39,7 @@ export function QrLockedCard({ limit, tier }: Props) {
         </button>
       </div>
 
-      <LimitReachedDialog open={open} onOpenChange={setOpen} context="qrCode" limit={limit} tier={tier} />
+      <LimitReachedDialog open={open} onOpenChange={setOpen} context="qrCode" limit={limit} tier={tier} memorialQr={memorialQr} />
     </>
   )
 }

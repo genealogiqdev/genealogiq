@@ -12,6 +12,12 @@ beforeEach(() => {
 })
 
 describe("getPetCreationStatus", () => {
+  it.each([[4, true], [5, false]] as const)("allows exactly five Premium pets (count=%s)", async (count, allowed) => {
+    vi.mocked(countPetsByCreatorId).mockResolvedValue(count)
+    vi.mocked(getMemorialFeatures).mockResolvedValue({ code: 'PREMIUM', petsMax: 5 } as never)
+    expect(await getPetCreationStatus('guardian-premium')).toEqual({ count, limit: 5, allowed })
+  })
+
   it("allows creation when under the FREE limit", async () => {
     vi.mocked(countPetsByCreatorId).mockResolvedValue(1)
     vi.mocked(getMemorialFeatures).mockResolvedValue({ petsMax: 2 } as never)
