@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Full verified commit SHA to deploy (defaults to the workflow commit)
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -14,6 +19,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  RELEASE_SHA: ${{ inputs.source_sha || github.sha }}
   AZURE_CLIENT_ID: 3a3cc663-19dc-47f6-908e-4ce9b3a57195
   AZURE_TENANT_ID: 14b55441-6057-45a1-b710-23b0616796ae
   AZURE_SUBSCRIPTION_ID: c710b26f-e3c7-4a45-9477-eaaf3bdcc329
@@ -47,6 +53,14 @@ jobs:
             app: ""
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+
+      - name: Verify immutable release source
+        shell: bash
+        run: |
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
 
       - uses: azure/login@v2
         with:
@@ -70,7 +84,7 @@ jobs:
         run: |
           args=(
             --target "${{ matrix.target }}"
-            --tag "$REGISTRY_SERVER/${{ matrix.repository }}:$GITHUB_SHA"
+            --tag "$REGISTRY_SERVER/${{ matrix.repository }}:$RELEASE_SHA"
           )
           if [ -n "${{ matrix.app }}" ]; then
             case "${{ matrix.app }}" in
@@ -91,7 +105,7 @@ jobs:
             )
           fi
           docker build "${args[@]}" .
-          docker push "$REGISTRY_SERVER/${{ matrix.repository }}:$GITHUB_SHA"
+          docker push "$REGISTRY_SERVER/${{ matrix.repository }}:$RELEASE_SHA"
 
   deploy:
     name: migrate and deploy
@@ -112,7 +126,7 @@ jobs:
           az containerapp job update \
             --name job-genealogiq-migrate-prod \
             --resource-group "$RESOURCE_GROUP" \
-            --image "$REGISTRY_SERVER/genealogiq-migration:$GITHUB_SHA" \
+            --image "$REGISTRY_SERVER/genealogiq-migration:$RELEASE_SHA" \
             --output none
           execution="$(az containerapp job start \
             --name job-genealogiq-migrate-prod \
@@ -137,19 +151,19 @@ jobs:
         run: |
           az containerapp update --name ca-genealogiq-app-prod \
             --resource-group "$RESOURCE_GROUP" \
-            --image "$REGISTRY_SERVER/genealogiq-app:$GITHUB_SHA" --output none
+            --image "$REGISTRY_SERVER/genealogiq-app:$RELEASE_SHA" --output none
           az containerapp update --name ca-genealogiq-bms-prod \
             --resource-group "$RESOURCE_GROUP" \
-            --image "$REGISTRY_SERVER/genealogiq-bms:$GITHUB_SHA" --output none
+            --image "$REGISTRY_SERVER/genealogiq-bms:$RELEASE_SHA" --output none
           az containerapp update --name ca-genealogiq-seq-prod \
             --resource-group "$RESOURCE_GROUP" \
-            --image "$REGISTRY_SERVER/genealogiq-seq:$GITHUB_SHA" --output none
+            --image "$REGISTRY_SERVER/genealogiq-seq:$RELEASE_SHA" --output none
           az containerapp job update --name job-genealogiq-daily-prod \
             --resource-group "$RESOURCE_GROUP" \
-            --image "$REGISTRY_SERVER/genealogiq-scheduler:$GITHUB_SHA" --output none
+            --image "$REGISTRY_SERVER/genealogiq-scheduler:$RELEASE_SHA" --output none
           az containerapp job update --name job-gen-media-migrate-prod \
             --resource-group "$RESOURCE_GROUP" \
-            --image "$REGISTRY_SERVER/genealogiq-migration:$GITHUB_SHA" --output none
+            --image "$REGISTRY_SERVER/genealogiq-migration:$RELEASE_SHA" --output none
 
       - name: Verify revisions
         run: |

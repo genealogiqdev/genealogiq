@@ -12,13 +12,16 @@ and resends. The existing staff action propagates this failure to the error page
 graceful provider-failure UI is outside this sender correction.
 
 Work stayed on the existing `main` branch. Unrelated working changes were not
-included. The existing unpublished `77d4bc0` SEQ QR fix is already part of this
-branch's source history; the standard deployment builds the committed branch.
+included in the sender commit. The already committed `77d4bc0` SEQ QR fix and
+`ac34bc1` BMS consumer-directory change are ancestors of sender commit
+`4d1af78731b511be055cd2a8391f9b5310929758` and are included in its release.
 No schema changes or credential rotations are required by the sender change.
 
 ## Tests
 
 - Prisma generation and all workspace typechecks passed.
+- Lint passed with existing warnings; migration shape, schema parity, locale
+  parity/references, documentation checks and Bicep compilation passed.
 - Full Vitest: 114 files / 999 tests passed; four opt-in integration files /
   24 tests skipped. This run includes unrelated working-tree changes and is
   recorded as workspace evidence, not as an isolated production-source run.
@@ -49,6 +52,15 @@ The enabled subscription was verified as
 Deployment and post-deployment verification evidence will be appended after
 the immutable build is available. Production is not considered verified by
 the local provider acceptance above.
+
+The initial push raced with another task's `e80c449` commit. Its automatic
+deployment run `37935982982` was canceled during builds, before any deployment
+job ran. A dispatch using release tag `email-sender-20261009-4d1af78` failed
+Azure login because the existing federated identity only trusts `main`.
+No identity permissions were changed. The deployment workflow now accepts an
+optional exact `source_sha`, checked out and validated before building; manual
+dispatch stays on `main` and all image tags use the same verified SHA. This
+allows release of `4d1af78` without including the later concurrent APP change.
 
 ## Recovery and limits
 

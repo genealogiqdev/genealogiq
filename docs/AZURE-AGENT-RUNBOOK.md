@@ -126,6 +126,18 @@ The preferred path is the GitHub `Deploy Azure` workflow on `main`. It:
 
 For an authorized local deployment:
 
+When another task may advance `main`, the `Deploy Azure` workflow accepts an
+optional `source_sha` containing the full verified 40-character commit SHA.
+Dispatch it from `main` so the existing Azure OIDC subject stays valid:
+`gh workflow run deploy-azure.yml --ref main -f source_sha=<verified-full-sha>`.
+The workflow checks out and verifies that exact commit, then uses the same SHA
+for every image build, push, migration and Azure CLI update. Omit the input for
+normal push-triggered releases. A tag-triggered dispatch is not authorized by
+the current main-only federated identity; do not broaden that identity merely
+to pin a release. Run the normal checks and image-change what-if first.
+
+The local Docker/Azure CLI path remains:
+
 ```powershell
 ./scripts/azure/preflight.ps1
 ./scripts/azure/build-images.ps1 -RegistryName acrgenohqluyie
