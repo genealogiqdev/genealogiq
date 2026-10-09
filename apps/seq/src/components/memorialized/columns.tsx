@@ -1,9 +1,9 @@
 'use client'
 
-import Link from 'next/link'
 import type { ColumnDef } from '@tanstack/react-table'
 import { RowActions } from '@genealogiq/ui/row-actions'
 import { DataTableColumnHeader } from '@genealogiq/ui/data-table-column-header'
+import { QrCodeDownloadDialog } from './qr-code-download-dialog'
 
 // Loose translator type so getColumns can stay a plain function (not a hook).
 // The caller (memorialized-data-table) passes useTranslations('Memorialized').
@@ -15,6 +15,7 @@ export type MemorializedRow = {
   lastName:  string
   birthDate: Date | null
   deathDate: Date | null
+  profileUrl: string
 }
 
 function formatDate(d: Date | null | undefined, locale: string): string {
@@ -59,9 +60,10 @@ export function getColumns(t: Translator, locale: string): ColumnDef<Memorialize
       enableSorting: false,
       enableHiding: false,
       cell: ({ row }) => (
-        <Link href={`/memorialized/${row.original.id}`} className="text-sm font-medium text-primary hover:underline">
-          {t('actions.download')}
-        </Link>
+        <QrCodeDownloadDialog
+          name={`${row.original.firstName} ${row.original.lastName}`.trim()}
+          profileUrl={row.original.profileUrl}
+        />
       ),
     },
     {

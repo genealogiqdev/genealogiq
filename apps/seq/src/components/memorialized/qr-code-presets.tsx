@@ -83,7 +83,7 @@ function QrCard({ preset, url, filename, t }: { preset: Preset; url: string; fil
         <Button onClick={handlePng} variant="outline" size="sm" className="flex-1 gap-1.5">
           <Download className="h-3.5 w-3.5" />PNG
         </Button>
-        <Button onClick={handleSvg} variant="outline" size="sm" className="flex-1 gap-1.5">
+        <Button onClick={handleSvg} disabled={!svg} variant="outline" size="sm" className="flex-1 gap-1.5">
           <Download className="h-3.5 w-3.5" />SVG
         </Button>
       </div>

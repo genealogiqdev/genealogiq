@@ -34,7 +34,7 @@ export async function getCustomers() {
 export async function getCustomer(id: string) {
   const { customerId } = await verifyTenantSession()
 
-  return prisma.appUser.findUnique({
+  const customer = await prisma.appUser.findUnique({
     where:  { id, tenantId: customerId },
     select: {
       id:              true,
@@ -66,10 +66,11 @@ export async function getCustomer(id: string) {
           // the platform channel carry the buyer link — a manual write-off
           // records a free-text name and cannot be attributed to a row here.
           genCodesBought: true,
-          guardiansOf:         true,
+          guardiansOf: { where: { status: 'ACCEPTED' } },
         },
       },
       guardiansOf: {
+        where: { status: 'ACCEPTED' },
         select: {
           appUser: {
             select: {
@@ -78,10 +79,26 @@ export async function getCustomer(id: string) {
               lastName:  true,
               birthDate: true,
               deathDate: true,
+              qrCode:    { select: { url: true } },
             },
           },
         },
       },
     },
   })
+
+  if (!customer) return null
+
+  const appUrl = (process.env.APP_URL ?? 'https://genealogiq.app').replace(/\/+$/, '')
+  return {
+    ...customer,
+    // APP-created profiles can be tenantless. QR downloads use the accepted
+    // guardianship of this scoped customer, not the memorial edit permission.
+    guardiansOf: customer.guardiansOf.map(({ appUser: { qrCode, ...profile } }) => ({
+      appUser: {
+        ...profile,
+        profileUrl: qrCode?.url ?? `${appUrl}/profile/${profile.id}`,
+      },
+    })),
+  }
 }
