@@ -22,6 +22,10 @@ No schema changes or credential rotations are required by the sender change.
 - Prisma generation and all workspace typechecks passed.
 - Lint passed with existing warnings; migration shape, schema parity, locale
   parity/references, documentation checks and Bicep compilation passed.
+- The deployment YAML parsed successfully. Contract checks verified the optional
+  SHA input, exact checkout, full-SHA validation, matching build/deployment image
+  tags and deploy-after-build dependency. The successful release also exercised
+  the pinned-source path on GitHub's Linux runners.
 - Full Vitest: 114 files / 999 tests passed; four opt-in integration files /
   24 tests skipped. This run includes unrelated working-tree changes and is
   recorded as workspace evidence, not as an isolated production-source run.
@@ -49,9 +53,10 @@ Before deployment, APP/BMS/SEQ used image tag
 `8422e6cacd3af9d7aeb151afdd3259e6ad6e887d`, revision `--0000011`.
 The enabled subscription was verified as
 `c710b26f-e3c7-4a45-9477-eaaf3bdcc329`.
-Deployment and post-deployment verification evidence will be appended after
-the immutable build is available. Production is not considered verified by
-the local provider acceptance above.
+The image-only what-if was reviewed before publication: all three Container App
+images change to the verified SHA; other differences were Azure-computed
+read-only fields. No DNS, certificate, identity or secret configuration change
+was applied.
 
 The initial push raced with another task's `e80c449` commit. Its automatic
 deployment run `37935982982` was canceled during builds, before any deployment
@@ -61,6 +66,39 @@ No identity permissions were changed. The deployment workflow now accepts an
 optional exact `source_sha`, checked out and validated before building; manual
 dispatch stays on `main` and all image tags use the same verified SHA. This
 allows release of `4d1af78` without including the later concurrent APP change.
+
+### Completed release
+
+- Workflow fix: `01201a0`. Successful pinned-source run:
+  [37936272340](https://github.com/genealogiqdev/genealogiq/actions/runs/37936272340).
+- APP/BMS/SEQ images use immutable tag
+  `4d1af78731b511be055cd2a8391f9b5310929758`. All builds, migration and Azure CLI
+  deployment/verification steps succeeded.
+- Migration execution `job-genealogiq-migrate-prod-vd9lng8` succeeded. The
+  sender change itself introduced no migrations.
+- All three apps report `Succeeded`, latest-ready revision `--0000012`, and
+  100% traffic to the latest revision. BMS additionally reported active,
+  Healthy and Running in the revision query.
+- Both `/api/health/live` and `/api/health/ready` returned HTTP 200 on
+  `genealogiq.com.br`, `bms.genealogiq.com.br` and `sequoia.genealogiq.com.br`.
+- A read-only scan inside the serving BMS container found three compiled JS
+  files containing `no-reply@genealogiq.com.br`, zero containing the former
+  sender, and a populated Resend process credential (value never printed).
+- A real test from that BMS container, using its process credential and the
+  new sender, returned Resend HTTP 200, message ID
+  `01a120da-c6a2-7201-8256-83085ecaabd5`. Recipient was the user-authorized inbox.
+  This proves production provider acceptance, not inbox delivery or a new
+  authenticated staff-resend UI run.
+- Production UI: not re-exercised. The connected browser inventory failed
+  with an unavailable Codex auth token; no authenticated browser was used.
+
+### Process cleanup
+
+The owned Azure shell was exited and the CLI reported successful disconnect.
+The local launcher never created an app process because its DB prerequisite
+failed. Existing Docker processes were left intact; no shared services or
+volumes were stopped/deleted. The failed long-command probe helper was removed;
+ignored what-if receipts remain in `.azure` without credential values.
 
 ## Recovery and limits
 

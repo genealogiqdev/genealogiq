@@ -3,7 +3,7 @@
 > **Code:** [packages/email/src/index.ts](../packages/email/src/index.ts) · [apps/app/src/lib/email.ts](../apps/app/src/lib/email.ts) · [apps/bms/src/lib/email.ts](../apps/bms/src/lib/email.ts) · [apps/seq/src/lib/email.ts](../apps/seq/src/lib/email.ts)
 > **Entry points:** `Account/invitation/feedback/lifecycle actions calling email adapters`
 > **Depends on:** [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) · [DATABASE](DATABASE.md) · [CONFIGURATION](CONFIGURATION.md) · [TESTING](TESTING.md) · [OBSERVABILITY](OBSERVABILITY.md) · [RUNBOOKS](RUNBOOKS.md)
-> **Last verified against code:** 2026-10-07 at `2632307` for the immediate partner onboarding change. Source, tests, local runtime/UI and deployment evidence are separated in the onboarding audit linked below; earlier verification history is preserved.
+> **Last verified against code:** 2026-10-09 at `4d1af78` for the verified Genealogiq sender. Source, tests, local runtime/UI limits and production evidence are separated in the sender audit linked below; earlier verification history is preserved.
 
 This shared module supplies transactional email delivery. One lazy Resend client sends transactional templates from no-reply@genealogiq.com.br. App adapters supply their own base URL and product context. Feedback values are HTML-escaped; token links contain expiring account tokens and must not be copied into documentation.
 
@@ -186,6 +186,7 @@ message still requires the authorized recipient and scenario. The
 | 2026-10-07 | `2632307` | Source, deterministic tests, local PostgreSQL and browser | Credential template and resolved provider-error handling; EMAIL-DELIVERY-G1 fixed; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
 | 2026-10-07 | `b8afb94` + direct consumer email | Source, tests, loopback capture and browser | New credential email enabled normal APP login. Existing customer email omitted a new password. Simulated provider rejection left access active; retry delivered a hashed 72-hour recovery link without changing expiry. | [Consumer audit](audits/CONSUMER-ACCESS-2026-10-07.md); real inbox placement remains unverified. |
 | 2026-10-09 | `77d4bc0` + verified sender change | Source, tests and local provider | Shared sender changed to `no-reply@genealogiq.com.br`; 999 workspace tests passed, including invitation sender and rejection expectations; direct API and actual local shared transport accepted | Inbox receipt unconfirmed; local BMS UI n/a because PostgreSQL/Docker unavailable; [sender audit](audits/EMAIL-SENDER-2026-10-09.md) records deployment evidence separately |
+| 2026-10-09 | Released `4d1af78`; workflow pinning `01201a0` | Azure CLI, committed-source builds and BMS container probe | APP/BMS/SEQ revision `0000012`, 100% traffic, six HTTPS live/ready checks passed. BMS compiled code has the verified sender and no old sender; Resend test from production returned HTTP 200. Migration execution succeeded. | [Sender audit](audits/EMAIL-SENDER-2026-10-09.md): acceptance is not inbox receipt; authenticated resend UI not re-exercised, local product blocked by prerequisites. |
 
 ## Related
 
