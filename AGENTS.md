@@ -21,7 +21,7 @@ The pnpm/Turbo monorepo has three Next.js apps and shared workspace packages. Th
 | App | Agent guide | Product responsibility | Local origin |
 | --- | --- | --- | --- |
 | APP | [apps/app/AGENTS.md](apps/app/AGENTS.md) | Consumer accounts, public profiles, memorials, genealogy, media and consumer billing | http://localhost:3000 |
-| BMS | [apps/bms/AGENTS.md](apps/bms/AGENTS.md) | Back-office company/staff, partner catalog, contracts, pricing, package sales, direct consumer access and reporting | http://localhost:3001 |
+| BMS | [apps/bms/AGENTS.md](apps/bms/AGENTS.md) | Back-office company/staff, partner catalog, contracts, pricing, package sales, APP customer directory, direct consumer access and reporting | http://localhost:3001 |
 | SEQ | [apps/seq/AGENTS.md](apps/seq/AGENTS.md) | Tenant staff, customers/suppliers, GenCode inventory, purchasing and operations | http://localhost:3002 |
 
 | Shared package | Responsibility |
@@ -49,6 +49,7 @@ The app indexes contain 18 APP, ten BMS and seven SEQ feature documents; the fiv
 
 - Keep one schema at packages/db/prisma/schema.prisma and migrations at packages/db/prisma/migrations/; consume @genealogiq/db rather than duplicate a generated client per app.
 - APP identities are AppUser; BMS/SEQ staff are User. BMS partners are Tenant; SEQ consumers are AppUser. The DAL returns verified SEQ tenant scope as session.customerId, which queries map to tenantId columns.
+- The BMS APP customer directory lists all APP_USER accounts across partners, including inactive accounts and legacy rows without email. Reads require live platform administrator scope; this global visibility does not change SEQ tenant boundaries or eligibility for independent Premium gifts.
 - UI visibility is not authorization. Recheck scope/permissions on every mutation. The current DAL reads session roles; immediate role revocation is an open gap, not an established guarantee.
 - New BMS partner registration immediately creates active OWNER credentials and optionally grants 0–10,000 initial GenCodes without a purchase. Keep the tenant, owner and audited 12-month allowance atomic; email is sent after commit and delivery failure must not invite another registration. [PARTNERS](apps/bms/docs/PARTNERS.md) owns this contract.
 - BMS direct final customers are tenantless APP_USER identities with an audited, complimentary 12-calendar-month Premium AppSale. Account, entitlement and audit commit together; preserve existing identity/paid-through days and prevent duplicate gifts. BMS tenant staff cannot grant this access; recheck the operator's live platform scope. [CONSUMERS](apps/bms/docs/CONSUMERS.md) owns this contract.

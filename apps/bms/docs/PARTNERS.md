@@ -7,6 +7,8 @@
 
 The BMS application supplies partner registry and invitations. Customer forms describe a partner tenant and its contact/address fields; creation/invitation establishes SEQ staff access. Mutations check privileged BMS roles; taxId/email uniqueness is enforced by the Prisma schema and translated to form errors.
 
+The `/customers` header includes **Clientes finais** for administrators, linking to the [global APP customer directory](CONSUMERS.md) at `/consumers`. That directory includes independent accounts and the customers of every SEQ partner. The partner table continues to represent Tenant records.
+
 ## How it works
 
 | # | Step | Kind | Code / symbol | Produces |
@@ -149,6 +151,7 @@ Current onboarding acceptance: create a partner with three initial GenCodes and 
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-10-07 | `218d5aa` + Gen2026 change | Action tests, real local state and SEQ browser | Coupon settlement now provisions first access; inactive OWNER rejected before, active OWNER signed in after; invitation-failure follow-up remained visible without repeating the sale. | [Audit](../../../docs/audits/GEN2026-2026-10-07.md); real mail delivery/password setup still requires its fixture. |
 | 2026-10-07 | `2632307` | Source, deterministic tests, local PostgreSQL and browser | Immediate active credentials, optional audited initial allowance, resend recovery and deletion guard; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](../../../docs/audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
+| 2026-10-09 | Global APP directory change | Source review | Added the administrator shortcut from `/customers` to `/consumers`, using the translated APP directory title and a wrapping header. | Automated tests and runtime/browser checks omitted at the user's request; no partner mutation changed or process started. |
 
 ## Related
 

@@ -15,7 +15,7 @@
 
 ## App architecture and invariants
 
-Use verifyAdmin for administrative mutations; staff roles are session claims and do not guarantee immediate revocation. Partner customers are Tenant records; direct final customers are independent AppUser records with no tenant. Direct consumer gifts additionally require verifyConsumerAdmin, which reloads platform scope, activation and privilege. BMS sign-in rejects tenant staff except the platform SUPER_ADMIN role. Catalog edits and Stripe synchronization are separate operations. Reporting must distinguish measured empty counts from failed queries and preserve currency meaning. Inspect every daily job step result even when outer ok is true.
+Use verifyAdmin for administrative mutations; staff roles are session claims and do not guarantee immediate revocation. Partner customers are Tenant records. The APP customer directory covers every APP_USER across independent and partner accounts, including inactive accounts; direct registration and Premium gifts remain independent AppUser records with no tenant. Directory reads and direct consumer gifts require verifyConsumerAdmin, which reloads platform scope, activation and privilege. BMS sign-in rejects tenant staff except the platform SUPER_ADMIN role. Catalog edits and Stripe synchronization are separate operations. Reporting must distinguish measured empty counts from failed queries and preserve currency meaning. Inspect every daily job step result even when outer ok is true.
 
 The app uses Next.js App Router, server-side queries, server actions and Zod schema factories. Shared database/auth/services/email/core/UI/i18n contracts are indexed in [root AGENTS.md](../../AGENTS.md). Default local origin is http://localhost:3001; use the launcher's configured canonical host/port for auth redirects and cookies. See [LOCAL-DEVELOPMENT](../../docs/LOCAL-DEVELOPMENT.md) for isolated sessions.
 
@@ -25,7 +25,7 @@ The app uses Next.js App Router, server-side queries, server actions and Zod sch
 | --- | --- | --- | --- |
 | [ACCOUNTS-STAFF](docs/ACCOUNTS-STAFF.md) | Back-office accounts, staff and company | `src/actions/auth.ts` | `pnpm test` |
 | [PARTNERS](docs/PARTNERS.md) | Partner registry and invitations | `src/actions/customer.actions.ts` | `pnpm test` |
-| [CONSUMERS](docs/CONSUMERS.md) | Independent APP customers and complimentary Premium access | `src/actions/consumer.actions.ts` | `pnpm test` |
+| [CONSUMERS](docs/CONSUMERS.md) | All APP customers, direct registration and complimentary Premium access | `src/actions/consumer.actions.ts` | `pnpm test` |
 | [PARTNER-PLANS-CONTRACTS](docs/PARTNER-PLANS-CONTRACTS.md) | Partner plans and annual contracts | `src/actions/partner-plan.actions.ts` | `pnpm test` |
 | [GENCODE-PACKAGES](docs/GENCODE-PACKAGES.md) | Standalone GenCode package sales | `src/actions/gencode-package.actions.ts` | `pnpm test` |
 | [CONSUMER-PRICING](docs/CONSUMER-PRICING.md) | Consumer plans and extra-unit price book | `src/actions/subscription.actions.ts` | `pnpm test` |
