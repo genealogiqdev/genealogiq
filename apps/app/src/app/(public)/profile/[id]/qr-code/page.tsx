@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { getTranslations } from "next-intl/server"
 import { AuroraBackdrop } from "@/components/aurora-backdrop"
 import { BackButton } from "@/components/back-button"
@@ -20,6 +20,9 @@ export default async function QrCodePage({ params }: Props) {
 
   const profile = await getProfileById(id)
   if (!profile) notFound()
+
+  // Pet exports now live on the profile with a live Premium check per download.
+  if (profile.role === "APP_PET") redirect(`/profile/${profile.id}`)
 
   const isGuardian = profile.role === "APP_MEMO" && profile.guardedBy.some((g) => g.guardianId === session.user.id)
 

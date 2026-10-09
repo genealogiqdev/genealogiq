@@ -107,7 +107,8 @@
       "notAuthorized": "Você não tem permissão para gerenciar este perfil.",
       "notFound": "Perfil não encontrado.",
       "ownerRequired": "O pet precisa permanecer vinculado a pelo menos um tutor.",
-      "ownerNotInTree": "O dono selecionado já precisa fazer parte da sua árvore genealógica."
+      "ownerNotInTree": "O dono selecionado já precisa fazer parte da sua árvore genealógica.",
+      "premiumRequired": "É preciso ter Premium ativo para baixar o GenCode."
     },
     "places": {
       "imageLimit": "O limite de imagens é {max} para este plano.",
@@ -1541,6 +1542,9 @@
     },
     "client": {
       "copyLink": "Copiar link",
+      "downloadFailed": "Não foi possível baixar o GenCode. Tente novamente.",
+      "downloadFormat": "Baixar GenCode em {format}",
+      "downloadGenCode": "Baixar GenCode",
       "linkCopied": "Link do perfil copiado.",
       "pngDownloaded": "PNG baixado.",
       "svgDownloaded": "SVG baixado."
@@ -1803,9 +1807,6 @@
     "qrButton": "Gerar QR Code",
     "qrCopyLink": "Copiar link",
     "qrDescription": "Ao ser escaneado, abre esta coleção de geolocalizações.",
-    "qrDownload": "Baixar GenCode",
-    "qrDownloadFailed": "Não foi possível baixar o GenCode. Tente novamente.",
-    "qrDownloading": "Baixando…",
     "qrLinkCopied": "Link copiado",
     "qrPngDownloaded": "PNG baixado",
     "qrSvgDownloaded": "SVG baixado",

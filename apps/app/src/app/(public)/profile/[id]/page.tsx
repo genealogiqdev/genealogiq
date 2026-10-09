@@ -15,11 +15,13 @@ import { getBioByUserId } from "@/queries/bio"
 import { getAvatarColor } from "@/lib/avatar-color"
 import { canManageProfile } from "@/lib/profile"
 import { assertPublicMemorialAccess } from "@/lib/public-profile-access"
+import { getMemorialFeatures } from "@/lib/subscription"
 import { ProfileBanner, type ProfileData } from "@/components/profile-banner"
 import { BentoGrid, type SectionCard } from "@/components/bento-grid"
 import { AuroraBackdrop } from "@/components/aurora-backdrop"
 import { ProfileViewTracker } from "@/components/profile-view-tracker"
 import { QrScanTracker } from "@/components/qr-scan-tracker"
+import { GenCodeDownloadButtons } from "@/components/gen-code-download-buttons"
 import {
   TreePreview,
   BioPreview,
@@ -87,6 +89,7 @@ export default async function ProfileByIdPage({ params }: Props) {
     treeCount,
     documentsPreview,
     documentsCount,
+    viewerFeatures,
   ] = await Promise.all([
     getFavoriteCount(id),
     isOwn || !sessionUserId ? Promise.resolve(false) : isFavoritedByUser(sessionUserId, id),
@@ -107,11 +110,13 @@ export default async function ProfileByIdPage({ params }: Props) {
     // viewer's RSC payload, even just as a title in the bento-card preview.
     getDocumentsByUserId(id, { includePrivate: canManageThis, take: 3 }),
     getDocumentsCount(id, canManageThis),
+    isPet && sessionUserId ? getMemorialFeatures(sessionUserId) : Promise.resolve(null),
   ])
 
   const hasBio = !!bio && !!(bio.text || bio.quote || bio.images.length > 0)
   const memorialCount = memorials.length
   const petCount = pets.length
+  const canDownloadPetGenCode = isPet && viewerFeatures?.code === "PREMIUM"
 
   const locale = await getLocale()
 
@@ -240,9 +245,8 @@ export default async function ProfileByIdPage({ params }: Props) {
     petsCard,
   ]
 
-  // Pets get the memorial-style modules minus the guestbook — no
-  // tributes/QR for pets in v1 (see plan). Bio/Gallery/Documents/Places
-  // previews are already generic over any profile id.
+  // Pets get the memorial-style modules minus the guestbook. Their Premium
+  // GenCode downloads live in the banner; the module previews are shared.
   const petCards: SectionCard[] = [
     treeCard,
     bioCard,
@@ -313,7 +317,12 @@ export default async function ProfileByIdPage({ params }: Props) {
         <QrScanTracker profileId={id} />
       )}
       <main className="relative z-10">
-        <ProfileBanner profile={profile} />
+        <ProfileBanner
+          profile={profile}
+          downloadActions={canDownloadPetGenCode ? (
+            <GenCodeDownloadButtons target={{ kind: "pet", profileId: id }} />
+          ) : undefined}
+        />
         <BentoGrid cards={isMemorialized ? memorializedCards : isPet ? petCards : livingCards} />
       </main>
     </div>

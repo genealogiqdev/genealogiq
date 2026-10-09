@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, type ReactNode } from "react"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { getCountryName } from "@genealogiq/core"
@@ -36,12 +36,13 @@ export interface ProfileData {
 
 interface Props {
   profile: ProfileData
+  downloadActions?: ReactNode
 }
 
 const formatPlace = (place: string, country: string | null | undefined, locale: string) =>
   [place, getCountryName(country, locale)].filter(Boolean).join(", ")
 
-export function ProfileBanner({ profile }: Props) {
+export function ProfileBanner({ profile, downloadActions }: Props) {
   const locale = useLocale()
   const t = useTranslations("Profile")
   const isMemorial = profile.type === "memorialized"
@@ -275,6 +276,11 @@ export function ProfileBanner({ profile }: Props) {
                     </div>
                   )}
                 </div>
+                {downloadActions && (
+                  <div className="mt-6 flex justify-center lg:justify-start">
+                    {downloadActions}
+                  </div>
+                )}
               </div>
             </div>
           </div>

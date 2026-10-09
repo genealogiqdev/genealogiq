@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-const { qrMock } = vi.hoisted(() => ({ qrMock: vi.fn() }))
+const { qrMock, svgMock } = vi.hoisted(() => ({ qrMock: vi.fn(), svgMock: vi.fn() }))
 
-vi.mock("qrcode", () => ({ default: { toDataURL: qrMock } }))
+vi.mock("qrcode", () => ({ default: { toDataURL: qrMock, toString: svgMock } }))
 vi.mock("next-intl/server", () => ({ getTranslations: vi.fn(async () => (key: string) => key) }))
 vi.mock("@/lib/dal", () => ({ verifySession: vi.fn() }))
 vi.mock("@/lib/subscription", () => ({ getMemorialFeatures: vi.fn() }))
@@ -20,6 +20,7 @@ beforeEach(() => {
   vi.mocked(getMemorialFeatures).mockResolvedValue({ code: "PREMIUM" } as never)
   vi.mocked(getPlaceById).mockResolvedValue({ id: "place-1", userId: "memorial-1", qrGenerated: true } as never)
   qrMock.mockResolvedValue("data:image/png;base64,cG5n")
+  svgMock.mockResolvedValue("<svg/>")
 })
 
 afterEach(() => {
@@ -48,18 +49,37 @@ describe("downloadPlaceQrCode", () => {
     expect(getMemorialFeatures).not.toHaveBeenCalled()
     expect(getPlaceById).not.toHaveBeenCalled()
     expect(qrMock).not.toHaveBeenCalled()
+    expect(svgMock).not.toHaveBeenCalled()
   })
 
-  it.each(["FREE", "GEN2026"])("rejects a %s viewer even when the target profile has Premium", async (code) => {
+  it("returns vector SVG with the same place destination", async () => {
+    expect(await downloadPlaceQrCode("memorial-1", "place-1", "svg")).toEqual({
+      ok: true, data: { dataUrl: "data:image/svg+xml;base64,PHN2Zy8+" }, message: undefined,
+    })
+    expect(svgMock).toHaveBeenCalledExactlyOnceWith("https://genealogiq.example/profile/memorial-1/places/place-1", {
+      type: "svg",
+      errorCorrectionLevel: "H",
+      margin: 4,
+      color: { dark: "#0F172A", light: "#FFFFFF" },
+    })
+    expect(qrMock).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ["FREE", "png"],
+    ["FREE", "svg"],
+    ["GEN2026", "svg"],
+  ] as const)("rejects a %s viewer's %s request even when the target profile has Premium", async (code, format) => {
     vi.mocked(getMemorialFeatures).mockImplementation(async (id) => ({
       code: id === "viewer" ? code : "PREMIUM",
     }) as never)
 
-    expect(await downloadPlaceQrCode("memorial-1", "place-1")).toEqual({
+    expect(await downloadPlaceQrCode("memorial-1", "place-1", format)).toEqual({
       ok: false, message: "places.premiumRequired",
     })
     expect(getPlaceById).not.toHaveBeenCalled()
     expect(qrMock).not.toHaveBeenCalled()
+    expect(svgMock).not.toHaveBeenCalled()
   })
 
   it("rechecks entitlement on each request when Premium expires after opening the page", async () => {
@@ -111,5 +131,14 @@ describe("downloadPlaceQrCode", () => {
     qrMock.mockRejectedValueOnce(new Error("PNG generation failed"))
 
     await expect(downloadPlaceQrCode("memorial-1", "place-1")).rejects.toThrow("PNG generation failed")
+  })
+
+  it.each(["pdf", "SVG", "", null])("rejects unsupported format %s before generating a file", async (format) => {
+    expect(await downloadPlaceQrCode("memorial-1", "place-1", format as "png")).toEqual({
+      ok: false, message: "common.invalidData",
+    })
+    expect(getMemorialFeatures).not.toHaveBeenCalled()
+    expect(qrMock).not.toHaveBeenCalled()
+    expect(svgMock).not.toHaveBeenCalled()
   })
 })
