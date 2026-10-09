@@ -5,7 +5,7 @@
 > **Depends on:** [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) · [DATABASE](DATABASE.md) · [CONFIGURATION](CONFIGURATION.md) · [TESTING](TESTING.md) · [OBSERVABILITY](OBSERVABILITY.md) · [RUNBOOKS](RUNBOOKS.md)
 > **Last verified against code:** 2026-10-07 at `2632307` for the immediate partner onboarding change. Source, tests, local runtime/UI and deployment evidence are separated in the onboarding audit linked below; earlier verification history is preserved.
 
-This shared module supplies transactional email delivery. One lazy Resend client sends English templates from no-reply@rohling.com.br. App adapters supply their own base URL and product context. Feedback values are HTML-escaped; token links contain expiring account tokens and must not be copied into documentation.
+This shared module supplies transactional email delivery. One lazy Resend client sends transactional templates from no-reply@genealogiq.com.br. App adapters supply their own base URL and product context. Feedback values are HTML-escaped; token links contain expiring account tokens and must not be copied into documentation.
 
 ## How it works
 
@@ -44,7 +44,7 @@ The BMS adapter uses the existing `APP_URL`; there is no new provider secret or 
 
 The loopback mail fixture captures only `@genealogiq.test` recipients and simulates a provider rejection. Local capture verifies template content and usable credentials; it does not establish production inbox delivery. See [the onboarding audit](audits/PARTNER-ONBOARDING-2026-10-07.md).
 
-One lazy Resend client sends English templates from no-reply@rohling.com.br. App adapters supply their own base URL and product context. Feedback values are HTML-escaped; token links contain expiring account tokens and must not be copied into documentation.
+One lazy Resend client sends transactional templates from no-reply@genealogiq.com.br. App adapters supply their own base URL and product context. Feedback values are HTML-escaped; token links contain expiring account tokens and must not be copied into documentation.
 
 Inputs, defaults and output types live in the linked schema/actions/query files. APP/BMS/SEQ actions generally return [ActionResult (`done`/`ok`/`fail`)](../packages/core/src/result.ts); redirects/forbidden errors propagate from the DAL. Shared helpers retain their declared return types.
 
@@ -102,6 +102,14 @@ Follow [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for exact setup/start/readiness
 | 2026-10-03, `6e06634` + working changes | `node scripts/local-qa.mjs`; normal separate Credentials sessions; scoped local roles | Expected scenario above; no complete feature-specific browser/runtime observation recorded in this audit. | n/a: Requires test mail configuration and an inbox | [Dated audit](audits/AGENT-MEMORY-2026-10-03.md) |
 
 ## Runbooks
+
+### Verified sending domain
+
+The shared sender is `no-reply@genealogiq.com.br` for APP, BMS and SEQ, in local development and production. It is compiled into application images; an environment-only Azure update cannot change it. DNS records belong in Hostinger, while Azure retains app hostname bindings and HTTPS certificates. Preserve the website records.
+
+On 2026-10-09 the previous sender, `no-reply@rohling.com.br`, was rejected with HTTP 403 because that domain was not verified in the Resend account behind the BMS key. After the user configured Genealogiq's DKIM, sending CNAMEs and DMARC, a direct API test from the new sender to the authorized recipient returned HTTP 200. Provider acceptance is separate from inbox receipt.
+
+Staff resend currently propagates provider failures to the page error boundary; changing the sender resolves this domain rejection but does not add graceful error handling.
 
 ### Diagnose and refresh a deployed Resend credential
 
@@ -177,6 +185,7 @@ message still requires the authorized recipient and scenario. The
 | 2026-10-07 | Source `218d5aa`; Azure image `6e06634a752b44bce24825b0aa25baf0b669fa16`; BMS revision `resend-20261007` | Azure CLI, container process and Resend boundary probe | Existing BMS `.env` and Key Vault keys matched privately. Reapplied the existing reference; new revision healthy with 100% traffic and a populated process variable. Empty email request returned HTTP 422 `missing_required_field`. Tests: 840 passed, one opt-in skip. | Authentication/configuration verified; no real message sent, sender permission/inbox delivery and screenshot origin remain unverified. [Audit](audits/RESEND-BMS-2026-10-07.md). |
 | 2026-10-07 | `2632307` | Source, deterministic tests, local PostgreSQL and browser | Credential template and resolved provider-error handling; EMAIL-DELIVERY-G1 fixed; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
 | 2026-10-07 | `b8afb94` + direct consumer email | Source, tests, loopback capture and browser | New credential email enabled normal APP login. Existing customer email omitted a new password. Simulated provider rejection left access active; retry delivered a hashed 72-hour recovery link without changing expiry. | [Consumer audit](audits/CONSUMER-ACCESS-2026-10-07.md); real inbox placement remains unverified. |
+| 2026-10-09 | `77d4bc0` + verified sender change | Source, tests and local provider | Shared sender changed to `no-reply@genealogiq.com.br`; 999 workspace tests passed, including invitation sender and rejection expectations; direct API and actual local shared transport accepted | Inbox receipt unconfirmed; local BMS UI n/a because PostgreSQL/Docker unavailable; [sender audit](audits/EMAIL-SENDER-2026-10-09.md) records deployment evidence separately |
 
 ## Related
 

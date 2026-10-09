@@ -1,9 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { sendEmail } = vi.hoisted(() => ({ sendEmail: vi.fn() }))
 vi.mock('resend', () => ({ Resend: class { emails = { send: sendEmail } } }))
-import { sendFeedbackEmail, sendVerificationEmail, sendPartnerCredentialsEmail, sendConsumerPremiumEmail } from './index'
+import { sendFeedbackEmail, sendVerificationEmail, sendPartnerCredentialsEmail, sendConsumerPremiumEmail, sendWelcomeEmail } from './index'
 beforeEach(() => vi.resetAllMocks())
 describe('transactional email contracts', () => {
+  it('sends staff invitations from the verified Genealogiq domain with the BMS setup link', async () => {
+    sendEmail.mockResolvedValue({ data: { id: 'fixture-email' }, error: null })
+    await sendWelcomeEmail({ to: 'staff@genealogiq.test', token: 'synthetic-token', baseUrl: 'https://bms.genealogiq.com.br' })
+    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({
+      from: 'no-reply@genealogiq.com.br',
+      to: 'staff@genealogiq.test',
+      html: expect.stringContaining('https://bms.genealogiq.com.br/reset-password?token=synthetic-token'),
+    }))
+    expect(sendEmail.mock.calls[0][0].html).toContain('72h')
+  })
   it('delivers direct APP credentials, an exact expiry and an explicit no-charge gift', async () => {
     sendEmail.mockResolvedValue({ data: { id: 'fixture-email' }, error: null })
     await sendConsumerPremiumEmail({ to: 'ana@genealogiq.test', name: '<Ana>', password: 'fixture<&password', baseUrl: 'http://localhost:5000', expiresAt: new Date('2027-10-07T15:00:00Z') })
@@ -43,7 +53,7 @@ describe('transactional email contracts', () => {
   it('escapes user feedback before it reaches the HTML transport', async () => {
     sendEmail.mockResolvedValue({ data: { id: 'fixture-email' }, error: null })
     await sendFeedbackEmail({ to: 'support@genealogiq.test', type: 'feedback', message: '<script>bad & worse</script>', email: 'fixture@genealogiq.test' })
-    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ from: 'no-reply@rohling.com.br', to: 'support@genealogiq.test', html: expect.stringContaining('&lt;script&gt;bad &amp; worse&lt;/script&gt;') }))
+    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ from: 'no-reply@genealogiq.com.br', to: 'support@genealogiq.test', html: expect.stringContaining('&lt;script&gt;bad &amp; worse&lt;/script&gt;') }))
     expect(sendEmail.mock.calls[0][0].html).not.toContain('<script>')
   })
   it('uses the supplied app origin for a verification link', async () => {

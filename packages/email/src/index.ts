@@ -5,7 +5,7 @@ import { Resend } from "resend"
 // product name on the welcome email). Each app's lib/email.ts is a thin adapter
 // that injects its own *_URL.
 
-const FROM = "no-reply@rohling.com.br"
+const FROM = "no-reply@genealogiq.com.br"
 
 let client: Resend | undefined
 function resend(): Resend {
