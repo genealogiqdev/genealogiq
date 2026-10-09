@@ -113,7 +113,8 @@
       "imageLimit": "El límite de imágenes es {max} para este plan.",
       "limitReached": "Alcanzaste el límite de {max} geolocalizaciones de tu plan.",
       "notAuthorized": "No tienes permiso para administrar este perfil.",
-      "notFound": "Geolocalización no encontrada."
+      "notFound": "Geolocalización no encontrada.",
+      "premiumRequired": "Necesitas Premium activo para descargar el GenCode."
     },
     "tribute": {
       "cannotTributeSelf": "No puedes dejar un homenaje en tu propio perfil.",
@@ -1802,6 +1803,9 @@
     "qrButton": "Generar código QR",
     "qrCopyLink": "Copiar enlace",
     "qrDescription": "Al escanearlo, abre esta colección de geolocalizaciones.",
+    "qrDownload": "Descargar GenCode",
+    "qrDownloadFailed": "No se pudo descargar el GenCode. Inténtalo de nuevo.",
+    "qrDownloading": "Descargando…",
     "qrLinkCopied": "Enlace copiado",
     "qrPngDownloaded": "PNG descargado",
     "qrSvgDownloaded": "SVG descargado",

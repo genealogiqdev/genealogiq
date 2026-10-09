@@ -113,7 +113,8 @@
       "imageLimit": "Image limit is {max} for this plan.",
       "limitReached": "You reached the limit of {max} geolocations on your plan.",
       "notAuthorized": "You are not allowed to manage this profile.",
-      "notFound": "Geolocation not found."
+      "notFound": "Geolocation not found.",
+      "premiumRequired": "An active Premium plan is required to download the GenCode."
     },
     "tribute": {
       "cannotTributeSelf": "You cannot tribute your own profile.",
@@ -1802,6 +1803,9 @@
     "qrButton": "Generate QR code",
     "qrCopyLink": "Copy link",
     "qrDescription": "Scanning it opens this collection of geolocations.",
+    "qrDownload": "Download GenCode",
+    "qrDownloadFailed": "Could not download the GenCode. Please try again.",
+    "qrDownloading": "Downloading…",
     "qrLinkCopied": "Link copied",
     "qrPngDownloaded": "PNG downloaded",
     "qrSvgDownloaded": "SVG downloaded",

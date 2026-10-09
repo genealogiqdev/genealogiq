@@ -16,6 +16,7 @@ import { getProfileById } from "@/queries/profile"
 import { canManageProfile } from "@/lib/profile"
 import { assertPublicMemorialAccess } from "@/lib/public-profile-access"
 import { formatDateProse } from "@/lib/format-date"
+import { getMemorialFeatures } from "@/lib/subscription"
 
 interface Props {
   params: Promise<{ id: string; placeId: string }>
@@ -43,6 +44,10 @@ export default async function PlaceDetailPage({ params }: Props) {
     if (isAnon) redirect(`/profile/${id}/places`)
     notFound()
   }
+
+  const canDownloadQr = viewerId && place.qrGenerated
+    ? (await getMemorialFeatures(viewerId)).code === "PREMIUM"
+    : false
 
   const addressLine = [place.neighborhood, place.city, place.state, getCountryName(place.country, locale)]
     .filter(Boolean)
@@ -108,7 +113,9 @@ export default async function PlaceDetailPage({ params }: Props) {
 
           <div className="order-1 md:order-2 md:col-span-1 lg:col-span-1 flex flex-col">
             <div className="items-end flex flex-col gap-6">
-              {place.qrGenerated && <PlaceQrDisplay profileId={id} placeId={placeId} />}
+              {place.qrGenerated && (
+                <PlaceQrDisplay profileId={id} placeId={placeId} canDownload={canDownloadQr} />
+              )}
 
               <div className="w-fit items-start flex flex-col gap-1 text-sm text-muted-foreground">
                 {hasCoordinates && (
