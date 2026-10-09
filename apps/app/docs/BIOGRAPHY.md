@@ -3,7 +3,7 @@
 > **Code:** [src/actions/bio.actions.ts](../src/actions/bio.actions.ts) · [src/queries/bio.ts](../src/queries/bio.ts) · [src/schemas/bio.schema.ts](../src/schemas/bio.schema.ts) · [src/queries/media-usage.ts](../src/queries/media-usage.ts)
 > **Entry points:** `/profile/[id]/bio` · `/profile/[id]/bio/edit` · `/api/bio/upload`
 > **Depends on:** [BILLING-QUOTAS](BILLING-QUOTAS.md) · [MEDIA-STORAGE](../../../docs/MEDIA-STORAGE.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-03 at `6e06634`, including this task’s uncommitted documentation, launcher and test changes. Source verification is separate from runtime/UI below.
+> **Last verified against code:** 2026-10-09 at `12bbeb6` plus the Unicode regression tests. Source verification is separate from runtime/UI below; earlier evidence remains in the verification log.
 
 The APP application supplies biography. Bio is unique by userId (mapped to app_user_id); ordered BioImage references are validated against authorized profile prefixes. saveBio parses schema, checks manager/capacity, writes content then deletes unreferenced old media. Original table creation SQL is not recorded in the current migration tree; the schema is authoritative.
 
@@ -27,6 +27,14 @@ No LLM/model stage exists in this implementation.
 ## Rules and why
 
 Combined images include biography/gallery/place photos. Existing over-quota content can stay or shrink, but growth rejects (e58ca97; bio.actions.test.ts, media-usage.test.ts).
+
+Biography text and quotes retain Unicode, including accents, emoji, variation
+selectors and joined emoji sequences. The schema trims only surrounding
+whitespace; saveBio passes the parsed strings to both Prisma upsert branches.
+The reader splits paragraphs at blank lines and renders their text unchanged.
+Stored question marks may be intentional punctuation or already-lost symbols;
+neither the editor nor the reader guesses replacements. Recovery requires the
+original text and the [reviewed data-repair procedure](../../../docs/DATABASE.md#recover-damaged-app-text).
 
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
@@ -68,6 +76,13 @@ Run commands from the repository root `C:/Users/Tiger/Desktop/dev/personal/genea
 
 **Specs included in the successful 2026-10-03 full-suite run:** [src/actions/bio.actions.test.ts](../src/actions/bio.actions.test.ts) · [src/queries/media-usage.test.ts](../src/queries/media-usage.test.ts). The opt-in media integration was run separately; skipped default integration tests are not counted as passes.
 
+The 2026-10-09 biography action tests add literal expectations for accents,
+three-byte punctuation, four-byte emoji and multi-code-point emoji in both
+create/update payloads, plus preserved unknown question-mark runs. Run
+`pnpm exec vitest run --project app apps/app/src/actions/bio.actions.test.ts`
+for this focused contract. The real PostgreSQL/browser evidence is recorded
+separately in [the Unicode audit](../../../docs/audits/APP-BIOGRAPHY-UNICODE-2026-10-09.md).
+
 **Expected answers:** literal hand-authored `expect` values in these specs and the scenario values below. The full run’s pass count is a coverage ledger, never the expected business output. Do not generate a golden answer from the function being tested.
 
 **Acceptance:** the stated happy-path outputs/persisted rows match the independent scenario, and the boundary rejects without an unauthorized write or duplicate side effect. A unit/helper pass does not satisfy a missing product step.
@@ -82,7 +97,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 
 ### Manual scenarios
 
-1. **Happy path:** Save a unique local QA biography sentence in the owner editor, reopen reader and reload; compare Bio text and restore original.
+1. **Happy path:** Save a unique local QA biography with quote `Memórias de São José 🌳` and text `Nasci no verão… 👽🌎`, a blank line, then `Família ❤️ 👨‍👩‍👧‍👦. Continua???`. Reopen the reader and editor, reload and compare the exact Bio strings, including the intentional question marks. Use an owned disposable memorial or restore the original fixture.
 2. **Boundary:** Anonymous editor and unauthorized/quota-growing write must reject while existing rows remain.
 3. **Persistence/cleanup:** independently query the feature-owned rows or downstream result. Restore temporary edits; retain ledger/audit history. Only delete disposable fixtures when authorized by the task.
 
@@ -110,13 +125,21 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 
 ## Gaps and fixes
 
-None known from this source/test audit. This is not a claim of complete product/integration coverage.
+Two partially recovered production biographies still contain unknown symbols;
+this incident is tracked in [DATABASE-G2](../../../docs/DATABASE.md#database-g2-persisted-app-content-has-lost-non-ascii-characters).
+The 2026-10-09 screenshot matches one of those previously audited values. Four
+question marks are compatible with a lost four-byte emoji, but do not identify
+the original character or the historical writer. The [Unicode audit](../../../docs/audits/APP-BIOGRAPHY-UNICODE-2026-10-09.md)
+separates that uncertainty from current save/reload evidence.
+
 ## Verification log
 
 | Date | Commit / working changes | Verified by | Scope and evidence | Mismatches or limits → action |
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
+| 2026-10-09 | `12bbeb6` + Unicode regression tests | Source/history and deterministic suite | No lossy conversion on the biography text path; 11 focused action tests and 1,064 full-suite tests passed, with 33 opt-in skips. | Historical writer and original production symbols remain unknown; see DATABASE-G2. |
+| 2026-10-09 | Same | Local Credentials, Chromium and PostgreSQL | Saved accented text and single/composed emoji; reader reload, editor reopen and exact stored strings passed. Anonymous editor redirected without changing data/timestamp. Visible glyphs checked. | Owned fixture/browser/server cleaned up; production emoji submission was not exercised. [Evidence](../../../docs/audits/APP-BIOGRAPHY-UNICODE-2026-10-09.md). |
 
 ## Related
 

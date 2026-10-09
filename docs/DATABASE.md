@@ -113,6 +113,15 @@ correct spelling of a person's name. For example, both "avós" and "avôs" can l
 their UTF-8 bytes into "av??s". A matching loss signature is a validation guard,
 not proof of the original wording.
 
+Byte counts help diagnose the loss, but cannot identify the missing character.
+Decoding UTF-8 bytes as ASCII with replacement reproduces `É` → `??`, `…` →
+`???`, and both `👽` and `🌎` → `????`. Two accented letters can also occupy
+four bytes; repeated question marks can be intentional. An emoji sequence may
+contain several code points and occupy more than four bytes. Do not replace
+these runs automatically. The [biography Unicode audit](audits/APP-BIOGRAPHY-UNICODE-2026-10-09.md)
+records the controlled reproduction and current application checks; the
+historical writer responsible for the production loss remains unestablished.
+
 1. Trace the rendered value to its source. Compare translated labels with stored
    content and check server_encoding/client_encoding through a read-only query.
    If the stored bytes already contain ASCII question marks, changing fonts,
@@ -201,6 +210,7 @@ save/reload, live read-only diagnosis and unresolved source text.
 | 2026-10-07 | `9253152` + initial Gen2026 change | Source, incremental migration and local PostgreSQL | 44 models, 75 migrations; initial incremental SQL replay and seven real transaction/concurrency/rollback tests passed. Persisted entitlements checked independently of the UI. Full historical empty-database replay remains n/a. |
 | 2026-10-07 | Same change plus durable result identity | Final migration and deletion regression | Final SQL replayed in `genealogiq_coupon_qa_20261007_final`; eight integration tests passed, including consumer deletion without losing the receipt or permitting reuse. The normal local amendment preserved its four existing receipts and entitlements. [Audit](audits/GEN2026-2026-10-07.md). |
 | 2026-10-07 | `b8afb94` + consumer access migration | Incremental local migration and transactions | 45 models / 76 migrations. Exact additive SQL applied to normal local and disposable-copy databases; nine integration cases passed, including concurrency, audit rollback and detached retention. [Consumer audit](audits/CONSUMER-ACCESS-2026-10-07.md); historical empty-database replay remains separate. |
+| 2026-10-09 | `12bbeb6` + biography Unicode tests | Encoding diagnosis and local persistence | ASCII decoding reproduces the two/three/four-byte loss pattern. Local biography save/reload preserves literal accents and emoji in PostgreSQL and the browser; anonymous editing rejects. [Unicode audit](audits/APP-BIOGRAPHY-UNICODE-2026-10-09.md). No production writes or new identification of the historical writer. |
 
 ## Related
 

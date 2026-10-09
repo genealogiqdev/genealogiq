@@ -136,6 +136,56 @@ describe("saveBio — ownership + validation guards", () => {
     expect(deleteBlobs).toHaveBeenCalledWith(["https://qa.public.blob.vercel-storage.com/stale.jpg"])
     expect(prismaMock.bioImage.createMany).toHaveBeenCalled()
   })
+
+  it("preserves accents, punctuation and multi-code-point emoji in both biography write branches", async () => {
+    prismaMock.bio.upsert.mockResolvedValue({ id: "bio-unicode" })
+    prismaMock.bioImage.findMany.mockResolvedValue([])
+
+    const res = await saveBio("A", {
+      quote: "  Memórias de São José 🌳  ",
+      text: "  Nasci no verão… 👽🌎\n\nFamília ❤️ 👨‍👩‍👧‍👦. Continua???  ",
+      images: [],
+    })
+
+    expect(res).toEqual({ ok: true, message: undefined })
+    expect(prismaMock.bio.upsert).toHaveBeenCalledWith({
+      where: { userId: "A" },
+      create: {
+        userId: "A",
+        quote: "Memórias de São José 🌳",
+        text: "Nasci no verão… 👽🌎\n\nFamília ❤️ 👨‍👩‍👧‍👦. Continua???",
+      },
+      update: {
+        quote: "Memórias de São José 🌳",
+        text: "Nasci no verão… 👽🌎\n\nFamília ❤️ 👨‍👩‍👧‍👦. Continua???",
+      },
+    })
+  })
+
+  it("keeps unknown question-mark runs instead of guessing an emoji on save", async () => {
+    prismaMock.bio.upsert.mockResolvedValue({ id: "bio-unknown-symbol" })
+    prismaMock.bioImage.findMany.mockResolvedValue([])
+
+    const res = await saveBio("A", {
+      quote: "Qual versão?",
+      text: "Continua???\n\nSímbolo desconhecido: ????",
+      images: [],
+    })
+
+    expect(res).toEqual({ ok: true, message: undefined })
+    expect(prismaMock.bio.upsert).toHaveBeenCalledWith({
+      where: { userId: "A" },
+      create: {
+        userId: "A",
+        quote: "Qual versão?",
+        text: "Continua???\n\nSímbolo desconhecido: ????",
+      },
+      update: {
+        quote: "Qual versão?",
+        text: "Continua???\n\nSímbolo desconhecido: ????",
+      },
+    })
+  })
 })
 
 describe("deleteBio — ownership guard", () => {

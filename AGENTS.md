@@ -92,3 +92,8 @@ six fields still contain uncertain characters. The [2026-10-09 follow-up](docs/a
 records one user-confirmed name. Review the recovery runbook
 and remaining originals before assuming a locale/font change can repair stored
 question marks.
+
+**Biography emoji follow-up:** 2026-10-09, [Unicode audit](docs/audits/APP-BIOGRAPHY-UNICODE-2026-10-09.md).
+Local biography save/reload and PostgreSQL checks preserve accents and emoji.
+ASCII decoding of UTF-8 bytes reproduces the historical loss signature, but
+does not identify the original symbols or the operation that damaged them.
