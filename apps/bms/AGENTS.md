@@ -17,6 +17,8 @@
 
 Use verifyAdmin for administrative mutations; staff roles are session claims and do not guarantee immediate revocation. Partner customers are Tenant records. The APP customer directory covers every APP_USER across independent and partner accounts, including inactive accounts; direct registration and Premium gifts remain independent AppUser records with no tenant. Directory reads and direct consumer gifts require verifyConsumerAdmin, which reloads platform scope, activation and privilege. BMS sign-in rejects tenant staff except the platform SUPER_ADMIN role. Catalog edits and Stripe synchronization are separate operations. Reporting must distinguish measured empty counts from failed queries and preserve currency meaning. Inspect every daily job step result even when outer ok is true.
 
+Premium revocation uses the same live platform guard and the confirmed gift ID. It atomically ends only that complimentary sale and records who revoked it, preserving the recipient's account and paid time. Independent inactive/email-less recipients can have a gift removed; grant and resend eligibility remains unchanged. [CONSUMERS](docs/CONSUMERS.md) owns confirmation, retries and audit behavior.
+
 The app uses Next.js App Router, server-side queries, server actions and Zod schema factories. Shared database/auth/services/email/core/UI/i18n contracts are indexed in [root AGENTS.md](../../AGENTS.md). Default local origin is http://localhost:3001; use the launcher's configured canonical host/port for auth redirects and cookies. See [LOCAL-DEVELOPMENT](../../docs/LOCAL-DEVELOPMENT.md) for isolated sessions.
 
 ## Feature index

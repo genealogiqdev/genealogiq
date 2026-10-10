@@ -3,7 +3,7 @@
 > **Code:** [src/queries/notifications.ts](../src/queries/notifications.ts) · [src/actions/messages.actions.ts](../src/actions/messages.actions.ts) · [src/components/messages-list.tsx](../src/components/messages-list.tsx)
 > **Entry points:** `/messages`
 > **Depends on:** [AUTHENTICATION](../../../docs/AUTHENTICATION.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-03 at `6e06634`, including this task’s uncommitted documentation, launcher and test changes. Source verification is separate from runtime/UI below.
+> **Last verified against code:** 2026-10-09 at `3826319` plus the consolidated release. Earlier source/runtime evidence remains in the verification log.
 
 The APP application supplies messages and activity feed. Notification rows are filtered by viewer; ACTIVITY_PAGE_SIZE is 20 and the cursor combines createdAt and id. getMessages combines actionable notifications with enriched activity; loadMoreActivity obtains the viewer from verifySession.
 
@@ -30,6 +30,10 @@ The action never accepts a caller-supplied userId. The two action tests added on
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
+
+### Consolidated release, 2026-10-09
+
+Each newly persisted tribute, family-request or guardian-request notification queues a generic email in the same transaction. The message links to authenticated /messages and includes no private tribute or relationship content. Self-notifications, inactive accounts and non-APP_USER identities do not receive mail. Push and the initial email attempt run after the response; pending email survives in the shared [outbox](../../../docs/EMAIL-DELIVERY.md) and is checked again against the live recipient before delivery.
 
 Notification rows are filtered by viewer; ACTIVITY_PAGE_SIZE is 20 and the cursor combines createdAt and id. getMessages combines actionable notifications with enriched activity; loadMoreActivity obtains the viewer from verifySession.
 
@@ -124,6 +128,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
+| 2026-10-09 | `3826319` + consolidated release | Source, deterministic and local PostgreSQL checks | Updated contract above; [release audit](../../../docs/audits/PRODUCTION-RELEASE-2026-10-09.md) separates tests, runtime, deployment and cleanup. | Browser automation omitted at the user's request; production inbox delivery is not inferred. |
 
 ## Related
 

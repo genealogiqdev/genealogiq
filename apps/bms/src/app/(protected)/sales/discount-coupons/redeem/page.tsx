@@ -4,6 +4,7 @@ import { currencyForLocale } from '@genealogiq/core'
 import { verifyAdmin } from '@/lib/dal'
 import { getManualCouponOptions, getManualCouponHistory } from '@/queries/manual-coupons'
 import { ManualCouponForm } from '@/components/discount-coupons/manual-coupon-form'
+import { CouponEmailStatus } from '@/components/discount-coupons/coupon-email-status'
 
 export default async function RedeemCouponPage({ searchParams }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
@@ -37,7 +38,7 @@ export default async function RedeemCouponPage({ searchParams }: {
               return <tr key={r.id} className="border-t align-top">
                 <td className="p-3"><p className="font-medium">{r.reference}</p><p className="text-muted-foreground">{r.code} · {t(`sources.${r.source}`)}</p></td>
                 <td className="p-3"><p>{r.product}</p><p className="text-muted-foreground">{t(`kinds.${r.kind}`)} · {r.quantity}</p>{r.endsAt && <p>{t('validUntil', { date: date(r.endsAt) })}</p>}</td>
-                <td className="p-3">{r.recipient}</td>
+                <td className="p-3">{r.recipient}<CouponEmailStatus id={r.id} sent={!!r.emailSentAt} /></td>
                 <td className="p-3"><p>{date(r.createdAt)} · {r.operator}</p>
                   <details className="mt-1"><summary className="cursor-pointer">{t('amounts')}</summary>
                     <p>{t('subtotal')}: {money(r.subtotalAmount)}</p><p>{t('discount')}: {money(r.discountAmount)}</p>

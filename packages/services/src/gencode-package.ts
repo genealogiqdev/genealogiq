@@ -1,4 +1,5 @@
 import 'server-only'
+import { queuePackageSaleEmail } from './sale-notifications'
 
 import type Stripe from 'stripe'
 import { generateGenCode } from '@genealogiq/core'
@@ -268,6 +269,7 @@ export async function fulfillGenCodePackageCheckout(
     if (claimed.count === 0) return 'already-fulfilled' as const
 
     await grantGenCodeOrder(tx, orderId, creditExpiresAt)
+    await queuePackageSaleEmail(tx, orderId)
     return 'fulfilled' as const
   })
 

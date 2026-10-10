@@ -29,8 +29,15 @@ vi.mock('@genealogiq/services/partner-billing', () => ({
   syncPartnerSubscriptionStatus: vi.fn(),
 }))
 vi.mock('@genealogiq/services/gencode-package', () => packageMock)
+vi.mock('@genealogiq/services/email-outbox', () => ({ deliverEmail: vi.fn() }))
+vi.mock('@genealogiq/services/sale-notifications', async (original) => ({
+  ...await original<typeof import('@genealogiq/services/sale-notifications')>(), queuePartnerInvoiceEmail: vi.fn(),
+}))
 
 import { POST } from './route'
+import { deliverEmail } from '@genealogiq/services/email-outbox'
+import { queuePartnerInvoiceEmail } from '@genealogiq/services/sale-notifications'
+import { applyPartnerInvoicePaid } from '@genealogiq/services/partner-billing'
 
 function request(): NextRequest {
   return new Request('http://localhost/api/stripe/webhook', {
@@ -63,6 +70,7 @@ beforeEach(() => {
     tenantId: 'tenant_1',
   })
   packageMock.closeGenCodePackageCheckout.mockResolvedValue(true)
+  vi.mocked(deliverEmail).mockResolvedValue('sent')
 })
 
 describe('BMS Stripe webhook — GenCode packages', () => {
@@ -76,6 +84,7 @@ describe('BMS Stripe webhook — GenCode packages', () => {
     expect(packageMock.fulfillGenCodePackageCheckout)
       .toHaveBeenCalledWith(checkoutEvent.data.object)
     expect(provisionMock).toHaveBeenCalledWith('tenant_1')
+    expect(deliverEmail).toHaveBeenCalledWith('package-sale:order_1')
     expect(packageMock.closeGenCodePackageCheckout).not.toHaveBeenCalled()
   })
 
@@ -115,6 +124,17 @@ describe('BMS Stripe webhook — GenCode packages', () => {
     expect(response.status).toBe(200)
     expect(body.ignored).toBe('not a GenCode package checkout')
     expect(packageMock.fulfillGenCodePackageCheckout).not.toHaveBeenCalled()
+    expect(provisionMock).not.toHaveBeenCalled()
+  })
+
+  it('notifies about a failed partner invoice without granting a cycle or access', async () => {
+    const invoice = { id: 'in-1', parent: { subscription_details: { subscription: 'sub-1' } } }
+    stripeMock.webhooks.constructEvent.mockReturnValue({ id: 'evt-failed', type: 'invoice.payment_failed', data: { object: invoice } })
+    stripeMock.subscriptions.retrieve.mockResolvedValue({ metadata: { partnerSubscriptionId: 'contract-1' } })
+    expect((await POST(request())).status).toBe(200)
+    expect(queuePartnerInvoiceEmail).toHaveBeenCalledWith(expect.anything(), 'contract-1', invoice, true)
+    expect(deliverEmail).toHaveBeenCalledWith('partner-invoice:in-1:failed')
+    expect(applyPartnerInvoicePaid).not.toHaveBeenCalled()
     expect(provisionMock).not.toHaveBeenCalled()
   })
 })

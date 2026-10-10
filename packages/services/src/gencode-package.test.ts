@@ -30,6 +30,7 @@ vi.mock('@genealogiq/core', () => ({ generateGenCode: generateMock }))
 vi.mock('server-only', () => ({}))
 vi.mock('./stripe', () => ({ stripe: stripeMock }))
 vi.mock('./stripe-customer', () => ({ ensureTenantStripeCustomer: customerMock }))
+vi.mock('./sale-notifications', () => ({ queuePackageSaleEmail: vi.fn() }))
 vi.mock('./partner-checkout', () => ({
   CHECKOUT_TTL_HOURS: 23,
   CHECKOUT_ORIGINS: { bms: 'bms', seq: 'seq' },

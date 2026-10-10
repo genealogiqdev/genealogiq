@@ -7,6 +7,7 @@ import { addBillingMonths } from './billing-dates'
 export type ConsumerAccessErrorReason =
   | 'invalid-data' | 'email-conflict' | 'recipient-unavailable' | 'partner-account'
   | 'premium-unavailable' | 'active-subscription' | 'request-conflict' | 'request-completed'
+  | 'grant-unavailable' | 'grant-revoked'
 
 export class ConsumerAccessError extends Error {
   constructor(readonly reason: ConsumerAccessErrorReason) {
@@ -46,9 +47,10 @@ const recipientSelect = {
 } as const
 
 function replay(grant: {
-  id: string; expiresAt: Date; emailSentAt: Date | null; appSaleId: string | null
+  id: string; expiresAt: Date; emailSentAt: Date | null; appSaleId: string | null; revokedAt: Date | null
   appUser: { id: string; email: string | null; firstName: string; role: string; isActive: boolean; tenantId: string | null } | null
 }): ConsumerAccessResult {
+  if (grant.revokedAt) fail('grant-revoked')
   if (!grant.appSaleId || !grant.appUser) fail('request-completed')
   if (grant.appUser.tenantId) fail('partner-account')
   if (!grant.appUser.isActive || grant.appUser.role !== 'APP_USER' || !grant.appUser.email) fail('recipient-unavailable')
@@ -106,7 +108,10 @@ export async function grantConsumerPremium(input: ConsumerAccessInput): Promise<
     if (buyer) {
       // A second registration/operator must not accidentally gift another year.
       const activeGift = await tx.consumerAccessGrant.findFirst({
-        where: { recipientId: buyer.id, expiresAt: { gt: now } },
+        where: {
+          recipientId: buyer.id, revokedAt: null, expiresAt: { gt: now },
+          appSale: { status: { in: ['active', 'trialing'] }, currentPeriodEnd: { gt: now } },
+        },
         orderBy: { expiresAt: 'desc' }, include: { appUser: { select: recipientSelect } },
       })
       if (activeGift) return replay(activeGift)
@@ -119,11 +124,18 @@ export async function grantConsumerPremium(input: ConsumerAccessInput): Promise<
     const activeSales = buyer ? await tx.appSale.findMany({
       where: { appUserId: buyer.id, status: { in: ['active', 'trialing'] }, currentPeriodEnd: { gt: now } },
       orderBy: { currentPeriodEnd: 'desc' },
-      select: { subscriptionId: true, stripeSubscriptionId: true, currentPeriodEnd: true },
+      select: { id: true, value: true, subscriptionId: true, stripeSubscriptionId: true, currentPeriodEnd: true },
     }) : []
     // Do not create overlapping automatic charges or replace a different plan.
     if (activeSales.some((sale) => sale.stripeSubscriptionId || sale.subscriptionId !== premium.id)) fail('active-subscription')
-    const startsAt = activeSales[0]?.currentPeriodEnd ?? now
+    // The 20260922010000 migration created zero-value test access until 2099.
+    // Its exact per-user identity distinguishes that placeholder from purchased
+    // time (including genuine complimentary/coupon sales). Replace it, never
+    // append a year to it or let it outlive the actual BMS gift.
+    const testSaleId = buyer ? `test-premium-${createHash('md5').update(buyer.id).digest('hex')}` : null
+    const testSale = activeSales.find((sale) => sale.id === testSaleId && sale.value?.toString() === '0'
+      && !sale.stripeSubscriptionId && sale.subscriptionId === premium.id)
+    const startsAt = activeSales.find((sale) => sale !== testSale)?.currentPeriodEnd ?? now
     const expiresAt = addBillingMonths(startsAt, 12)
     const credentialsCreated = !buyer || (!buyer.password && !buyer.googleId)
 
@@ -158,9 +170,65 @@ export async function grantConsumerPremium(input: ConsumerAccessInput): Promise<
         resultId: sale.id, appSaleId: sale.id, createdById: input.createdById, startsAt, expiresAt, notes,
       }, select: { id: true },
     })
+    if (testSale) {
+      await tx.appSale.update({
+        where: { id: testSale.id },
+        data: { status: 'canceled', cancelAtPeriodEnd: true, canceledAt: now, endedAt: now },
+      })
+    }
     return {
       id: grant.id, appUserId: buyer.id, email: buyer.email!, firstName: buyer.firstName,
       expiresAt, emailSentAt: null, credentialsCreated, alreadyGranted: false,
     }
+  }, { timeout: 15_000 })
+}
+
+/** Revoke only the named BMS gift; keep the account, original dates and every other sale. */
+export async function revokeConsumerPremium(grantId: string, revokedById: string): Promise<{ alreadyRevoked: boolean }> {
+  if (!grantId || grantId.length > 128 || !revokedById || revokedById.length > 128) fail('invalid-data')
+
+  return prisma.$transaction(async (tx) => {
+    const identity = await tx.consumerAccessGrant.findUnique({ where: { id: grantId }, select: { recipientId: true } })
+    if (!identity) fail('grant-unavailable')
+    // Use the same recipient row lock as grants/manual coupons. Read the gift
+    // again after acquiring it so concurrent retries retain the first audit.
+    await tx.$queryRaw`SELECT id FROM app_users WHERE id = ${identity.recipientId} FOR UPDATE`
+    const gift = await tx.consumerAccessGrant.findUnique({
+      where: { id: grantId },
+      include: {
+        appUser: { select: recipientSelect },
+        appSale: { select: {
+          id: true, appUserId: true, tenantId: true, value: true, status: true,
+          stripeSubscriptionId: true, stripePriceId: true, currentPeriodEnd: true,
+          subscription: { select: { code: true } }, couponRedemption: { select: { id: true } },
+        } },
+      },
+    })
+    if (!gift) fail('grant-unavailable')
+    // A stale button always refers to this gift, never a later replacement.
+    if (gift.revokedAt) return { alreadyRevoked: true }
+    if (!gift.appUser || gift.appUser.id !== gift.recipientId || gift.appUser.role !== 'APP_USER') fail('recipient-unavailable')
+    if (gift.appUser.tenantId) fail('partner-account')
+    // Activation/email are intentionally not prerequisites for removing a gift.
+    const sale = gift.appSale
+    const now = new Date()
+    if (!sale || sale.id !== gift.resultId || sale.appUserId !== gift.recipientId || sale.tenantId
+      || sale.value?.toString() !== '0' || sale.stripeSubscriptionId || sale.stripePriceId || sale.couponRedemption
+      || sale.subscription.code !== 'PREMIUM' || !['active', 'trialing'].includes(sale.status ?? '')
+      || gift.expiresAt <= now || sale.currentPeriodEnd?.getTime() !== gift.expiresAt.getTime()) fail('grant-unavailable')
+
+    // Conditional mutation also protects against an unrelated writer changing
+    // this sale after the read. Never cancel a paid/provider/coupon entitlement.
+    const canceled = await tx.appSale.updateMany({
+      where: {
+        id: sale.id, appUserId: gift.recipientId, tenantId: null, value: 0,
+        stripeSubscriptionId: null, stripePriceId: null, couponRedemption: { is: null },
+        subscription: { code: 'PREMIUM' }, status: { in: ['active', 'trialing'] }, currentPeriodEnd: gift.expiresAt,
+      },
+      data: { status: 'canceled', cancelAtPeriodEnd: true, canceledAt: now, endedAt: now },
+    })
+    if (canceled.count !== 1) fail('grant-unavailable')
+    await tx.consumerAccessGrant.update({ where: { id: gift.id }, data: { revokedAt: now, revokedById } })
+    return { alreadyRevoked: false }
   }, { timeout: 15_000 })
 }

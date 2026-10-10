@@ -3,7 +3,7 @@
 > **Code:** [src/actions/gencode-package.actions.ts](../src/actions/gencode-package.actions.ts) · [src/queries/gencode-packages.ts](../src/queries/gencode-packages.ts) · [src/schemas/gencode-package.schema.ts](../src/schemas/gencode-package.schema.ts)
 > **Entry points:** `/gencodes` · `/gencodes/new` · `/payment/gencodes`
 > **Depends on:** [PARTNER-CREDITS](../../../docs/PARTNER-CREDITS.md) · [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-07 at `2632307` for the immediate partner onboarding change. Source, tests, local runtime/UI and deployment evidence are separated in the onboarding audit linked below; earlier verification history is preserved.
+> **Last verified against code:** 2026-10-09 at `3826319` plus the consolidated release. Earlier source/runtime evidence remains in the verification log.
 
 The BMS application supplies standalone gencode package sales. Package inputs validate quantities and currency prices; the send action obtains the package and active partner before shared checkout. The shared order stores bought quantity, bonus, price and trial snapshots and fulfillment state.
 
@@ -37,6 +37,10 @@ separates missing runtime configuration, provider rejection and actual delivery.
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
+
+### Consolidated release, 2026-10-09
+
+Successful package fulfilment enqueues one receipt keyed by order in the transaction that records the order and credits. It uses recorded order quantity/price, rechecks the live active partner email and expires with the finite benefit. Duplicate webhook delivery does not issue another receipt or grant. Email provider failure leaves a pending message for the shared daily retry.
 
 New partners can receive an initial allowance directly at [registration](PARTNERS.md), without this package-sale workflow. These grants have no GenCodeOrder and do not count as package sales. Purchase fulfillment still activates legacy inactive OWNERs; newly registered active OWNERs keep their existing credentials.
 
@@ -147,6 +151,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | 2026-10-07 | `218d5aa` + Gen2026 change | Source, tests, PostgreSQL and BMS browser | Shared fulfillment retained; real manual order gave 5 + 2 = 7 stock/credits, duplicate rejected, order-form prefill verified. | [Audit](../../../docs/audits/GEN2026-2026-10-07.md); signed Stripe checkout/mail replay remains outside this evidence. |
 | 2026-10-07 | Source `218d5aa`; existing Azure BMS image `6e06634a752b44bce24825b0aa25baf0b669fa16`; refreshed revision `resend-20261007` | Source trace, Azure CLI/container and local browser | Rechecked route/admin/schema/tenant/checkout/email boundaries. BMS Resend reference reapplied and new revision healthy with 100% traffic. All three deployed apps returned live/ready HTTP 200; 840 unit tests passed. Local BMS company save/reload, SQL persistence, restoration and anonymous redirect passed on port 3101. | Full checkout/email/webhook scenario n/a: no authorized message or payment generated. Screenshot origin unanswered. Local APP/SEQ baseline interrupted by dependency-resolution failures during concurrent workspace changes. [Audit](../../../docs/audits/RESEND-BMS-2026-10-07.md). |
 | 2026-10-07 | `2632307` | Source, deterministic tests, local PostgreSQL and browser | Registration allowances have no package order; existing package fulfillment preserved; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](../../../docs/audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
+| 2026-10-09 | `3826319` + consolidated release | Source, deterministic and local PostgreSQL checks | Updated contract above; [release audit](../../../docs/audits/PRODUCTION-RELEASE-2026-10-09.md) separates tests, runtime, deployment and cleanup. | Browser automation omitted at the user's request; production inbox delivery is not inferred. |
 
 ## Related
 

@@ -375,7 +375,8 @@
       "funeralHome": "Funerária",
       "marbleShop": "Marmoraria",
       "plaquePrinter": "Gráfica de placas (porcelana e similares)",
-      "urnManufacturer": "Indústria de urnas (caixão e cremação)"
+      "urnManufacturer": "Indústria de urnas (caixão e cremação)",
+      "finalConsumer": "Guardião / Usuário Final"
     },
     "create": "Criar cliente",
     "edit": "Editar cliente",
@@ -439,7 +440,12 @@
       "administrator": "Administrador",
       "business": "Empresa",
       "contact": "Contato",
-      "modules": "Módulos Sequoia"
+      "modules": "Módulos Sequoia",
+      "consumer": "Cliente final",
+      "consumerContact": "Contato",
+      "purpose": "Finalidade",
+      "guardian": "Administrador / Guardião",
+      "premium": "Permissões Premium"
     },
     "status": {
       "active": "Ativo",
@@ -451,7 +457,12 @@
       "administratorDesc": "Responsável pela conta Sequoia",
       "businessDesc": "Dados legais e identificação",
       "contactDesc": "Detalhes de contato e categoria",
-      "modulesDesc": "Permissões de acesso ao Sequoia"
+      "modulesDesc": "Permissões de acesso ao Sequoia",
+      "consumerDesc": "Identificação do cliente final",
+      "consumerContactDesc": "E-mail de acesso ao App",
+      "purposeDesc": "Motivo da liberação",
+      "guardianDesc": "Acesso ao App para o administrador/guardião do perfil",
+      "premiumDesc": "Recursos Premium no App"
     },
     "stepsNav": "Etapas do formulário",
     "table": {
@@ -1172,7 +1183,13 @@
     "apply": "Confirmar e liberar",
     "applying": "Aplicando...",
     "review": "Conferir e aplicar cupom",
-    "applied": "Cupom aplicado. Os benefícios já estão disponíveis.",
+    "applied": "Cupom aplicado. Os benefícios estão disponíveis e o email de confirmação foi enviado.",
+    "appliedEmailPending": "Liberação concluída. O e-mail de confirmação está pendente; você pode tentar o envio novamente no histórico.",
+    "emailSent": "E-mail enviado",
+    "emailPending": "E-mail pendente",
+    "emailRetry": "Tentar envio de e-mail",
+    "emailSending": "Enviando...",
+    "emailUnavailable": "Esta liberação não está mais disponível para envio de e-mail.",
     "alreadyApplied": "Esta venda já foi aplicada. Nenhum benefício foi duplicado.",
     "resultNote": "O histórico abaixo registra o cliente, os valores, a validade e o responsável. O cliente pode atualizar o APP ou o SEQ para ver os benefícios.",
     "another": "Aplicar em outra venda",
@@ -1245,6 +1262,14 @@
     "sent": "Enviado",
     "pending": "Pendente",
     "grant": "Liberar Premium",
+    "revoke": "Desfazer Premium",
+    "revokeTitle": "Desfazer a liberação de Premium?",
+    "revokeDescription": "O presente Premium de {name} será encerrado agora. A conta, a senha e eventuais períodos pagos serão mantidos. Sem outro plano válido, o acesso volta ao Gratuito. E-mails já enviados não podem ser recolhidos.",
+    "keepPremium": "Manter Premium",
+    "revoking": "Desfazendo…",
+    "revoked": "Liberação de Premium desfeita. A conta e eventuais períodos pagos foram mantidos.",
+    "alreadyRevoked": "Esta liberação de Premium já foi desfeita.",
+    "giftRevoked": "Presente Premium desfeito em {date}",
     "empty": "Nenhum cliente final encontrado.",
     "pagination": "Página {page} de {pages} · {total, plural, one {# cliente} other {# clientes}}",
     "previous": "Anterior",
@@ -1258,9 +1283,18 @@
       "active-subscription": "Este cliente tem uma assinatura com cobrança recorrente ou outro plano ativo. Revise a assinatura antes de oferecer este presente.",
       "request-conflict": "Esta solicitação já foi utilizada com outros dados. Confira a lista de clientes antes de iniciar um novo cadastro.",
       "request-completed": "Esta liberação já foi processada, mas o cadastro não está mais disponível.",
+      "grant-unavailable": "Este presente Premium não está disponível para desfazer. Atualize a lista de clientes.",
+      "grant-revoked": "Esta liberação de Premium foi desfeita. Para oferecer um novo presente, inicie uma nova liberação pela lista de clientes.",
+      "revoke-failed": "Não foi possível desfazer o Premium. Atualize a lista e tente novamente.",
       "failed": "Não foi possível concluir a liberação. Tente novamente.",
       "email-failed": "O e-mail não foi enviado. O acesso continua liberado; tente reenviar.",
       "connection": "Não foi possível confirmar a resposta. Confira a lista de clientes ou tente novamente com os mesmos dados."
+    },
+    "wizard": {
+      "appOnly": "Cadastro de pessoa física com acesso exclusivo ao App, sem acesso ao Sequoia.",
+      "purposeHint": "Registre o motivo: presentear, homenagear ou agilizar a liberação de um perfil.",
+      "guardianHint": "Confira os dados de quem receberá acesso ao App para administrar os perfis sob sua responsabilidade.",
+      "premiumHint": "Os recursos e limites do plano Premium ficam disponíveis no App ao concluir o cadastro."
     }
   }
 }

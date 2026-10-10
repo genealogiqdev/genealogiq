@@ -25,7 +25,10 @@ vi.mock("@genealogiq/db", () => ({
 }))
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }))
 vi.mock("@/lib/dal", () => ({ verifyTenantSession: vi.fn() }))
-vi.mock("@/lib/email", () => ({ sendAppWelcomeEmail: vi.fn(), sendGenCodeDeliveryEmail: vi.fn() }))
+vi.mock("@/lib/email", () => ({ sendAppWelcomeEmail: vi.fn() }))
+vi.mock("@genealogiq/services/email-outbox", () => ({
+  enqueueEmail: vi.fn(), deliverEmail: vi.fn(), notificationUrl: (_app: string, path: string) => `https://genealogiq.com.br${path}`,
+}))
 // The credit ledger is the activation gate now. Stubbed permissive by default;
 // the sale paths under test are about the write-off, not about the balance.
 vi.mock("@genealogiq/services/credits", () => ({
@@ -42,11 +45,15 @@ import {
   undoGenCodeSale,
 } from "./gencode.actions"
 import { verifyTenantSession } from "@/lib/dal"
-import { sendAppWelcomeEmail, sendGenCodeDeliveryEmail } from "@/lib/email"
+import { sendAppWelcomeEmail } from "@/lib/email"
+import { deliverEmail, enqueueEmail } from "@genealogiq/services/email-outbox"
 import { Prisma } from "@genealogiq/db"
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.mocked(deliverEmail).mockResolvedValue('sent')
+  vi.mocked(enqueueEmail).mockResolvedValue('receipt')
+  vi.mocked(sendAppWelcomeEmail).mockResolvedValue(undefined)
   // The sale window is open by default — these tests are about the sale guards,
   // not the batch term.
   prismaMock.genCode.findUnique.mockResolvedValue({
@@ -167,12 +174,19 @@ describe("sellGenCodeViaPlatform — sells to a bare email", () => {
       expect.objectContaining({ data: expect.objectContaining({ email: BUYER.email, tenantId: "c1" }) }),
     )
     expect(sendAppWelcomeEmail).toHaveBeenCalledWith(BUYER.email, expect.any(String), "Bo", "/qr/GEN-1")
-    expect(sendGenCodeDeliveryEmail).not.toHaveBeenCalled()
+    expect(enqueueEmail).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      recipient: BUYER.email,
+      context: { type: 'gencode-sale', appUserId: 'new-user', genCode: 'GEN-1', soldAt: expect.any(String) },
+      message: expect.objectContaining({ action: { label: 'Acessar GenCode', url: 'https://genealogiq.com.br/qr/GEN-1' } }),
+    }))
+    const receipt = vi.mocked(enqueueEmail).mock.calls[0][1]
+    expect(deliverEmail).toHaveBeenCalledExactlyOnceWith(receipt.id)
+    expect(JSON.stringify(receipt)).not.toContain(vi.mocked(sendAppWelcomeEmail).mock.calls[0][1])
   })
 
   it("reuses a password-less consumer already in the tenant instead of creating one", async () => {
     prismaMock.appUser.findUnique.mockResolvedValue({
-      id: "u1", email: BUYER.email, firstName: "Bo", tenantId: "c1", password: null,
+      id: "u1", email: BUYER.email, firstName: "Bo", tenantId: "c1", password: null, role: 'APP_USER', isActive: true,
     })
     const created = mockTx(1)
 
@@ -185,14 +199,17 @@ describe("sellGenCodeViaPlatform — sells to a bare email", () => {
 
   it("delivers the code instead of a password link when the buyer already has a password", async () => {
     prismaMock.appUser.findUnique.mockResolvedValue({
-      id: "u1", email: BUYER.email, firstName: "Bo", tenantId: "c1", password: "hashed",
+      id: "u1", email: BUYER.email, firstName: "Bo", tenantId: "c1", password: "hashed", role: 'APP_USER', isActive: true,
     })
     mockTx(1)
 
     const res = await sellGenCodeViaPlatform("GEN-1", BUYER)
 
     expect(res.ok).toBe(true)
-    expect(sendGenCodeDeliveryEmail).toHaveBeenCalledWith(BUYER.email, "GEN-1", "Bo")
+    expect(enqueueEmail).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      recipient: BUYER.email, message: expect.objectContaining({ name: 'Bo', subject: 'Seu GenCode está disponível' }),
+    }))
+    expect(deliverEmail).toHaveBeenCalledOnce()
     expect(sendAppWelcomeEmail).not.toHaveBeenCalled()
   })
 
@@ -204,6 +221,8 @@ describe("sellGenCodeViaPlatform — sells to a bare email", () => {
 
     expect(res).toEqual({ ok: false, message: "gencode.notAvailable" })
     expect(sendAppWelcomeEmail).not.toHaveBeenCalled()
+    expect(enqueueEmail).not.toHaveBeenCalled()
+    expect(deliverEmail).not.toHaveBeenCalled()
   })
 
   it("maps a Prisma known request error to gencode.saleFailed", async () => {
@@ -218,14 +237,31 @@ describe("sellGenCodeViaPlatform — sells to a bare email", () => {
     expect(sendAppWelcomeEmail).not.toHaveBeenCalled()
   })
 
-  it("still reports success when the email fails to send", async () => {
+  it("keeps the sale successful while explicitly reporting the pending email", async () => {
     prismaMock.appUser.findUnique.mockResolvedValue(null)
     mockTx(1)
     vi.mocked(sendAppWelcomeEmail).mockRejectedValue(new Error("smtp down"))
 
     await expect(sellGenCodeViaPlatform("GEN-1", BUYER)).resolves.toEqual({
-      ok: true, message: "gencode.soldViaPlatform",
+      ok: true, message: "gencode.soldEmailPending",
     })
+  })
+
+  it('keeps an existing customer sale successful with its receipt pending for retry', async () => {
+    prismaMock.appUser.findUnique.mockResolvedValue({ id: 'u1', email: BUYER.email, firstName: 'Bo', tenantId: 'c1', password: 'hash', role: 'APP_USER', isActive: true })
+    mockTx(1)
+    vi.mocked(deliverEmail).mockResolvedValue('pending')
+    expect(await sellGenCodeViaPlatform('GEN-1', BUYER)).toEqual({ ok: true, message: 'gencode.soldEmailPending' })
+    expect(prismaMock.$transaction).toHaveBeenCalledOnce()
+    expect(enqueueEmail).toHaveBeenCalledOnce()
+    expect(sendAppWelcomeEmail).not.toHaveBeenCalled()
+  })
+
+  it.each([{ role: 'APP_USER', isActive: false }, { role: 'APP_MEMO', isActive: true }])('rejects an ineligible login recipient before selling: %j', async (state) => {
+    prismaMock.appUser.findUnique.mockResolvedValue({ id: 'u1', tenantId: 'c1', ...state })
+    expect(await sellGenCodeViaPlatform('GEN-1', BUYER)).toEqual({ ok: false, message: 'gencode.recipientUnavailable' })
+    expect(prismaMock.$transaction).not.toHaveBeenCalled()
+    expect(enqueueEmail).not.toHaveBeenCalled()
   })
 })
 

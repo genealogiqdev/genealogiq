@@ -14,9 +14,33 @@ function resend(): Resend {
   return client
 }
 
-async function send(to: string, subject: string, html: string): Promise<void> {
-  const result = await resend().emails.send({ from: FROM, to, subject, html })
-  if (result.error) throw new Error('Email delivery was rejected by the provider')
+async function send(to: string, subject: string, html: string, idempotencyKey?: string): Promise<void> {
+  const message = { from: FROM, to, subject, html }
+  const result = idempotencyKey
+    ? await resend().emails.send(message, { idempotencyKey })
+    : await resend().emails.send(message)
+  if (result.error || !result.data?.id) throw new Error('Email delivery was rejected by the provider')
+}
+
+/** Plain text only: callers cannot inject HTML, credentials or template markup. */
+export interface NotificationEmail {
+  subject: string
+  name: string
+  paragraphs: string[]
+  details?: { label: string; value: string }[]
+  action: { label: string; url: string }
+}
+
+export function sendNotificationEmail(to: string, message: NotificationEmail, idempotencyKey: string): Promise<void> {
+  const url = new URL(message.action.url)
+  if (!['https:', 'http:'].includes(url.protocol)) throw new Error('Invalid notification URL')
+  return send(to, message.subject, `
+    <p>Olá ${escapeHtml(message.name)},</p>
+    ${message.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join('\n')}
+    ${message.details?.length ? `<dl>${message.details.map(({ label, value }) => `<dt>${escapeHtml(label)}</dt><dd><strong>${escapeHtml(value)}</strong></dd>`).join('\n')}</dl>` : ''}
+    <p><a href="${escapeHtml(url.toString())}">${escapeHtml(message.action.label)}</a></p>
+    <p>Equipe Genealogiq</p>
+  `, idempotencyKey)
 }
 
 export function sendPartnerCredentialsEmail({ to, password, baseUrl, initialGenCodes }: {

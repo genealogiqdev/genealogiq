@@ -46,12 +46,20 @@ describe('BMS consumer access actions', () => {
 
   it('uses verified actor and a strong hashed password, ignores tenant/plan/role injection, and mails after commit', async () => {
     mail.mockImplementation(async () => { expect(grant).toHaveBeenCalledOnce() })
-    const response = await registerConsumer({ ...input, tenantId: 'funeral-1', createdById: 'attacker', role: 'SUPER_ADMIN', months: 120 } as typeof input)
+    const response = await registerConsumer({ ...input, tenantId: 'funeral-1', createdById: 'attacker', role: 'SUPER_ADMIN', months: 120,
+      businessSegment: 'FINAL_CONSUMER', owner: { email: 'staff@genealogiq.test' }, initialGenCodes: 100,
+      moduleRecordsSuppliers: true, moduleCategoriesSuppliers: true,
+    } as typeof input)
     const args = grant.mock.calls[0][0]
     expect(args).toMatchObject({ firstName: 'Ana', email: 'ana@genealogiq.test', createdById: 'verified-admin', locale: 'pt-BR', currency: 'BRL' })
     expect(args).not.toHaveProperty('tenantId')
     expect(args).not.toHaveProperty('role')
     expect(args).not.toHaveProperty('months')
+    expect(args).not.toHaveProperty('businessSegment')
+    expect(args).not.toHaveProperty('owner')
+    expect(args).not.toHaveProperty('initialGenCodes')
+    expect(args).not.toHaveProperty('moduleRecordsSuppliers')
+    expect(args).not.toHaveProperty('moduleCategoriesSuppliers')
     const password = mail.mock.calls[0][0].password
     expect(password).toMatch(/^Gq![A-Za-z0-9_-]{24}$/)
     expect(bcrypt.getRounds(args.passwordHash)).toBe(12)
@@ -95,6 +103,7 @@ describe('BMS consumer access actions', () => {
     expect(db.appUser.findFirst.mock.calls[0][0].where).toEqual({ id: 'consumer-1', tenantId: null, role: 'APP_USER', isActive: true, email: { not: null } })
     const eligibleGift = db.appUser.findFirst.mock.calls[0][0].select.consumerAccessGrants.where
     expect(eligibleGift).toEqual({
+      revokedAt: null,
       expiresAt: { gt: expect.any(Date) },
       appSale: { status: { in: ['active', 'trialing'] }, currentPeriodEnd: { gt: expect.any(Date) } },
     })

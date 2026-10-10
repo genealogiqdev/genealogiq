@@ -3,7 +3,7 @@
 > **Code:** [src/actions/discount-coupon.actions.ts](../src/actions/discount-coupon.actions.ts) · [src/queries/discount-coupons.ts](../src/queries/discount-coupons.ts) · [src/schemas/discount-coupon.schema.ts](../src/schemas/discount-coupon.schema.ts) · [src/actions/manual-coupon.actions.ts](../src/actions/manual-coupon.actions.ts) · [manual-coupon service](../../../packages/services/src/manual-coupon.ts)
 > **Entry points:** `/sales/discount-coupons` · `/sales/discount-coupons/new` · `/sales/discount-coupons/[id]` · `/sales/discount-coupons/redeem`
 > **Depends on:** [GENCODE-PACKAGES](GENCODE-PACKAGES.md) · [PARTNER-PLANS-CONTRACTS](PARTNER-PLANS-CONTRACTS.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-07 at `2632307` for the immediate partner onboarding change. Source, tests, local runtime/UI and deployment evidence are separated in the onboarding audit linked below; earlier verification history is preserved.
+> **Last verified against code:** 2026-10-09 at `3826319` plus the consolidated release. Earlier source/runtime evidence remains in the verification log.
 
 The BMS application supplies discount coupon management. Coupons support percentage or currency-specific fixed amounts, expiry, usage and activation. The schema/SDK mapping determines the Stripe coupon; BMS mutations are privileged. Migration 20260825180000_coupon_tri_currency established the currency-specific shape.
 
@@ -52,6 +52,10 @@ The operator supplies a unique sale/stock reference, selects `external_payment` 
 After a partner settlement, BMS invokes the existing `provisionTenantAccess` process so a newly registered OWNER becomes active. A thrown invitation failure produces a successful-sale response with an explicit access follow-up and a link to Customers. It must not invite the operator to repeat the sale. Normal mail delivery still requires Resend; see [PARTNERS](PARTNERS.md) and [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md) for the existing resend flow and provider limits.
 
 ## Contracts and data
+
+### Consolidated release, 2026-10-09
+
+Settlement queues one non-secret receipt atomically with CouponRedemption and its recorded entitlement. The result and receipt list distinguish sent from pending email without reporting the completed sale as failed. retryManualCouponEmail rechecks platform privileges and the current recipient, retries only the receipt, and never redeems the coupon again. An eligible receipt created before this migration can be queued by an explicit operator retry; there is no automatic customer-mail backfill. Provider acceptance and background retry follow [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md).
 
 Coupons support percentage or currency-specific fixed amounts, expiry, usage and activation. The schema/SDK mapping determines the Stripe coupon; BMS mutations are privileged. Migration 20260825180000_coupon_tri_currency established the currency-specific shape.
 
@@ -190,6 +194,7 @@ Expect: stock tenant 5 + package quantity 2 = 7 codes and credits; a new B2B pla
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-10-07 | `218d5aa` + Gen2026 change | Source, deterministic tests, real PostgreSQL and normal Credentials/browser | Manual mode, all three products, stock preservation, duplicate reference, overlapping contract, non-admin 403, finite APP entitlement and new partner access exercised. | [Gen2026 audit](../../../docs/audits/GEN2026-2026-10-07.md) records separate evidence, exact counts and provider/deployment limits. Stripe replay gap G1 remains open. |
 | 2026-10-07 | `2632307` | Source, deterministic tests, local PostgreSQL and browser | Initial registration no longer requires a manual coupon; legacy settlement path retained; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](../../../docs/audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
+| 2026-10-09 | `3826319` + consolidated release | Source, deterministic and local PostgreSQL checks | Updated contract above; [release audit](../../../docs/audits/PRODUCTION-RELEASE-2026-10-09.md) separates tests, runtime, deployment and cleanup. | Browser automation omitted at the user's request; production inbox delivery is not inferred. |
 
 ## Related
 

@@ -1,9 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { sendEmail } = vi.hoisted(() => ({ sendEmail: vi.fn() }))
 vi.mock('resend', () => ({ Resend: class { emails = { send: sendEmail } } }))
-import { sendFeedbackEmail, sendVerificationEmail, sendPartnerCredentialsEmail, sendConsumerPremiumEmail, sendWelcomeEmail } from './index'
+import { sendFeedbackEmail, sendVerificationEmail, sendPartnerCredentialsEmail, sendConsumerPremiumEmail, sendWelcomeEmail, sendNotificationEmail } from './index'
 beforeEach(() => vi.resetAllMocks())
 describe('transactional email contracts', () => {
+  it('escapes receipt text and forwards the stable provider idempotency key', async () => {
+    sendEmail.mockResolvedValue({ data: { id: 'receipt-accepted' }, error: null })
+    await sendNotificationEmail('ana@genealogiq.test', {
+      subject: 'Pagamento confirmado', name: '<Ana>', paragraphs: ['<script>não</script>'],
+      details: [{ label: '<Plano>', value: 'Premium & extras' }], action: { label: 'Abrir <App>', url: 'https://genealogiq.com.br/subscriptions' },
+    }, 'receipt-stable-key')
+    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ from: 'no-reply@genealogiq.com.br', to: 'ana@genealogiq.test' }), { idempotencyKey: 'receipt-stable-key' })
+    const html = sendEmail.mock.calls[0][0].html
+    expect(html).toContain('&lt;Ana&gt;')
+    expect(html).toContain('&lt;script&gt;não&lt;/script&gt;')
+    expect(html).toContain('Premium &amp; extras')
+    expect(html).not.toContain('<script>')
+  })
+  it('does not claim acceptance without a provider message ID', async () => {
+    sendEmail.mockResolvedValue({ data: null, error: null })
+    await expect(sendVerificationEmail({ to: 'ana@genealogiq.test', token: 'synthetic', baseUrl: 'https://genealogiq.com.br' })).rejects.toThrow('Email delivery was rejected')
+  })
+  it('rejects script URLs before invoking the mail provider', () => {
+    expect(() => sendNotificationEmail('ana@genealogiq.test', { subject: 'Test', name: 'Ana', paragraphs: [], action: { label: 'Open', url: 'javascript:alert(1)' } }, 'receipt-key')).toThrow('Invalid notification URL')
+    expect(sendEmail).not.toHaveBeenCalled()
+  })
   it('sends staff invitations from the verified Genealogiq domain with the BMS setup link', async () => {
     sendEmail.mockResolvedValue({ data: { id: 'fixture-email' }, error: null })
     await sendWelcomeEmail({ to: 'staff@genealogiq.test', token: 'synthetic-token', baseUrl: 'https://bms.genealogiq.com.br' })

@@ -5,6 +5,7 @@ import { prisma, Prisma } from '@genealogiq/db'
 import { addBillingMonths } from './billing-dates'
 import { grantGenCodeOrder, GENCODE_PACKAGE_CREDIT_MONTHS } from './gencode-package'
 import { openPartnerCycle, partnerCycleSelect } from './partner-billing'
+import { queueManualSaleEmail } from './sale-notifications'
 
 export type ManualCouponKind = 'partner' | 'package' | 'consumer'
 export type ManualCouponErrorReason =
@@ -239,6 +240,8 @@ export async function redeemManualCoupon(input: ManualCouponInput): Promise<Manu
           createdById: input.createdById, ...result,
         },
       })
+      // The notification survives provider outages and commits with the entitlement.
+      if (!await queueManualSaleEmail(tx, redemption.id)) throw new Error('Sale notification recipient unavailable')
       return { ...replayResult(redemption), alreadyApplied: false }
     }, { maxWait: 10_000, timeout: 30_000 })
   } catch (error) {

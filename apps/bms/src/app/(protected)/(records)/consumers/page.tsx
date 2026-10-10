@@ -6,6 +6,7 @@ import { Input } from '@genealogiq/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@genealogiq/ui/table'
 import { getConsumers } from '@/queries/consumers'
 import { ConsumerResendButton } from '@/components/consumers/consumer-resend-button'
+import { ConsumerRevokeButton } from '@/components/consumers/consumer-revoke-button'
 
 export default async function ConsumersPage({ searchParams }: { searchParams: Promise<{ q?: string; page?: string; status?: string }> }) {
   const params = await searchParams
@@ -43,7 +44,9 @@ export default async function ConsumersPage({ searchParams }: { searchParams: Pr
           {data.consumers.map((consumer) => {
             const active = consumer.appSales[0]
             const gift = consumer.consumerAccessGrants[0]
-            const liveGift = !!gift && gift.expiresAt > now
+            const liveGift = !!gift && !gift.revokedAt && gift.expiresAt > now
+              && !!gift.appSale?.currentPeriodEnd && gift.appSale.currentPeriodEnd > now
+              && ['active', 'trialing'].includes(gift.appSale.status ?? '')
             const canManageAccess = consumer.isActive && !!consumer.email && consumer.tenantId === null
             return <TableRow key={consumer.id}>
               <TableCell className="max-w-64 whitespace-normal break-words">
@@ -58,11 +61,18 @@ export default async function ConsumersPage({ searchParams }: { searchParams: Pr
               <TableCell className="max-w-48 whitespace-normal">{active?.currentPeriodEnd
                 ? <><span className="font-medium">{active.subscription.name}</span><p className="text-xs text-muted-foreground">{t('until', { date: date.format(active.currentPeriodEnd) })}</p></>
                 : t('free')}
-                {gift && <p className="text-xs text-muted-foreground">{t('delivery')}: {t(gift.emailSentAt ? 'sent' : 'pending')}</p>}
+                {gift && <p className="text-xs text-muted-foreground">{gift.revokedAt
+                  ? t('giftRevoked', { date: date.format(gift.revokedAt) })
+                  : <>{t('delivery')}: {t(gift.emailSentAt ? 'sent' : 'pending')}</>}</p>}
               </TableCell>
-              <TableCell>{canManageAccess ? (liveGift
-                ? <ConsumerResendButton appUserId={consumer.id} />
-                : <Button asChild variant="outline" size="sm"><Link href={`/consumers/new?id=${encodeURIComponent(consumer.id)}`}>{t('grant')}</Link></Button>) : '—'}</TableCell>
+              <TableCell>{liveGift && consumer.tenantId === null
+                ? <div className="flex flex-wrap gap-2">
+                  {canManageAccess && <ConsumerResendButton appUserId={consumer.id} />}
+                  <ConsumerRevokeButton grantId={gift.id} consumerName={`${consumer.firstName} ${consumer.lastName}`} />
+                </div>
+                : canManageAccess
+                  ? <Button asChild variant="outline" size="sm"><Link href={`/consumers/new?id=${encodeURIComponent(consumer.id)}`}>{t('grant')}</Link></Button>
+                  : '—'}</TableCell>
             </TableRow>
           })}
           {!data.consumers.length && <TableRow><TableCell colSpan={6} className="py-10 text-center text-muted-foreground">{t('empty')}</TableCell></TableRow>}

@@ -3,7 +3,7 @@
 > **Code:** [src/actions/customer.actions.ts](../src/actions/customer.actions.ts) · [src/actions/customer-category.actions.ts](../src/actions/customer-category.actions.ts) · [src/actions/deceased.actions.ts](../src/actions/deceased.actions.ts) · [src/queries/customers.ts](../src/queries/customers.ts) · [src/queries/deceased.ts](../src/queries/deceased.ts) · [src/queries/customer-categories.ts](../src/queries/customer-categories.ts)
 > **Entry points:** `/customers` · `/customers/new` · `/customers/[id]` · `/categories/customers` · `/categories/customers/new` · `/categories/customers/[id]` · `/memorialized/[id]`
 > **Depends on:** [AUTHENTICATION](../../../docs/AUTHENTICATION.md) · [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-03 at `6e06634`, including this task’s uncommitted documentation, launcher and test changes. Source verification is separate from runtime/UI below.
+> **Last verified against code:** 2026-10-09 at `3826319` plus the consolidated release. Earlier source/runtime evidence remains in the verification log.
 
 The SEQ application supplies tenant consumers, categories and memorial records. Tenant-owned consumer rows use AppUser.tenantId and are AppUser records, separate from BMS Tenant partners. Category and memorial forms use Zod schemas and scoped DAL access. Human death/birth/location fields and guardian links follow the AppUser model.
 
@@ -52,6 +52,10 @@ Use a stored `QrCode.url` when present, preserving activated code destinations. 
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
+
+### Consolidated release, 2026-10-09
+
+Creating an active customer, with or without a memorial, creates the hashed 72-hour password-setup token in the same database transaction. The welcome email is sent only after commit. A delivery failure returns the completed registration with an explicit pending-email result; retry the existing customer invitation instead of creating another customer. Inactive accounts receive neither token nor email. Resend keeps tenant, active-account and password-already-set guards. Consumer quotas and PNG/SVG download authorization remain the separately verified memorial contract.
 
 Tenant-owned consumer rows use AppUser.tenantId and are AppUser records, separate from BMS Tenant partners. Category and memorial forms use Zod schemas and scoped DAL access. Human death/birth/location fields and guardian links follow the AppUser model.
 
@@ -196,6 +200,7 @@ The 2026-10-09 plan/download follow-up has 77 passing focused tests in eight fil
 | 2026-10-09 | Same working tree, including pre-existing unrelated changes | Automated checks | `pnpm test`: 113 files / 980 tests passed, four integration files / 24 tests skipped; the QR query/DOM specs contributed eight passes. SEQ typecheck passed. SEQ lint: zero errors / 22 existing warnings, none in the changed source. Documentation and `git diff --check` passed. | Initial test configuration needed automatic JSX for shared UI; QR mocks were typed to their Promise overloads. Both were corrected before the passing runs. Real PostgreSQL/session/download decoding remains unverified. |
 | 2026-10-09 | Same QR download change | SEQ build and cleanup | Provider-disabled local `next build` passed using `LOCAL_QA_DIST_DIR=.next-qa-qr-download-20261009`, including TypeScript and 26/26 generated pages. Logs are retained under `.local-qa/2026-10-09/qr-download/`. The build exited and its two generated tsconfig include paths were removed while preserving the prior file contents. | Standalone packaging is intentionally omitted in local QA mode. Compilation is not an authenticated runtime/UI or cloud deployment pass. No product server or database fixture was created. |
 | 2026-10-09 | `08b2b1c` + memorial plan/download follow-up | Source, scoped tests and real QR decoding | 77 focused tests passed; 36 PNG/SVG files independently decoded. APP/SEQ types and local production builds passed; SEQ lint had zero errors/20 existing warnings. | Full-suite and locale-reference failures belong to concurrent work; PostgreSQL/Chrome product acceptance remains n/a. Build-cache removal was blocked by automatic review; [audit](../../../docs/audits/SEQ-MEMORIALS-2026-10-09.md). |
+| 2026-10-09 | `3826319` + consolidated release | Source, deterministic and local PostgreSQL checks | Updated contract above; [release audit](../../../docs/audits/PRODUCTION-RELEASE-2026-10-09.md) separates tests, runtime, deployment and cleanup. | Browser automation omitted at the user's request; production inbox delivery is not inferred. |
 
 ## Related
 

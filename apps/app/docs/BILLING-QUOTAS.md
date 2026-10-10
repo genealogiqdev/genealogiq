@@ -3,7 +3,7 @@
 > **Code:** [src/components/header.tsx](../src/components/header.tsx) · [src/actions/billing.actions.ts](../src/actions/billing.actions.ts) · [src/actions/extra-units.actions.ts](../src/actions/extra-units.actions.ts) · [src/lib/subscription.ts](../src/lib/subscription.ts) · [src/lib/quota.ts](../src/lib/quota.ts) · [src/lib/plan-quotas.ts](../src/lib/plan-quotas.ts) · [src/lib/extra-units.ts](../src/lib/extra-units.ts) · [src/app/api/stripe/webhook/route.ts](../src/app/api/stripe/webhook/route.ts)
 > **Entry points:** Authenticated header's **Assinaturas / Subscriptions / Suscripciones** button → `/subscriptions` · `/billing/qr-code` · `/api/stripe/webhook`
 > **Depends on:** [PARTNER-CREDITS](../../../docs/PARTNER-CREDITS.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-07 at `9253152` plus the Gen2026 changes to the paths named below. Source, tests, runtime and UI are recorded separately; earlier observations remain in the verification log.
+> **Last verified against code:** 2026-10-09 at `3826319` plus the consolidated release. Earlier source/runtime evidence remains in the verification log.
 
 The APP application supplies consumer billing and feature quotas. Zod parses checkout/currency inputs; getMemorialFeatures resolves current Subscription quota fields through a live living/guardian AppSale and ranks guardian plans by current USD PlanPrice. Extra-unit limits use purchased ExtraUnitPurchase quantities. Prices are versioned PlanPrice rows; do not trust UI amounts. The FREE fallback must exist. Subscription quota and price-book migrations own the dimensions; exact provenance is in DATABASE.md.
 
@@ -38,6 +38,10 @@ The enforcing files are linked above. Test names and literal assertions below re
 
 ## Contracts and data
 
+### Consolidated release, 2026-10-09
+
+Paid extra-unit fulfilment queues its confirmation in the same transaction as the purchased units. Signed subscription invoice success/failure events queue separate idempotent receipts; payment failures never grant entitlement, and a later paid invoice suppresses its obsolete failure notice. Unknown resource/currency metadata and non-APP_USER or inactive buyers are rejected before extra-unit writes. Delivery failure remains retryable through the shared [email contract](../../../docs/EMAIL-DELIVERY.md); a redirect still does not establish payment.
+
 ### Memorial creation and QR allowances
 
 The [2026-10-09 memorial follow-up](../../../docs/audits/SEQ-MEMORIALS-2026-10-09.md) separates creation capacity and QR access from physical GenCode inventory. Standard FREE has one human memorial without an included memorial QR; PREMIUM has five human and five pet slots. Live `Subscription.memorialsMax`/`petsMax` values remain authoritative and the local seed matches five/five. Existing over-quota profiles are preserved. Premium human memorial QRs no longer compete with the personal `qrCodeMax`; purchased QR units and activated plaques retain independent access. Extra MEMORIAL units increase human creation capacity without automatically buying QR units. SEQ resolves the same active/trialing, future-ended AppSale for its scoped customer and checks it on every preview/export. No catalog migration or live subscription change was made.
@@ -51,6 +55,8 @@ The [tree-to-memorial shortcut](MEMORIALS-GUARDIANS.md) checks the acting guardi
 The [BMS direct consumer flow](../../bms/docs/CONSUMERS.md) can create an independent APP account and grant 12 calendar months of active Premium without a coupon, purchase, GenCode or Stripe subscription. `ConsumerAccessGrant` audits the operator, request and granted dates; its AppSale has zero value, no tenant, no Stripe ID, a finite expiry and no automatic renewal. Existing compatible manually held Premium days are preserved before adding the first gift. Live recurring or different-plan subscriptions block a new gift; repeated gifts during a valid granted period do not extend it.
 
 APP resolves the same database-backed Premium quotas and guardian inheritance as ordinary active AppSales. The subscription page includes the held plan even if later removed from the public catalog, displays **Presente Genealogiq · sem cobrança** and the exact expiry, and hides checkout controls during the gift. `createCheckoutSession` independently rejects a live gift, even when called outside the UI. Expired AppSales stop granting quotas through the existing period predicate; there is no auto-renewal or payment call. Plan prices remain catalog data and are not presented as charges for this gift.
+
+The 2026-10-08 [consumer-expiry correction](../../bms/docs/CONSUMERS.md#consumers-g3-legacy-test-expiry-was-extended-into-2100) replaces the exact migration-origin zero-value 2099 test allowance when granting a BMS gift. Historical independent-customer test dates and affected gift/audit dates are corrected in the database, so APP and BMS read the same finite term. This is not a display-year substitution or a cap on genuine purchased access. See the [expiry audit](../../../docs/audits/CONSUMER-EXPIRY-2026-10-08.md).
 
 ### BMS-confirmed external subscriptions
 
@@ -188,6 +194,7 @@ For changes to subscription navigation, sign in normally and start at `/home` wi
 | 2026-10-07 | `b8afb94` + direct consumer access | Source, tests, PostgreSQL and APP browser | Zero-value finite Premium gift, overlapping-checkout guard and gift card verified. Existing manual end 15 December 2026 extended to 15 December 2027; APP login/reload retained quotas and gift expiry. | [Consumer audit](../../../docs/audits/CONSUMER-ACCESS-2026-10-07.md); no real Stripe mutation performed. |
 | 2026-10-09 | `08b2b1c` + tree profile reuse | Source, unit/DOM and static review | Existing-ID promotion, accepted scope, transactional plan/count/extras, separate pet quotas and refreshed guarded lists; 38 new regression tests passed. [Audit](../../../docs/audits/TREE-MEMORIALS-2026-10-09.md) records build and all check results. | Runtime: PostgreSQL/Docker unavailable. UI/persistence: not exercised; exact remaining scenarios are in the audit. |
 | 2026-10-09 | `08b2b1c` + shared memorial QR follow-up | Source and automated quota checks | Premium human QR slots now follow memorial capacity independently of the personal QR; Free creation does not include a memorial QR. Standard local seed is 5 humans/5 pets; purchased rights are retained. | [Audit](../../../docs/audits/SEQ-MEMORIALS-2026-10-09.md): 77 focused passes, APP types/build passed; seed/live billing and authenticated product verification were not run. |
+| 2026-10-09 | `3826319` + consolidated release | Source, deterministic and local PostgreSQL checks | Updated contract above; [release audit](../../../docs/audits/PRODUCTION-RELEASE-2026-10-09.md) separates tests, runtime, deployment and cleanup. | Browser automation omitted at the user's request; production inbox delivery is not inferred. |
 
 ## Related
 

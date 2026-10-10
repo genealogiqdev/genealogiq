@@ -3,7 +3,7 @@
 > **Code:** [src/actions/partner-plan.actions.ts](../src/actions/partner-plan.actions.ts) · [src/queries/purchasing.ts](../src/queries/purchasing.ts) · [src/app/api/stripe/webhook/route.ts](../src/app/api/stripe/webhook/route.ts)
 > **Entry points:** `/purchasing/plans` · `/api/stripe/webhook`
 > **Depends on:** [PARTNER-CREDITS](../../../docs/PARTNER-CREDITS.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-07 at `9253152` plus the Gen2026 changes to the paths named below. Source, tests, runtime and UI are recorded separately; earlier observations remain in the verification log.
+> **Last verified against code:** 2026-10-09 at `3826319` plus the consolidated release. Earlier source/runtime evidence remains in the verification log.
 
 The SEQ application supplies partner purchasing and annual subscription. The verified tenant selects an effective plan price and cash/installment payment mode; shared checkout supplies Stripe metadata. Annual plans and standalone package orders have separate entitlement contracts. Webhook events use the shared services, not browser redirects, to grant credits.
 
@@ -30,6 +30,10 @@ One annual cycle spans twelve months even when paid in installments (ea6e3ca). 2
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
+
+### Consolidated release, 2026-10-09
+
+The SEQ signed webhook now handles partner invoice payment failures by queuing a scoped notice without opening a cycle or provisioning access. Successful package/invoice receipts and email retry use the shared services and live partner checks. Origin and product metadata still exclude events from other applications from the SEQ fulfilment branch. Full signed-provider/browser replay remains the existing integration gap.
 
 ### Plans activated by the BMS team
 
@@ -143,6 +147,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-10-07 | `218d5aa` + Gen2026 change | Source trace, BMS/SEQ browser and raw DB rows | Manual contract history, 20 available codes, tenant-specific balances and first-access activation verified. | [Audit](../../../docs/audits/GEN2026-2026-10-07.md); the existing self-service role and signed replay gaps remain open. |
+| 2026-10-09 | `3826319` + consolidated release | Source, deterministic and local PostgreSQL checks | Updated contract above; [release audit](../../../docs/audits/PRODUCTION-RELEASE-2026-10-09.md) separates tests, runtime, deployment and cleanup. | Browser automation omitted at the user's request; production inbox delivery is not inferred. |
 
 ## Related
 

@@ -6,6 +6,7 @@ import { generateGenCode } from '@genealogiq/core'
 import { grantCycleCredits } from './credits'
 import { decideRollover, countRollableCredits } from './rollover'
 import { addBillingMonths } from './billing-dates'
+import { queuePartnerInvoiceEmail, invoiceSubscriptionId } from './sale-notifications'
 
 /**
  * Cycle lifecycle for a partner's B2B subscription.
@@ -159,7 +160,7 @@ function addDays(from: Date, days: number): Date {
  * granting a second allowance.
  */
 export async function applyPartnerInvoicePaid(invoice: Stripe.Invoice): Promise<AppliedInvoice> {
-  const stripeSubscriptionId = subscriptionIdOf(invoice)
+  const stripeSubscriptionId = invoiceSubscriptionId(invoice)
   if (!stripeSubscriptionId) return { outcome: 'ignored', subscriptionId: null, cycleId: null }
 
   const subscription = await prisma.partnerSubscription.findUnique({
@@ -186,13 +187,16 @@ export async function applyPartnerInvoicePaid(invoice: Stripe.Invoice): Promise<
 
   // The whole point of this file: an instalment is not a renewal.
   if (!isFirst && !expired) {
+    await queuePartnerInvoiceEmail(prisma, subscription.id, invoice)
     return { outcome: 'instalment', subscriptionId: subscription.id, cycleId: current.id }
   }
 
   const price = await resolveInvoicePrice(invoice)
-  const cycle = await prisma.$transaction((tx) => openPartnerCycle(tx, {
-    subscription, price, now, stripeInvoiceId: invoice.id,
-  }))
+  const cycle = await prisma.$transaction(async (tx) => {
+    const opened = await openPartnerCycle(tx, { subscription, price, now, stripeInvoiceId: invoice.id })
+    await queuePartnerInvoiceEmail(tx, subscription.id, invoice)
+    return opened
+  })
 
   return {
     outcome: isFirst ? 'first-cycle' : 'renewed',
@@ -366,12 +370,6 @@ export async function syncPartnerSubscriptionStatus(sub: Stripe.Subscription): P
     where: { stripeSubscriptionId: sub.id },
     data:  { status: mapped },
   })
-}
-
-function subscriptionIdOf(invoice: Stripe.Invoice): string | null {
-  const raw = (invoice as unknown as { subscription?: string | { id: string } }).subscription
-  if (typeof raw === 'string') return raw
-  return raw?.id ?? null
 }
 
 /**

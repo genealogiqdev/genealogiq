@@ -3,7 +3,7 @@
 > **Code:** [schema.prisma](../packages/db/prisma/schema.prisma), [Prisma configuration](../packages/db/prisma.config.ts), [client initialization](../packages/db/src/index.ts), [migration gate](../scripts/check-migrations.mjs)
 > **Last verified against code:** 2026-10-07 at `9253152` plus the Gen2026 schema and migration; earlier audits remain below.
 
-All three apps consume @genealogiq/db. The schema contains 45 models and the migration tree contains 76 migration.sql files, including the 2026-10-07 manual coupon settlement and direct consumer access changes. These counts were recomputed from files. The single-schema check verifies that no app keeps a competing Prisma schema.
+All three apps consume @genealogiq/db. The schema contains 46 models and the migration tree contains 78 migration.sql files, including the additive consumer gift revocation and durable email outbox changes. Counts are recomputed from files; the single-schema gate excludes competing app schemas.
 
 ## Model/table and creation provenance
 
@@ -13,6 +13,7 @@ All three apps consume @genealogiq/db. The schema contains 45 models and the mig
 | `DiscountCoupon` | `discount_coupons` | Existing/introspected table; original creation SQL not recorded in this tree |
 | `CouponRedemption` | `coupon_redemptions` | [20261007000000_manual_coupon_redemptions](../packages/db/prisma/migrations/20261007000000_manual_coupon_redemptions/migration.sql) |
 | `ConsumerAccessGrant` | `consumer_access_grants` | [20261007010000_consumer_access_grants](../packages/db/prisma/migrations/20261007010000_consumer_access_grants/migration.sql) |
+| `EmailOutbox` | `email_outbox` | [20261009020000_email_outbox](../packages/db/prisma/migrations/20261009020000_email_outbox/migration.sql) |
 | `AppSale` | `app_sales` | Existing/introspected table; original creation SQL not recorded in this tree |
 | `StripeEvent` | `stripe_events` | [20260517000000_align_app_sale_stripe](../packages/db/prisma/migrations/20260517000000_align_app_sale_stripe/migration.sql) |
 | `ExtraUnitPrice` | `app_extra_unit_prices` | [20260805000000_extra_unit_purchases](../packages/db/prisma/migrations/20260805000000_extra_unit_purchases/migration.sql) |
@@ -61,6 +62,8 @@ The table names above come from @@map. Column names come from each field's @map;
 
 Direct consumer gifts add an audit table with unique request and result IDs, permanent recipient/operator IDs, granted period, optional note and email acceptance time. Nullable AppUser/AppSale relations use SET NULL on deletion so a completed request cannot recreate a deleted consumer. No existing data or columns change. The [consumer feature](../apps/bms/docs/CONSUMERS.md) owns the atomic writer, period policy and deletion/replay integration tests.
 
+The subsequent [consumer revocation migration](../packages/db/prisma/migrations/20261009010000_consumer_access_revocation/migration.sql) adds nullable `revoked_at` and `revoked_by_id`, with a CHECK enforcing their paired presence. Revoking ends only the audited zero-value gift AppSale and records these fields atomically; original dates, recipient/operator identity and other sales remain. The new query fields require migration before application deployment.
+
 | Migration | Contract |
 | --- | --- |
 | [co-guardianship](../packages/db/prisma/migrations/20260516000000_co_guardianship/migration.sql) | Guardianship status and requests |
@@ -71,10 +74,13 @@ Direct consumer gifts add an audit table with unique request and result IDs, per
 | [credit ledger](../packages/db/prisma/migrations/20260826001000_credit_ledger_and_retire_sale/migration.sql) | Grants/reservations/transactions; retired legacy sale path |
 | [package orders](../packages/db/prisma/migrations/20260921000000_gencode_packages/migration.sql) | GenCode package catalog/order snapshots |
 | [pet ownerships](../packages/db/prisma/migrations/20260922000000_pet_ownerships/migration.sql) | Shared human/pet ownership links |
+| [consumer gift revocation](../packages/db/prisma/migrations/20261009010000_consumer_access_revocation/migration.sql) | Paired cancellation time/operator without removing gift history |
 
 Commit 2498328 removed maxProfiles; a0aa99b removed memorial bulk-sale binding; 2504132 retired digital SEQ modules; bf57287 retained automatic canvas layout despite the historic TreeNodePosition model. Read feature docs before reviving an old field from CLAUDE/history.
 
 ## Local schema setup
+
+The [2026-10-08 consumer-expiry correction](audits/CONSUMER-EXPIRY-2026-10-08.md) keeps the applied `20260922010000` migration unchanged. A [separate guarded repair](../scripts/azure/repair-premium-test-expiry.cjs) updates only its exact independent-consumer zero-value test sales and the BMS gifts that inherited the 2099 sentinel. It repairs persisted AppSale/ConsumerAccessGrant dates together, preserving real paid periods and a before/after receipt. Use the [private database runbook](AZURE-DATABASE-ACCESS.md#correct-legacy-premium-test-expiry); no new schema migration is needed.
 
 ### Gen2026 amendment
 
@@ -198,6 +204,12 @@ save/reload, live read-only diagnosis and unresolved source text.
 - **Resolution:** Initial preparation in 9253152 supplied the guarded recovery command, independent tests and local UI/transaction evidence; production recovery was pending review/application at that point. The applied partial resolution below preserves the remaining uncertain names/symbols until original wording is available. See the runbook and dated audit above.
 - **Applied partial resolution:** 2026-10-07, user-approved execution job-genealogiq-migrate-prod-0hno8k3 updated 67 fields across 49 rows using the command from 9253152. A separate read-only execution compared all 72 original targets: zero mismatches, including the five deliberately unchanged fields. All three document values are restored. Seven fields still contain unknown characters (five untouched values and two partially repaired biographies), so this gap remains open. The private receipt, approved manifest and [application audit](audits/APP-TEXT-ENCODING-2026-10-07.md#approved-production-application) preserve the recovery evidence.
 - **Confirmed-name follow-up:** 2026-10-09, the user supplied one previously unknown given name. One additional field was repaired and all 72 original targets were rechecked with zero mismatches. The total is now 68 approved field changes, four untouched values and six fields with unresolved text, including two partial biographies. The [follow-up audit](audits/APP-TEXT-ENCODING-2026-10-09.md) records the receipt, active app image and unavailable local/browser prerequisites; no deployment was required.
+
+## Consolidated release schema, 2026-10-09
+
+The revocation migration adds nullable actor/time audit fields to ConsumerAccessGrant. The email migration creates EmailOutbox with immutable JSON message/context, an availability index, a processing lease and sent/canceled timestamps. It contains no credentials and performs no historic customer-mail backfill. Both exact SQL files were applied to a disposable copy of the existing local database; Prisma reported the resulting schema already in sync. The historical empty-database baseline limitation remains separate.
+
+The corrected Premium repair also cancels only the migration test allowance replaced by a repaired named gift. This aligns historical rows with the current grant writer and prevents old test access returning after revocation. Ordinary independent test allowances receive only their finite original-year expiry; genuine purchased periods remain untouched. Version 2 requires a new reviewed preview hash. [Release audit](audits/PRODUCTION-RELEASE-2026-10-09.md).
 
 ## Verification log
 

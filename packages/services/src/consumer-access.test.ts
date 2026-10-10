@@ -1,10 +1,11 @@
+import { createHash } from 'node:crypto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { tx, db } = vi.hoisted(() => {
   const tx = {
     $queryRaw: vi.fn(),
     appUser: { findMany: vi.fn(), create: vi.fn(), update: vi.fn() },
-    appSale: { findMany: vi.fn(), create: vi.fn() },
+    appSale: { findMany: vi.fn(), create: vi.fn(), update: vi.fn() },
     subscription: { findFirst: vi.fn() },
     consumerAccessGrant: { findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
   }
@@ -81,6 +82,36 @@ describe('direct consumer Premium gift', () => {
     tx.appUser.findMany.mockResolvedValue([{ ...buyer, password: null, googleId: 'google-1' }])
     expect((await grantConsumerPremium(input)).credentialsCreated).toBe(false)
     expect(tx.appUser.update).not.toHaveBeenCalled()
+  })
+
+  it('replaces the legacy 2099 test entitlement with twelve months from the grant date', async () => {
+    const testId = `test-premium-${createHash('md5').update(buyer.id).digest('hex')}`
+    tx.appUser.findMany.mockResolvedValue([buyer])
+    tx.appSale.findMany.mockResolvedValue([{ id: testId, value: 0, subscriptionId: 'premium-1', stripeSubscriptionId: null, currentPeriodEnd: new Date('2099-12-31T23:59:59Z') }])
+    expect(await grantConsumerPremium(input)).toMatchObject({ expiresAt: new Date('2027-10-07T15:00:00Z'), credentialsCreated: false })
+    expect(tx.consumerAccessGrant.create.mock.calls[0][0].data.startsAt).toEqual(new Date('2026-10-07T15:00:00Z'))
+    expect(tx.appSale.update).toHaveBeenCalledWith({ where: { id: testId }, data: {
+      status: 'canceled', cancelAtPeriodEnd: true, canceledAt: new Date('2026-10-07T15:00:00Z'), endedAt: new Date('2026-10-07T15:00:00Z'),
+    } })
+  })
+
+  it('preserves real paid-through time hidden behind the test entitlement', async () => {
+    const testId = `test-premium-${createHash('md5').update(buyer.id).digest('hex')}`
+    tx.appUser.findMany.mockResolvedValue([buyer])
+    tx.appSale.findMany.mockResolvedValue([
+      { id: testId, value: 0, subscriptionId: 'premium-1', stripeSubscriptionId: null, currentPeriodEnd: new Date('2099-12-31T23:59:59Z') },
+      { id: 'real-sale', value: 150, subscriptionId: 'premium-1', stripeSubscriptionId: null, currentPeriodEnd: new Date('2027-01-31T15:00:00Z') },
+    ])
+    expect((await grantConsumerPremium(input)).expiresAt).toEqual(new Date('2028-01-31T15:00:00Z'))
+    expect(tx.appSale.update).toHaveBeenCalledTimes(1)
+    expect(tx.appSale.update.mock.calls[0][0].where.id).toBe(testId)
+  })
+
+  it('does not classify a real complimentary sale as test access just because its expiry is far in the future', async () => {
+    tx.appUser.findMany.mockResolvedValue([buyer])
+    tx.appSale.findMany.mockResolvedValue([{ id: 'test-premium-unrelated', value: 0, subscriptionId: 'premium-1', stripeSubscriptionId: null, currentPeriodEnd: new Date('2099-12-31T23:59:59Z') }])
+    expect((await grantConsumerPremium(input)).expiresAt).toEqual(new Date('2100-12-31T23:59:59Z'))
+    expect(tx.appSale.update).not.toHaveBeenCalled()
   })
 
   it('gives an old invitation its first password and verifies it without replacing profile details', async () => {

@@ -6,7 +6,6 @@ import { useForm, Controller, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { CheckIcon } from 'lucide-react'
 import {
   getCustomerCreateSchema,
   customerCreateDefaultValues,
@@ -32,16 +31,9 @@ import { Field, FieldError, FieldGroup, FieldLabel } from '@genealogiq/ui/field'
 import { Checkbox } from '@genealogiq/ui/checkbox'
 import { Card, CardContent, CardHeader, CardTitle } from '@genealogiq/ui/card'
 import { Separator } from '@genealogiq/ui/separator'
-import { cn } from '@/lib/utils'
-
-// Step titles/descriptions resolve from the Customers namespace at render time.
-const STEP_KEYS = [
-  { title: 'business',      desc: 'businessDesc'      },
-  { title: 'contact',       desc: 'contactDesc'       },
-  { title: 'address',       desc: 'addressDesc'       },
-  { title: 'administrator', desc: 'administratorDesc' },
-  { title: 'modules',       desc: 'modulesDesc'       },
-] as const
+import { ConsumerForm } from '@/components/consumers/consumer-form'
+import { CustomerRegistrationSteps } from './customer-registration-steps'
+import { CustomerSegmentSelect } from './customer-segment-select'
 
 type StepIndex = 0 | 1 | 2 | 3 | 4
 
@@ -66,10 +58,9 @@ export function CustomerNewForm() {
   const tc  = useTranslations('Common')
   const tErr = useTranslations('Errors')
   const [step, setStep]                 = useState<StepIndex>(0)
+  const [consumerMode, setConsumerMode] = useState(false)
   const [serverError, setServerError]   = useState<string | null>(null)
   const router = useRouter()
-
-  const STEPS = STEP_KEYS.map((s) => ({ title: t(`sections.${s.title}`), desc: t(`steps.${s.desc}`) }))
 
   const form = useForm<CustomerCreateFormInput, unknown, CustomerCreateFormValues>({
     resolver:         useMemo(() => zodResolver(getCustomerCreateSchema(tErr)), [tErr]),
@@ -120,6 +111,18 @@ export function CustomerNewForm() {
     }
   }
 
+  if (consumerMode) return <ConsumerForm
+    initial={{
+      firstName: isIndividual ? form.getValues('name') : '',
+      lastName: isIndividual ? form.getValues('tradeName') : '',
+      email: form.getValues('email'),
+    }}
+    onPartnerSegmentChange={(segment) => {
+      setValue('businessSegment', segment)
+      setConsumerMode(false)
+    }}
+  />
+
   return (
     <Card>
       <CardHeader>
@@ -132,56 +135,7 @@ export function CustomerNewForm() {
           not above it — the card is the form, and the steps are part of it. */}
       <CardContent className="flex flex-col gap-6">
 
-        {/* Stepper */}
-        <nav aria-label={t('stepsNav')}>
-          {/* Mobile: compact numbered steps */}
-          <div className="flex items-center gap-2 md:hidden">
-            {STEPS.map((s, i) => (
-              <div key={i} className="flex items-center gap-1">
-                <div className={cn(
-                  'flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shrink-0 transition-colors',
-                  i < step  && 'bg-primary text-primary-foreground',
-                  i === step && 'ring-2 ring-primary bg-primary/10 text-primary',
-                  i > step  && 'bg-muted text-muted-foreground',
-                )}>
-                  {i < step ? <CheckIcon className="h-3.5 w-3.5" /> : i + 1}
-                </div>
-                {i < STEPS.length - 1 && (
-                  <div className={cn('h-px w-4 shrink-0', i < step ? 'bg-primary' : 'bg-border')} />
-                )}
-              </div>
-            ))}
-            <span className="ml-2 text-sm font-medium">{STEPS[step].title}</span>
-            <span className="text-xs text-muted-foreground ml-1">— {STEPS[step].desc}</span>
-          </div>
-
-          {/* Desktop: full stepper */}
-          <ol className="hidden md:flex items-start gap-0">
-            {STEPS.map((s, i) => (
-              <li key={i} className="flex items-start flex-1 min-w-0">
-                <div className="flex flex-col items-center flex-1">
-                  <div className="flex items-center w-full">
-                    <div className={cn(
-                      'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-colors',
-                      i < step  && 'bg-primary text-primary-foreground',
-                      i === step && 'ring-2 ring-primary ring-offset-2 bg-primary/10 text-primary',
-                      i > step  && 'bg-muted text-muted-foreground',
-                    )}>
-                      {i < step ? <CheckIcon className="h-4 w-4" /> : i + 1}
-                    </div>
-                    {i < STEPS.length - 1 && (
-                      <div className={cn('h-px flex-1 mx-3 mt-0', i < step ? 'bg-primary' : 'bg-border')} />
-                    )}
-                  </div>
-                  <div className="mt-2 pr-4">
-                    <p className={cn('text-sm font-semibold', i === step ? 'text-foreground' : 'text-muted-foreground')}>{s.title}</p>
-                    <p className="text-xs text-muted-foreground hidden lg:block">{s.desc}</p>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </nav>
+        <CustomerRegistrationSteps step={step} />
 
         {/* Step content */}
         <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-6">
@@ -207,25 +161,12 @@ export function CustomerNewForm() {
                       </Field>
                     )}
                   />
-                  <Controller
-                    name="businessSegment"
-                    control={control}
-                    render={({ field }) => (
-                      <Field>
-                        <FieldLabel>{t('fields.businessSegment')}</FieldLabel>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="FUNERAL_HOME">{t('businessSegment.funeralHome')}</SelectItem>
-                            <SelectItem value="MARBLE_SHOP">{t('businessSegment.marbleShop')}</SelectItem>
-                            <SelectItem value="CEMETERY">{t('businessSegment.cemetery')}</SelectItem>
-                            <SelectItem value="URN_MANUFACTURER">{t('businessSegment.urnManufacturer')}</SelectItem>
-                            <SelectItem value="PLAQUE_PRINTER">{t('businessSegment.plaquePrinter')}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                    )}
-                  />
+                  <Controller name="businessSegment" control={control} render={({ field }) => (
+                    <CustomerSegmentSelect value={field.value} onValueChange={(value) => {
+                      if (value === 'FINAL_CONSUMER') setConsumerMode(true)
+                      else field.onChange(value)
+                    }} />
+                  )} />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -479,10 +420,10 @@ export function CustomerNewForm() {
             </Button>
 
             <span className="text-xs text-muted-foreground">
-              {t('stepOf', { step: step + 1, total: STEPS.length })}
+{t('stepOf', { step: step + 1, total: 5 })}
             </span>
 
-            {step < STEPS.length - 1 ? (
+{step < 4 ? (
               <Button type="button" onClick={goNext}>
                 {tc('next')}
               </Button>

@@ -3,6 +3,8 @@ import type Stripe from 'stripe'
 import { stripe } from '@/lib/stripe'
 import { prisma } from '@/lib/prisma'
 import { provisionTenantAccess } from '@/lib/billing'
+import { deliverEmail } from '@genealogiq/services/email-outbox'
+import { invoiceSubscriptionId, packageSaleEmailId, partnerInvoiceEmailId, queuePartnerInvoiceEmail } from '@genealogiq/services/sale-notifications'
 import {
   applyPartnerInvoicePaid,
   linkPartnerSubscription,
@@ -29,6 +31,7 @@ export const dynamic = 'force-dynamic'
 // a subscription exists before it is paid for.
 const RELEVANT_EVENTS = new Set<Stripe.Event['type']>([
   'invoice.paid',
+  'invoice.payment_failed',
   'customer.subscription.created',
   'customer.subscription.updated',
   'customer.subscription.deleted',
@@ -37,12 +40,6 @@ const RELEVANT_EVENTS = new Set<Stripe.Event['type']>([
   'checkout.session.async_payment_failed',
   'checkout.session.expired',
 ])
-
-function subscriptionIdOf(invoice: Stripe.Invoice): string | null {
-  const raw = (invoice as unknown as { subscription?: string | { id: string } }).subscription
-  if (typeof raw === 'string') return raw
-  return raw?.id ?? null
-}
 
 export async function POST(req: NextRequest) {
   const signature = req.headers.get('stripe-signature')
@@ -84,6 +81,9 @@ export async function POST(req: NextRequest) {
       }
 
       const result = await fulfillGenCodePackageCheckout(checkout)
+      if (result.outcome === 'fulfilled' || result.outcome === 'already-fulfilled') {
+        await deliverEmail(packageSaleEmailId(checkout.metadata!.genCodeOrderId))
+      }
 
       // A package may be the partner's first purchase. Provision on both the
       // first fulfillment and a replay so a transient email failure can heal
@@ -102,9 +102,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if (event.type === 'invoice.paid') {
+  if (event.type === 'invoice.paid' || event.type === 'invoice.payment_failed') {
     const invoice = event.data.object as Stripe.Invoice
-    const subId = subscriptionIdOf(invoice)
+    const subId = invoiceSubscriptionId(invoice)
     if (!subId) return NextResponse.json({ received: true, ignored: 'invoice without subscription' })
 
     try {
@@ -117,13 +117,19 @@ export async function POST(req: NextRequest) {
       if (!sub.metadata?.partnerSubscriptionId) {
         return NextResponse.json({ received: true, ignored: 'not a partner subscription' })
       }
+      if (event.type === 'invoice.payment_failed') {
+        await queuePartnerInvoiceEmail(prisma, sub.metadata.partnerSubscriptionId, invoice, true)
+        await deliverEmail(partnerInvoiceEmailId(invoice.id, true))
+        return NextResponse.json({ received: true })
+      }
       await linkPartnerSubscription(sub)
       const applied = await applyPartnerInvoicePaid(invoice)
+      if (applied.subscriptionId) await deliverEmail(partnerInvoiceEmailId(invoice.id))
 
       // Outside the cycle transaction: this sends an email, and an email cannot
       // be rolled back. Only the first cycle can grant access; a renewal finds
       // the owner already active and leaves them alone.
-      if (applied.outcome === 'first-cycle' && applied.subscriptionId) {
+      if (applied.subscriptionId) {
         const contract = await prisma.partnerSubscription.findUnique({
           where:  { id: applied.subscriptionId },
           select: { tenantId: true },

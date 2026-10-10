@@ -18,9 +18,11 @@ vi.mock('server-only', () => ({}))
 vi.mock('@genealogiq/db', () => ({ prisma: db, Prisma: { PrismaClientKnownRequestError: KnownError } }))
 vi.mock('./gencode-package', () => ({ grantGenCodeOrder: grant, GENCODE_PACKAGE_CREDIT_MONTHS: 12 }))
 vi.mock('./partner-billing', () => ({ openPartnerCycle: cycle, partnerCycleSelect: { id: true } }))
+vi.mock('./sale-notifications', () => ({ queueManualSaleEmail: vi.fn() }))
 
 import { redeemManualCoupon, type ManualCouponInput } from './manual-coupon'
 import { addBillingMonths } from './billing-dates'
+import { queueManualSaleEmail } from './sale-notifications'
 
 const input: ManualCouponInput = {
   requestId: 'request-1', couponId: 'coupon-1', productId: 'package-1', kind: 'package', tenantId: 'tenant-1',
@@ -53,6 +55,7 @@ beforeEach(() => {
   tx.partnerSubscription.findFirst.mockResolvedValue(null)
   tx.partnerSubscription.create.mockResolvedValue({ id: 'contract-1' })
   cycle.mockResolvedValue({ id: 'cycle-1' })
+  vi.mocked(queueManualSaleEmail).mockResolvedValue('manual-sale:redemption-1')
 })
 afterEach(() => vi.useRealTimers())
 
@@ -64,6 +67,7 @@ describe('manual coupon settlement', () => {
       discountCode: 'Gen2026', createdById: 'admin-1', creditExpiresAt: new Date('2027-10-07T15:00:00Z'),
     }), select: { id: true } })
     expect(grant).toHaveBeenCalledExactlyOnceWith(tx, 'order-1', new Date('2027-10-07T15:00:00Z'))
+    expect(queueManualSaleEmail).toHaveBeenCalledExactlyOnceWith(tx, 'redemption-1')
     expect(tx.couponRedemption.create).toHaveBeenCalledWith({ data: expect.objectContaining({
       reference: 'INFINITEPAY AB123', externalAmount: 350, subtotalAmount: 400, discountAmount: 400, totalAmount: 0,
       recipientId: 'tenant-1', couponId: 'coupon-1', createdById: 'admin-1',
@@ -121,6 +125,7 @@ describe('manual coupon settlement', () => {
     tx.discountCoupon.findUnique.mockResolvedValue({ ...coupon, isActive: false })
     expect(await redeemManualCoupon(input)).toEqual({ id: 'redemption-1', kind: 'package', resultId: 'order-1', alreadyApplied: true })
     expect(grant).toHaveBeenCalledOnce()
+    expect(queueManualSaleEmail).toHaveBeenCalledOnce()
     await expect(redeemManualCoupon({ ...input, quantity: 30 })).rejects.toMatchObject({ reason: 'request-conflict' })
     await expect(redeemManualCoupon({ ...input, createdById: 'another-admin' })).rejects.toMatchObject({ reason: 'request-conflict' })
   })

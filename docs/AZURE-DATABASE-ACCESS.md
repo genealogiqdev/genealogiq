@@ -82,6 +82,16 @@ execution fails or times out, inspect its logs before retrying. Do not run
 `prisma migrate dev`, `db push`, a baseline script, or a database transfer
 against production for account-level data repairs.
 
+## Correct legacy Premium test expiry
+
+The [expiry repair](../scripts/azure/repair-premium-test-expiry.cjs) is restricted to the exact `test-premium-<md5(AppUser.id)>` migration identity, independent APP_USER scope, zero value, no sale operator/provider/coupon association and the original 2099 sentinel. It sets those test terms to 12 calendar months from creation and repairs a matching BMS 2099 → 2100 gift/sale together. Version 2 cancels only the migration test allowance replaced by a repaired gift, preventing it from restoring access after a later gift revocation. Genuine compatible manual paid-through time is preserved. It sends no email and creates no account, payment or grant. A version-1 preview hash cannot authorize version 2; review a fresh preview.
+
+1. Follow the subscription check above. Verify the current PostgreSQL PITR window and take an explicit on-demand backup before applying data changes, using `az postgres flexible-server backup create --resource-group rg-genealogiq-prod --server-name psql-genealogiq-ohqluyie --name <unique-backup-name>`. Wait for its completed time; keep public database access disabled.
+2. Run `invoke-database-task.ps1 -ScriptPath ./scripts/azure/repair-premium-test-expiry.cjs -Environment @{ REPAIR_EXECUTE = 'true' }`. Wait for `Succeeded`, then retain the summary/hash and all before/after row receipts privately. The preview transaction is read-only. The workstation never receives the database URL.
+3. Review the exact scope, dates and paid-period preservation. Deploy the corrected grant writer before applying the data repair, so another registration cannot inherit the test term during the release.
+4. Repeat the same script with `REPAIR_APPLY = 'true'` and `REPAIR_EXPECTED_SHA256 = '<reviewed-preview-hash>'`. The serializable transaction locks affected consumer identities, rejects a changed plan or stale row and rolls back every sale/audit update on failure. A changed preview requires a fresh review, not an automatic force retry.
+5. Keep the successful before/after receipt, independently re-query effective entitlement/audit dates and preview again. No remaining candidates is the idempotent completion state. Do not resend emails or recreate grants to fix a persisted expiry. Use the retained receipt/backup for a separately reviewed recovery if needed.
+
 ## Connection URLs and local development
 
 Runtime apps use the PgBouncer URL (`database-url`) on port 6432. Schema

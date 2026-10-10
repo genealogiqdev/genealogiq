@@ -45,7 +45,10 @@
       "passwordAlreadySet": "Este cliente ya estableció su contraseña.",
       "soleGuardian": "No se puede eliminar el cliente: es el único responsable de uno o más perfiles conmemorativos.",
       "unexpectedError": "Ocurrió un error inesperado.",
-      "updated": "Cliente actualizado correctamente."
+      "updated": "Cliente actualizado correctamente.",
+      "createdEmailPending": "Cliente registrado. La invitación por correo está pendiente; use Reenviar correo en la lista de clientes.",
+      "emailPending": "No se pudo enviar la invitación. Intente de nuevo.",
+      "inactiveEmail": "Active al cliente antes de enviar la invitación."
     },
     "customerCategory": {
       "nameExists": "Ya existe una categoría con este nombre",
@@ -69,7 +72,9 @@
       "saleRecorded": "Venta registrada (dada de baja).",
       "saleUndone": "Venta deshecha — el código está disponible nuevamente.",
       "soldViaPlatform": "Vendido y acceso enviado al cliente.",
-      "unexpectedError": "Ocurrió un error inesperado."
+      "unexpectedError": "Ocurrió un error inesperado.",
+      "soldEmailPending": "Venta registrada. El correo está pendiente. Revise el registro del cliente antes de reintentar el envío.",
+      "recipientUnavailable": "Este correo no pertenece a una cuenta de cliente activa."
     },
     "profile": {
       "avatarUpdated": "Avatar actualizado.",

@@ -32,7 +32,10 @@ export async function getConsumers(query = '', page = 1, status = 'all') {
           select: { currentPeriodEnd: true, subscription: { select: { name: true } } },
         },
         consumerAccessGrants: {
-          orderBy: { createdAt: 'desc' }, take: 1, select: { expiresAt: true, emailSentAt: true },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1, select: {
+            id: true, expiresAt: true, emailSentAt: true, revokedAt: true,
+            appSale: { select: { status: true, currentPeriodEnd: true } },
+          },
         },
       },
     }),

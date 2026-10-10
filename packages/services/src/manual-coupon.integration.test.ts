@@ -70,6 +70,10 @@ describe.skipIf(!url)('manual coupons on PostgreSQL', () => {
     expect(order.stripeCheckoutSessionId).toBeNull()
     expect(order.creditGrant?.remainingQty).toBe(2)
     expect(await db.creditTransaction.count({ where: { idempotencyKey: `grant:topup:${order.id}` } })).toBe(1)
+    expect(await db.emailOutbox.count({ where: { id: `manual-sale:${results[0].id}` } })).toBe(1)
+    expect(await db.emailOutbox.findUniqueOrThrow({ where: { id: `manual-sale:${results[0].id}` } })).toMatchObject({
+      sentAt: null, attempts: 0, message: expect.objectContaining({ subject: 'Genealogiq — seu produto foi liberado' }),
+    })
     await expect(redeem({ ...base, requestId: randomUUID() })).rejects.toMatchObject({ reason: 'reference-used' })
     expect(await db.genCode.count({ where: { tenantId } })).toBe(7)
   })

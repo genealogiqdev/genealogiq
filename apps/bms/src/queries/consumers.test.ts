@@ -40,6 +40,15 @@ describe('BMS APP consumer directory', () => {
     expect(db.appUser.count).toHaveBeenCalledWith({ where: { role: 'APP_USER' } })
     expect(db.appUser.findMany.mock.calls[0][0].where).toEqual({ role: 'APP_USER' })
   })
+  it('includes the stable gift identity, revocation date and actual sale status for safe directory actions', async () => {
+    await getConsumers()
+    expect(db.appUser.findMany.mock.calls[0][0].select.consumerAccessGrants).toEqual({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1, select: {
+        id: true, expiresAt: true, emailSentAt: true, revokedAt: true,
+        appSale: { select: { status: true, currentPeriodEnd: true } },
+      },
+    })
+  })
   it.each([
     ['active', true],
     ['inactive', false],

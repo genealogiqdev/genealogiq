@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { Prisma } from '@genealogiq/db'
 import { currencyForLocale, done, fail, hashToken, ok, type ActionResult } from '@genealogiq/core'
-import { ConsumerAccessError, grantConsumerPremium, type ConsumerAccessResult } from '@genealogiq/services/consumer-access'
+import { ConsumerAccessError, grantConsumerPremium, revokeConsumerPremium, type ConsumerAccessResult } from '@genealogiq/services/consumer-access'
 import { prisma } from '@/lib/prisma'
 import { verifyConsumerAdmin } from '@/lib/consumer-access'
 import { sendConsumerPremiumEmail } from '@/lib/email'
@@ -72,7 +72,7 @@ export async function resendConsumerAccessEmail(appUserId: string): Promise<Acti
     select: {
       id: true, firstName: true, email: true,
       consumerAccessGrants: {
-        where: { expiresAt: { gt: new Date() }, appSale: { status: { in: ['active', 'trialing'] }, currentPeriodEnd: { gt: new Date() } } },
+        where: { revokedAt: null, expiresAt: { gt: new Date() }, appSale: { status: { in: ['active', 'trialing'] }, currentPeriodEnd: { gt: new Date() } } },
         orderBy: { expiresAt: 'desc' }, take: 1, select: { id: true, expiresAt: true },
       },
     },
@@ -96,4 +96,20 @@ export async function resendConsumerAccessEmail(appUserId: string): Promise<Acti
   }
   revalidatePath('/consumers')
   return done(t('emailSent'))
+}
+
+/** The stable gift ID prevents a stale confirmation from revoking a new gift. */
+export async function revokeConsumerAccess(grantId: string): Promise<ActionResult> {
+  const session = await verifyConsumerAdmin()
+  const t = await getTranslations('Consumers')
+  if (!z.string().trim().min(1).max(128).safeParse(grantId).success) return fail(t('errors.grant-unavailable'))
+  try {
+    const result = await revokeConsumerPremium(grantId, session.user.id)
+    revalidatePath('/consumers')
+    return done(t(result.alreadyRevoked ? 'alreadyRevoked' : 'revoked'))
+  } catch (error) {
+    if (error instanceof ConsumerAccessError) return fail(t(`errors.${error.reason}`))
+    console.error('[consumer-access] revocation transaction failed')
+    return fail(t('errors.revoke-failed'))
+  }
 }

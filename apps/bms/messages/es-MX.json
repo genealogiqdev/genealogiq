@@ -375,7 +375,8 @@
       "funeralHome": "Funeraria",
       "marbleShop": "Marmolería",
       "plaquePrinter": "Imprenta de placas funerarias",
-      "urnManufacturer": "Fabricante de ataúdes y urnas de cremación"
+      "urnManufacturer": "Fabricante de ataúdes y urnas de cremación",
+      "finalConsumer": "Guardián / Usuario Final"
     },
     "create": "Crear cliente",
     "edit": "Editar cliente",
@@ -439,7 +440,12 @@
       "administrator": "Administrador",
       "business": "Empresa",
       "contact": "Contacto",
-      "modules": "Módulos Sequoia"
+      "modules": "Módulos Sequoia",
+      "consumer": "Usuario final",
+      "consumerContact": "Contacto",
+      "purpose": "Finalidad",
+      "guardian": "Administrador / Guardián",
+      "premium": "Permisos Premium"
     },
     "status": {
       "active": "Activo",
@@ -451,7 +457,12 @@
       "administratorDesc": "Responsable de la cuenta Sequoia",
       "businessDesc": "Datos legales e identificación",
       "contactDesc": "Detalles de contacto y categoría",
-      "modulesDesc": "Permisos de acceso a Sequoia"
+      "modulesDesc": "Permisos de acceso a Sequoia",
+      "consumerDesc": "Identificación del usuario final",
+      "consumerContactDesc": "Correo de acceso a la App",
+      "purposeDesc": "Motivo de la liberación",
+      "guardianDesc": "Acceso a la App para el administrador/guardián del perfil",
+      "premiumDesc": "Funciones Premium en la App"
     },
     "stepsNav": "Pasos del formulario",
     "table": {
@@ -1172,7 +1183,13 @@
     "apply": "Confirmar y activar",
     "applying": "Aplicando...",
     "review": "Revisar y aplicar cupón",
-    "applied": "Cupón aplicado. Los beneficios ya están disponibles.",
+    "applied": "Cupón aplicado. Los beneficios están disponibles y se envió el email de confirmación.",
+    "appliedEmailPending": "Acceso liberado. El correo de confirmación está pendiente; reintente el envío desde el historial.",
+    "emailSent": "Correo enviado",
+    "emailPending": "Correo pendiente",
+    "emailRetry": "Reintentar envío de correo",
+    "emailSending": "Enviando...",
+    "emailUnavailable": "Esta liberación ya no está disponible para enviar por correo.",
     "alreadyApplied": "Esta venta ya fue aplicada. No se duplicaron beneficios.",
     "resultNote": "El historial registra el cliente, los importes, la vigencia y el responsable. El cliente puede actualizar APP o SEQ para ver los beneficios.",
     "another": "Aplicar en otra venta",
@@ -1245,6 +1262,14 @@
     "sent": "Enviado",
     "pending": "Pendiente",
     "grant": "Habilitar Premium",
+    "revoke": "Deshacer Premium",
+    "revokeTitle": "¿Deshacer este regalo Premium?",
+    "revokeDescription": "El regalo Premium de {name} terminará ahora. Se conservarán la cuenta, la contraseña y los periodos pagados. Sin otro plan vigente, el acceso volverá a Gratis. Los correos ya enviados no se pueden retirar.",
+    "keepPremium": "Mantener Premium",
+    "revoking": "Deshaciendo…",
+    "revoked": "Regalo Premium deshecho. Se conservaron la cuenta y los periodos pagados.",
+    "alreadyRevoked": "Este regalo Premium ya se deshizo.",
+    "giftRevoked": "Regalo Premium deshecho el {date}",
     "empty": "No se encontraron clientes finales.",
     "pagination": "Página {page} de {pages} · {total, plural, one {# cliente} other {# clientes}}",
     "previous": "Anterior",
@@ -1258,9 +1283,18 @@
       "active-subscription": "Este cliente tiene una suscripción con cobro recurrente u otro plan activo. Revisa la suscripción antes de ofrecer este regalo.",
       "request-conflict": "Esta solicitud ya se utilizó con otros datos. Revisa la lista de clientes antes de iniciar otro registro.",
       "request-completed": "Esta habilitación ya se procesó, pero la cuenta no está disponible.",
+      "grant-unavailable": "Este regalo Premium no está disponible para deshacer. Actualiza la lista de clientes.",
+      "grant-revoked": "Este regalo Premium se deshizo. Para ofrecer otro regalo, inicia una nueva habilitación desde la lista de clientes.",
+      "revoke-failed": "No se pudo deshacer Premium. Actualiza la lista e intenta de nuevo.",
       "failed": "No se pudo habilitar el acceso. Intenta de nuevo.",
       "email-failed": "El correo no se envió. El acceso sigue disponible; intenta reenviarlo.",
       "connection": "No se pudo confirmar la respuesta. Revisa la lista de clientes o vuelve a intentarlo con los mismos datos."
+    },
+    "wizard": {
+      "appOnly": "Registro de persona física con acceso exclusivo a la App, sin acceso a Sequoia.",
+      "purposeHint": "Registra el motivo: un regalo, un homenaje o agilizar el acceso a un perfil.",
+      "guardianHint": "Revisa los datos de quien recibirá acceso a la App para administrar los perfiles a su cargo.",
+      "premiumHint": "Las funciones y los límites del plan Premium estarán disponibles en la App al completar el registro."
     }
   }
 }

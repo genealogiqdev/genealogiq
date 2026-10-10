@@ -45,7 +45,10 @@
       "passwordAlreadySet": "Este cliente já definiu sua senha.",
       "soleGuardian": "Não é possível excluir o cliente: ele é o único responsável por um ou mais perfis memorializados.",
       "unexpectedError": "Ocorreu um erro inesperado.",
-      "updated": "Cliente atualizado com sucesso."
+      "updated": "Cliente atualizado com sucesso.",
+      "createdEmailPending": "Cliente cadastrado. O convite por e-mail está pendente; use Reenviar e-mail na lista de clientes.",
+      "emailPending": "Não foi possível enviar o convite. Tente novamente.",
+      "inactiveEmail": "Ative o cliente antes de enviar o convite."
     },
     "customerCategory": {
       "nameExists": "Já existe uma categoria com este nome",
@@ -69,7 +72,9 @@
       "saleRecorded": "Venda registrada (baixa efetuada).",
       "saleUndone": "Venda desfeita — o código está disponível novamente.",
       "soldViaPlatform": "Vendido e acesso enviado ao cliente.",
-      "unexpectedError": "Ocorreu um erro inesperado."
+      "unexpectedError": "Ocorreu um erro inesperado.",
+      "soldEmailPending": "Venda registrada. O e-mail está pendente. Verifique o cadastro do cliente antes de tentar o envio novamente.",
+      "recipientUnavailable": "Este e-mail não pertence a uma conta de cliente ativa."
     },
     "profile": {
       "avatarUpdated": "Avatar atualizado.",

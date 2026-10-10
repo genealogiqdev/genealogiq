@@ -6,6 +6,8 @@
     "./activation-trial": "./src/activation-trial.ts",
     "./credits": "./src/credits.ts",
     "./consumer-access": "./src/consumer-access.ts",
+    "./email-outbox": "./src/email-outbox.ts",
+    "./sale-notifications": "./src/sale-notifications.ts",
     "./gencode-package": "./src/gencode-package.ts",
     "./manual-coupon": "./src/manual-coupon.ts",
     "./media-storage": "./src/media-storage.ts",

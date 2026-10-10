@@ -75,7 +75,8 @@ export async function grantActivationTrial(
 }
 
 /**
- * Guardians whose trial ends in 30 days.
+ * Consumers whose finite non-Stripe access ends in 30 days, including trials,
+ * direct Premium gifts and externally settled terms.
  *
  * The conversion trigger. With the trial scoped to the guardian, they hit no
  * quota wall during the twelve months — nothing in the product ever asks for
@@ -94,7 +95,7 @@ export async function findEndingTrials(
 
   const rows = await prisma.appSale.findMany({
     where: {
-      status:               'trialing',
+      status:               { in: ['trialing', 'active'] },
       stripeSubscriptionId: null,
       currentPeriodEnd:     { gte: from, lt: to },
     },

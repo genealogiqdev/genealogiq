@@ -2,6 +2,7 @@ import 'server-only'
 
 import { prisma } from '@/lib/prisma'
 import { verifyAdmin } from '@/lib/dal'
+import { manualSaleEmailId } from '@genealogiq/services/sale-notifications'
 
 export async function getManualCouponOptions(currency: string) {
   await verifyAdmin()
@@ -63,8 +64,14 @@ export async function getManualCouponHistory() {
     select: { id: true, firstName: true, lastName: true },
   })
   const names = new Map(operators.map((u) => [u.id, `${u.firstName} ${u.lastName}`.trim()]))
+  const deliveries = await prisma.emailOutbox.findMany({
+    where: { id: { in: rows.map((row) => manualSaleEmailId(row.id)) } },
+    select: { id: true, sentAt: true },
+  })
+  const emails = new Map(deliveries.map((mail) => [mail.id, mail.sentAt]))
   return rows.map((r) => ({
     id: r.id, code: r.code, kind: r.kind, source: r.source, reference: r.reference, quantity: r.quantity,
+    emailSentAt: emails.get(manualSaleEmailId(r.id)) ?? null,
     currency: r.currency, externalAmount: r.externalAmount == null ? null : Number(r.externalAmount),
     subtotalAmount: Number(r.subtotalAmount), discountAmount: Number(r.discountAmount), totalAmount: Number(r.totalAmount),
     createdAt: r.createdAt, operator: names.get(r.createdById) ?? r.createdById,

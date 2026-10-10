@@ -3,7 +3,7 @@
 > **Code:** [packages/email/src/index.ts](../packages/email/src/index.ts) · [apps/app/src/lib/email.ts](../apps/app/src/lib/email.ts) · [apps/bms/src/lib/email.ts](../apps/bms/src/lib/email.ts) · [apps/seq/src/lib/email.ts](../apps/seq/src/lib/email.ts)
 > **Entry points:** `Account/invitation/feedback/lifecycle actions calling email adapters`
 > **Depends on:** [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) · [DATABASE](DATABASE.md) · [CONFIGURATION](CONFIGURATION.md) · [TESTING](TESTING.md) · [OBSERVABILITY](OBSERVABILITY.md) · [RUNBOOKS](RUNBOOKS.md)
-> **Last verified against code:** 2026-10-09 at `4d1af78` for the verified Genealogiq sender. Source, tests, local runtime/UI limits and production evidence are separated in the sender audit linked below; earlier verification history is preserved.
+> **Last verified against code:** 2026-10-09 at `3826319` plus the consolidated release. Earlier source/runtime evidence remains in the verification log.
 
 This shared module supplies transactional email delivery. One lazy Resend client sends transactional templates from no-reply@genealogiq.com.br. App adapters supply their own base URL and product context. Feedback values are HTML-escaped; token links contain expiring account tokens and must not be copied into documentation.
 
@@ -32,6 +32,18 @@ The enforcing files are linked above. Test names and literal assertions below re
 
 ## Contracts and data
 
+### Consolidated release, 2026-10-09
+
+Non-secret purchase receipts, APP activity notices and finite-access reminders use [email-outbox.ts](../packages/services/src/email-outbox.ts). Business writers enqueue inside the same transaction as the entitlement, order, notification or GenCode sale. A provider outage leaves the business result committed and the message pending; retry never reissues credits or repeats a sale. The shared template escapes text, rejects non-HTTP(S) action URLs, and requires a Resend message ID before recording acceptance.
+
+Each immutable event ID has one EmailOutbox row. A five-minute lease and claim token serialize workers; sentAt prevents later delivery. Retries use a stable SHA-256-based Resend idempotency key and capped exponential delay. The daily job processes at most 100 due rows after producing renewal notices. Resend's provider idempotency window is 24 hours: a crash after acceptance but before recording sentAt, followed by a retry outside that window, can still duplicate a message. Provider acceptance does not prove inbox delivery.
+
+Before sending, recheck the live recipient email, active APP_USER/tenant, matching partner cycle, active consumer sale or current finite term. An undone or replaced GenCode sale cancels its old receipt. A paid invoice suppresses a queued failure notice for that same invoice. Renewal IDs include the annual cycle ID, so a receipt from last year cannot suppress this year's reminder; old StripeEvent receipts are honored only for the matching cycle. Finite non-Stripe consumer access includes trials, manual settlement and direct gifts. Messages show absolute dates so a delayed retry does not claim an obsolete countdown.
+
+Covered producers: BMS manual coupon settlements; BMS/SEQ package fulfilment and partner invoice success/failure; APP subscription invoices and extra units; APP tribute/family/guardian activity; SEQ GenCode platform sales; partner cycle and consumer expiry notices. Manual coupon receipts offer a platform-authorized email-only retry, including an explicit operator retry of an eligible historical receipt. There is no automatic historical email backfill.
+
+Credentials, generated passwords and reset/setup tokens are never persisted in EmailOutbox. BMS partner/direct-consumer credentials retain their existing explicit resend flows. SEQ creates an active customer's hashed setup token with the account, sends after commit, and reports pending delivery without inviting duplicate registration; inactive customers receive no invitation. A GenCode buyer receives a durable code receipt and, when needed, a separate expiring setup link. Existing password holders receive no setup link. Password reset, verification, feedback and security notices retain their existing scoped handlers.
+
 ### Direct consumer Premium access
 
 [BMS final-customer registration](../apps/bms/docs/CONSUMERS.md) sends `sendConsumerPremiumEmail` after the independent APP account, finite Premium AppSale and audit commit. New login accounts receive their email, generated initial password, APP sign-in link and expiry; existing accounts retain their password/Google login and receive confirmation. No checkout or GenCode is needed. `ConsumerAccessGrant.emailSentAt` records provider acceptance, not inbox delivery. Registration remains successful with explicit pending email when transport/provider acceptance fails. Replays do not mail a newly generated password that was never assigned. A privileged resend sends a hashed 72-hour setup link without changing the existing password or gift term.
@@ -50,7 +62,7 @@ Inputs, defaults and output types live in the linked schema/actions/query files.
 
 | Prisma model | PostgreSQL table | Creation migration / provenance |
 | --- | --- | --- |
-| None | No feature-owned table; browser/transport state only | Not applicable |
+| `EmailOutbox` | `email_outbox` | [20261009020000_email_outbox](../packages/db/prisma/migrations/20261009020000_email_outbox/migration.sql); immutable message/context, availability, attempts, lease and acceptance/cancellation |
 
 Column mappings, keys, enums, deletes and nullability are authoritative in [schema.prisma](../packages/db/prisma/schema.prisma). Later amendments and the legacy baseline limitation are indexed in [DATABASE](DATABASE.md). Models listed here are read or written by the feature; ownership is shared where explicitly noted.
 
@@ -176,6 +188,15 @@ message still requires the authorized recipient and scenario. The
 - **Root cause:** The present implementation/contract is described in the evidence; original decision not recorded.
 - **Resolution:** Not fixed in this task. Record test provider responses including resolved errors; verify one disposable message recipient and content.
 
+### EMAIL-DELIVERY-G3: Completed sales and failed milestone messages had no durable retry
+
+- **Status:** fixed
+- **Found:** 2026-10-09, customer sale missing its confirmation and interrupted email audit.
+- **Evidence:** Manual sales lacked a receipt producer; several send failures were only logged. Renewal claims were stored before sending and keyed by subscription rather than annual cycle.
+- **Impact:** A successful sale could remain unannounced; a failed reminder could be lost or suppress a later year's notice.
+- **Root cause:** Business completion and transport acceptance were not modeled separately.
+- **Resolution:** Consolidated release based on 3826319: atomic outbox producers, lease/idempotency, live recipient checks, cycle-specific receipts and daily/email-only retries. Unit tests and six real PostgreSQL outbox cases cover provider rejection, concurrency, rollback, immutable duplicate receipts, changed recipients and GenCode resale. Production inbox delivery remains G2.
+
 ## Verification log
 
 | Date | Commit / working changes | Verified by | Scope and evidence | Mismatches or limits → action |
@@ -187,6 +208,7 @@ message still requires the authorized recipient and scenario. The
 | 2026-10-07 | `b8afb94` + direct consumer email | Source, tests, loopback capture and browser | New credential email enabled normal APP login. Existing customer email omitted a new password. Simulated provider rejection left access active; retry delivered a hashed 72-hour recovery link without changing expiry. | [Consumer audit](audits/CONSUMER-ACCESS-2026-10-07.md); real inbox placement remains unverified. |
 | 2026-10-09 | `77d4bc0` + verified sender change | Source, tests and local provider | Shared sender changed to `no-reply@genealogiq.com.br`; 999 workspace tests passed, including invitation sender and rejection expectations; direct API and actual local shared transport accepted | Inbox receipt unconfirmed; local BMS UI n/a because PostgreSQL/Docker unavailable; [sender audit](audits/EMAIL-SENDER-2026-10-09.md) records deployment evidence separately |
 | 2026-10-09 | Released `4d1af78`; workflow pinning `01201a0` | Azure CLI, committed-source builds and BMS container probe | APP/BMS/SEQ revision `0000012`, 100% traffic, six HTTPS live/ready checks passed. BMS compiled code has the verified sender and no old sender; Resend test from production returned HTTP 200. Migration execution succeeded. | [Sender audit](audits/EMAIL-SENDER-2026-10-09.md): acceptance is not inbox receipt; authenticated resend UI not re-exercised, local product blocked by prerequisites. |
+| 2026-10-09 | `3826319` + consolidated release | Source, deterministic and local PostgreSQL checks | Updated contract above; [release audit](audits/PRODUCTION-RELEASE-2026-10-09.md) separates tests, runtime, deployment and cleanup. | Browser automation omitted at the user's request; production inbox delivery is not inferred. |
 
 ## Related
 

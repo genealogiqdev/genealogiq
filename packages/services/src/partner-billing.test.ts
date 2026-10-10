@@ -20,6 +20,9 @@ const { prismaMock, txMock, creditsMock } = vi.hoisted(() => ({
 vi.mock("@genealogiq/db", () => ({ prisma: prismaMock }))
 vi.mock("server-only", () => ({}))
 vi.mock("./credits", () => creditsMock)
+vi.mock('./sale-notifications', async (original) => ({
+  ...await original<typeof import('./sale-notifications')>(), queuePartnerInvoiceEmail: vi.fn(),
+}))
 
 import { applyPartnerInvoicePaid, syncPartnerSubscriptionStatus, linkPartnerSubscription, CYCLE_MONTHS } from "./partner-billing"
 

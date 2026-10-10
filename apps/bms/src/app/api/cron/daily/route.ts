@@ -3,6 +3,7 @@ import { sweepPartnerLifecycle } from '@genealogiq/services/partner-lifecycle'
 import { runPartnerNotifications, runTrialNotifications } from '@genealogiq/services/partner-notifications'
 import { reconcile } from '@genealogiq/services/reconciliation'
 import { sampleStorageUsage } from '@genealogiq/services/storage-usage'
+import { runEmailOutbox } from '@genealogiq/services/email-outbox'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -63,6 +64,8 @@ export async function GET(req: NextRequest) {
   ])
 
   const [sweep, renewals, trials, report, storage] = steps
+  // Run after producers so notices queued by this batch can be delivered now.
+  const [emails] = await Promise.allSettled([runEmailOutbox()])
   const result = {
     sweep:        sweep.status     === 'fulfilled' ? sweep.value     : { error: String(sweep.reason) },
     renewals:     renewals.status  === 'fulfilled' ? renewals.value  : { error: String(renewals.reason) },
@@ -75,6 +78,7 @@ export async function GET(req: NextRequest) {
         }
       : { error: String(report.reason) },
     storage: storage.status === 'fulfilled' ? storage.value : { error: String(storage.reason) },
+    emails: emails.status === 'fulfilled' ? emails.value : { error: 'Email retry unavailable' },
     ms: Date.now() - startedAt,
   }
 

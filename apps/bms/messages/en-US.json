@@ -375,7 +375,8 @@
       "funeralHome": "Funeral home",
       "marbleShop": "Monument and stone company",
       "plaquePrinter": "Memorial plaque printer",
-      "urnManufacturer": "Casket and cremation urn manufacturer"
+      "urnManufacturer": "Casket and cremation urn manufacturer",
+      "finalConsumer": "Guardian / End User"
     },
     "create": "Create customer",
     "edit": "Edit customer",
@@ -439,7 +440,12 @@
       "administrator": "Administrator",
       "business": "Business",
       "contact": "Contact",
-      "modules": "Sequoia Modules"
+      "modules": "Sequoia Modules",
+      "consumer": "End user",
+      "consumerContact": "Contact",
+      "purpose": "Purpose",
+      "guardian": "Administrator / Guardian",
+      "premium": "Premium permissions"
     },
     "status": {
       "active": "Active",
@@ -451,7 +457,12 @@
       "administratorDesc": "Sequoia account owner",
       "businessDesc": "Legal info & identification",
       "contactDesc": "Contact details & category",
-      "modulesDesc": "Sequoia access permissions"
+      "modulesDesc": "Sequoia access permissions",
+      "consumerDesc": "End user identification",
+      "consumerContactDesc": "App sign-in email",
+      "purposeDesc": "Reason for granting access",
+      "guardianDesc": "App access for the profile administrator/guardian",
+      "premiumDesc": "Premium features in the App"
     },
     "stepsNav": "Form steps",
     "table": {
@@ -1172,7 +1183,13 @@
     "apply": "Confirm and activate",
     "applying": "Applying...",
     "review": "Review and apply coupon",
-    "applied": "Coupon applied. The benefits are now available.",
+    "applied": "Coupon applied. The benefits are available and the confirmation email was sent.",
+    "appliedEmailPending": "Access granted. The confirmation email is pending; retry delivery from the history.",
+    "emailSent": "Email sent",
+    "emailPending": "Email pending",
+    "emailRetry": "Retry email delivery",
+    "emailSending": "Sending...",
+    "emailUnavailable": "This grant is no longer available for email delivery.",
     "alreadyApplied": "This sale was already applied. No benefits were duplicated.",
     "resultNote": "The history below records the customer, amounts, validity and operator. The customer can refresh APP or SEQ to see the benefits.",
     "another": "Apply to another sale",
@@ -1245,6 +1262,14 @@
     "sent": "Sent",
     "pending": "Pending",
     "grant": "Grant Premium",
+    "revoke": "Undo Premium",
+    "revokeTitle": "Undo this Premium gift?",
+    "revokeDescription": "The Premium gift for {name} will end now. The account, password and any paid periods will be kept. Without another valid plan, access returns to Free. Emails already sent cannot be recalled.",
+    "keepPremium": "Keep Premium",
+    "revoking": "Undoing…",
+    "revoked": "Premium gift undone. The account and any paid periods were kept.",
+    "alreadyRevoked": "This Premium gift has already been undone.",
+    "giftRevoked": "Premium gift undone on {date}",
     "empty": "No end customers found.",
     "pagination": "Page {page} of {pages} · {total, plural, one {# customer} other {# customers}}",
     "previous": "Previous",
@@ -1258,9 +1283,18 @@
       "active-subscription": "This customer has recurring billing or another active plan. Review the subscription before offering this gift.",
       "request-conflict": "This request was already used with different details. Check the customer list before starting a new registration.",
       "request-completed": "This grant was already processed, but the account is no longer available.",
+      "grant-unavailable": "This Premium gift is not available to undo. Refresh the customer list.",
+      "grant-revoked": "This Premium gift was undone. To offer a new gift, start a new grant from the customer list.",
+      "revoke-failed": "Could not undo Premium. Refresh the list and try again.",
       "failed": "Could not grant access. Try again.",
       "email-failed": "The email was not sent. Access remains available; try resending.",
       "connection": "Could not confirm the response. Check the customer list or retry with the same details."
+    },
+    "wizard": {
+      "appOnly": "Register an individual with access exclusively to the App, without Sequoia access.",
+      "purposeHint": "Record the reason: a gift, a tribute or faster profile access.",
+      "guardianHint": "Review the details of the person who will receive App access to manage the profiles in their care.",
+      "premiumHint": "Premium plan features and limits become available in the App when registration is complete."
     }
   }
 }

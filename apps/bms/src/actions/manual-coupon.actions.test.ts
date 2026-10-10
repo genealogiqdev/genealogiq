@@ -9,8 +9,14 @@ vi.mock('@/lib/billing', () => ({ provisionTenantAccess: provision }))
 vi.mock('next/cache', () => ({ revalidatePath: revalidate }))
 vi.mock('next-intl/server', () => ({ getLocale: async () => 'pt-BR', getTranslations: async () => (key: string) => key }))
 vi.mock('@genealogiq/services/manual-coupon', () => ({ redeemManualCoupon: redeem, ManualCouponError: ServiceError }))
+vi.mock('@genealogiq/services/email-outbox', () => ({ deliverEmail: vi.fn() }))
+vi.mock('@genealogiq/services/sale-notifications', () => ({ manualSaleEmailId: (id: string) => `manual-sale:${id}`, queueManualSaleEmail: vi.fn() }))
+vi.mock('@/lib/prisma', () => ({ prisma: { $transaction: vi.fn() } }))
 
-import { applyManualCoupon } from './manual-coupon.actions'
+import { applyManualCoupon, retryManualCouponEmail } from './manual-coupon.actions'
+import { deliverEmail } from '@genealogiq/services/email-outbox'
+import { queueManualSaleEmail } from '@genealogiq/services/sale-notifications'
+import { prisma } from '@/lib/prisma'
 import { getManualCouponSchema } from '@/schemas/manual-coupon.schema'
 
 const valid = {
@@ -23,6 +29,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   verify.mockResolvedValue({ user: { id: 'verified-admin' } })
   redeem.mockResolvedValue({ id: 'redemption-1', kind: 'package', resultId: 'order-1', alreadyApplied: false })
+  vi.mocked(deliverEmail).mockResolvedValue('sent')
 })
 
 describe('applyManualCoupon', () => {
@@ -53,6 +60,35 @@ describe('applyManualCoupon', () => {
 
   it('allows a stock reconciliation with no new payment', async () => {
     expect(getManualCouponSchema((key) => key).safeParse({ ...valid, source: 'legacy_stock', externalAmount: null }).success).toBe(true)
+  })
+
+  it('keeps the settled sale successful and reports pending receipt delivery', async () => {
+    vi.mocked(deliverEmail).mockResolvedValue('pending')
+    expect(await applyManualCoupon(valid)).toMatchObject({ ok: true, message: 'appliedEmailPending', data: { emailPending: true } })
+    expect(deliverEmail).toHaveBeenCalledExactlyOnceWith('manual-sale:redemption-1')
+    expect(redeem).toHaveBeenCalledOnce()
+  })
+
+  it('requires the same admin boundary for a receipt retry', async () => {
+    verify.mockRejectedValue(new Error('FORBIDDEN'))
+    await expect(retryManualCouponEmail('receipt-1')).rejects.toThrow('FORBIDDEN')
+    expect(deliverEmail).not.toHaveBeenCalled()
+    expect(prisma.$transaction).not.toHaveBeenCalled()
+  })
+
+  it('retries only the receipt and never repeats payment, provisioning or benefits', async () => {
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: unknown) => (fn as (tx: unknown) => unknown)(prisma) as never)
+    vi.mocked(queueManualSaleEmail).mockResolvedValue('manual-sale:receipt-1')
+    expect(await retryManualCouponEmail('receipt-1')).toMatchObject({ ok: true, message: 'emailSent' })
+    expect(deliverEmail).toHaveBeenCalledExactlyOnceWith('manual-sale:receipt-1', { force: true })
+    expect(redeem).not.toHaveBeenCalled()
+    expect(provision).not.toHaveBeenCalled()
+  })
+
+  it('does not send a receipt for an unavailable sale', async () => {
+    vi.mocked(prisma.$transaction).mockResolvedValue(null)
+    expect(await retryManualCouponEmail('receipt-1')).toEqual({ ok: false, message: 'emailUnavailable' })
+    expect(deliverEmail).not.toHaveBeenCalled()
   })
 
   it('returns a translated business rejection and leaves UI caches alone', async () => {

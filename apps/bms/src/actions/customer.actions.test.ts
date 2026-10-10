@@ -121,6 +121,16 @@ describe("deleteCustomer — cross-app cascade guard", () => {
 })
 
 describe('immediate partner onboarding', () => {
+  it('rejects the final-consumer segment instead of creating Sequoia staff or credits', async () => {
+    const result = await createCustomer({ ...input, businessSegment: 'FINAL_CONSUMER' } as unknown as typeof input)
+    expect(result).toEqual({ ok: false, message: 'common.invalidData' })
+    expect(prismaMock.$transaction).not.toHaveBeenCalled()
+    expect(prismaMock.tenant.create).not.toHaveBeenCalled()
+    expect(prismaMock.user.create).not.toHaveBeenCalled()
+    expect(grantInitialGenCodes).not.toHaveBeenCalled()
+    expect(sendPartnerCredentialsEmail).not.toHaveBeenCalled()
+  })
+
   it('persists an active owner with a matching password hash and grants the exact allowance before email', async () => {
     const result = await createCustomer(input)
     expect(result).toEqual({ ok: true, data: { id: 'tenant-new', emailPending: false }, message: 'customer.createdWithAccess' })

@@ -45,7 +45,10 @@
       "passwordAlreadySet": "This customer has already set their password.",
       "soleGuardian": "Cannot delete customer: they are the sole guardian of one or more memorialized profiles.",
       "unexpectedError": "An unexpected error occurred.",
-      "updated": "Customer updated successfully."
+      "updated": "Customer updated successfully.",
+      "createdEmailPending": "Customer created. The email invitation is pending; use Resend email in the customer list.",
+      "emailPending": "The invitation could not be sent. Please try again.",
+      "inactiveEmail": "Activate the customer before sending an invitation."
     },
     "customerCategory": {
       "nameExists": "A category with this name already exists",
@@ -69,7 +72,9 @@
       "saleRecorded": "Sale recorded (written off).",
       "saleUndone": "Sale undone — the code is available again.",
       "soldViaPlatform": "Sold and access sent to the customer.",
-      "unexpectedError": "An unexpected error occurred."
+      "unexpectedError": "An unexpected error occurred.",
+      "soldEmailPending": "Sale recorded. Email delivery is pending. Check the customer record before retrying delivery.",
+      "recipientUnavailable": "This email does not belong to an active customer account."
     },
     "profile": {
       "avatarUpdated": "Avatar updated.",

@@ -42,16 +42,22 @@ export async function createCustomer(
   if (!validated.success) return fail(t('common.invalidData'))
 
   const { address, birthDate, categoryId, ...rest } = validated.data
+  const token = randomBytes(32).toString('hex')
 
   try {
-    await prisma.appUser.create({
-      data: {
-        ...rest,
-        birthDate: toDate(birthDate),
-        tenant:    { connect: { id: customerId } },
-        category:  categoryId ? { connect: { id: categoryId } } : undefined,
-        address:   buildAddressCreate(address),
-      },
+    await prisma.$transaction(async (tx) => {
+      const customer = await tx.appUser.create({
+        data: {
+          ...rest,
+          birthDate: toDate(birthDate),
+          tenant:    { connect: { id: customerId } },
+          category:  categoryId ? { connect: { id: categoryId } } : undefined,
+          address:   buildAddressCreate(address),
+        },
+      })
+      if (rest.isActive) await tx.passwordResetToken.create({
+        data: { token: hashToken(token), appUserId: customer.id, expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000) },
+      })
     })
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
@@ -61,6 +67,10 @@ export async function createCustomer(
   }
 
   revalidatePath('/customers')
+  if (rest.isActive) {
+    try { await sendAppWelcomeEmail(rest.email, token, rest.firstName) }
+    catch { return done(t('customer.createdEmailPending')) }
+  }
   return done(t('customer.created'))
 }
 
@@ -78,6 +88,7 @@ export async function createCustomerWithDeceased(
   if (!validatedDeceased.success) return fail(t('common.invalidData'))
 
   const { address, birthDate, categoryId, ...userRest } = validatedUser.data
+  const token = randomBytes(32).toString('hex')
   const { birthDate: dBirthDate, deathDate, burialDate, burialLatitude, burialLongitude, ...deceasedRest } = validatedDeceased.data
 
   try {
@@ -131,7 +142,9 @@ export async function createCustomerWithDeceased(
           },
         })
       }
-
+      if (userRest.isActive) await tx.passwordResetToken.create({
+        data: { token: hashToken(token), appUserId: appUser.id, expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000) },
+      })
     })
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
@@ -141,6 +154,10 @@ export async function createCustomerWithDeceased(
   }
 
   revalidatePath('/customers')
+  if (userRest.isActive) {
+    try { await sendAppWelcomeEmail(userRest.email, token, userRest.firstName) }
+    catch { return done(t('customer.createdEmailPending')) }
+  }
   return done(t('customer.created'))
 }
 
@@ -218,10 +235,11 @@ export async function resendCustomerEmail(id: string): Promise<ActionResult> {
 
   const appUser = await prisma.appUser.findUnique({
     where:  { id, tenantId: customerId },
-    select: { id: true, email: true, password: true, firstName: true },
+    select: { id: true, email: true, password: true, firstName: true, isActive: true },
   })
   if (!appUser) return fail(t('customer.notFound'))
   if (!appUser.email) return fail(t('customer.noEmail'))
+  if (!appUser.isActive) return fail(t('customer.inactiveEmail'))
   if (appUser.password) return fail(t('customer.passwordAlreadySet'))
 
   await prisma.passwordResetToken.deleteMany({ where: { appUserId: id } })
@@ -231,7 +249,8 @@ export async function resendCustomerEmail(id: string): Promise<ActionResult> {
     data: { token: hashToken(token), appUserId: id, expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000) },
   })
 
-  await sendAppWelcomeEmail(appUser.email, token, appUser.firstName)
+  try { await sendAppWelcomeEmail(appUser.email, token, appUser.firstName) }
+  catch { return fail(t('customer.emailPending')) }
   return done()
 }
 

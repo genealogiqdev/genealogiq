@@ -1,6 +1,6 @@
 'use server'
 
-import { randomBytes } from 'crypto'
+import { randomBytes, randomUUID } from 'crypto'
 import { revalidatePath } from 'next/cache'
 import { getTranslations } from 'next-intl/server'
 import { z } from 'zod'
@@ -8,7 +8,8 @@ import { Prisma } from '@genealogiq/db'
 import { prisma } from '@/lib/prisma'
 import { canActivate, reserveCreditForSale, releaseReservation, InsufficientCreditsError } from '@genealogiq/services/credits'
 import { verifyTenantSession } from '@/lib/dal'
-import { sendAppWelcomeEmail, sendGenCodeDeliveryEmail } from '@/lib/email'
+import { sendAppWelcomeEmail } from '@/lib/email'
+import { deliverEmail, enqueueEmail, notificationUrl } from '@genealogiq/services/email-outbox'
 import { hashToken, done, fail, type ActionResult } from '@genealogiq/core'
 
 const buyerSchema = z.string().trim().min(1, 'Buyer name is required.').max(200)
@@ -162,16 +163,21 @@ export async function sellGenCodeViaPlatform(
 
   const existing = await prisma.appUser.findUnique({
     where:  { email },
-    select: { id: true, email: true, firstName: true, tenantId: true, password: true },
+    select: { id: true, email: true, firstName: true, tenantId: true, password: true, role: true, isActive: true },
   })
   if (existing && existing.tenantId && existing.tenantId !== customerId) {
     return fail(t('gencode.emailOtherTenant'))
+  }
+  if (existing && (!existing.isActive || existing.role !== 'APP_USER')) {
+    return fail(t('gencode.recipientUnavailable'))
   }
 
   // A buyer who already set a password can't be onboarded with the welcome
   // email (its link creates a password) — they get the code delivered instead.
   const needsOnboarding = !existing?.password
   const token = randomBytes(32).toString('hex')
+  const soldAt = new Date()
+  const emailId = `gencode-sale:${randomUUID()}`
 
   let consumer = existing
   try {
@@ -179,7 +185,7 @@ export async function sellGenCodeViaPlatform(
       if (!consumer) {
         consumer = await tx.appUser.create({
           data:   { firstName, lastName, email, tenantId: customerId },
-          select: { id: true, email: true, firstName: true, tenantId: true, password: true },
+          select: { id: true, email: true, firstName: true, tenantId: true, password: true, role: true, isActive: true },
         })
       }
 
@@ -187,7 +193,7 @@ export async function sellGenCodeViaPlatform(
         where: { genCode, tenantId: customerId, status: 'AVAILABLE' },
         data:  {
           status:          'SOLD',
-          soldAt:          new Date(),
+          soldAt,
           soldVia:         'PLATFORM',
           soldById:        user.id,
           soldToAppUserId: consumer.id,
@@ -205,6 +211,16 @@ export async function sellGenCodeViaPlatform(
           },
         })
       }
+      // The public code receipt is durable; password-setting tokens stay out of the queue.
+      await enqueueEmail(tx, {
+        id: emailId, recipient: email,
+        context: { type: 'gencode-sale', appUserId: consumer.id, genCode, soldAt: soldAt.toISOString() },
+        message: {
+          subject: 'Seu GenCode está disponível', name: consumer.firstName,
+          paragraphs: [`O GenCode ${genCode} foi reservado para você. Acesse sua conta para ativá-lo.`],
+          action: { label: 'Acessar GenCode', url: notificationUrl('app', `/qr/${encodeURIComponent(genCode)}`) },
+        },
+      })
     })
   } catch (e) {
     if (e instanceof Error && e.message === 'NOT_AVAILABLE') {
@@ -241,20 +257,20 @@ export async function sellGenCodeViaPlatform(
     console.error('[seq] committed reservation failed', e)
   }
 
+  let emailPending = await deliverEmail(emailId) !== 'sent'
   try {
     if (needsOnboarding) {
       // Deep-link the welcome email back to this physical code so the buyer lands
       // on /qr/<genCode> right after creating their password and signing in.
       await sendAppWelcomeEmail(email, token, firstName, `/qr/${genCode}`)
-    } else {
-      await sendGenCodeDeliveryEmail(email, genCode, consumer?.firstName ?? firstName)
     }
   } catch {
-    // Email failure doesn't roll back the sale.
+    console.error('[seq] GenCode delivery pending', { genCode })
+    emailPending = true
   }
 
   paths(genCode)
-  return done(t('gencode.soldViaPlatform'))
+  return done(t(emailPending ? 'gencode.soldEmailPending' : 'gencode.soldViaPlatform'))
 }
 
 /** Reverse a write-off — only while still SOLD (not yet activated by the consumer). */

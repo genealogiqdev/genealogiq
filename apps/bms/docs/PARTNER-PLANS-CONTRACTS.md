@@ -3,7 +3,7 @@
 > **Code:** [src/actions/partner-plan.actions.ts](../src/actions/partner-plan.actions.ts) · [src/queries/partner-plans.ts](../src/queries/partner-plans.ts) · [src/queries/partner-subscriptions.ts](../src/queries/partner-subscriptions.ts) · [src/schemas/partner-plan.schema.ts](../src/schemas/partner-plan.schema.ts)
 > **Entry points:** `/plans` · `/plans/new` · `/plans/[id]` · `/sales/contracts` · `/sales/contracts/new` · `/sales/contracts/[id]`
 > **Depends on:** [PARTNER-CREDITS](../../../docs/PARTNER-CREDITS.md) · [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-07 at `9253152` plus the Gen2026 changes to the paths named below. Source, tests, runtime and UI are recorded separately; earlier observations remain in the verification log.
+> **Last verified against code:** 2026-10-09 at `3826319` plus the consolidated release. Earlier source/runtime evidence remains in the verification log.
 
 The BMS application supplies partner plans and annual contracts. Plan forms version allowance, trial and pricing. Contracts bind Tenant, PartnerPlan and effective PlanPrice; a paid Stripe invoice creates the cycle with plan/price snapshots. Annual cash and installment options represent one twelve-month entitlement cycle.
 
@@ -31,6 +31,10 @@ ea6e3ca made invoice-paid cycles explicit; 7f13c0a added rollover/grace. Plan ch
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
+
+### Consolidated release, 2026-10-09
+
+Invoice success and payment-failure notifications are separate immutable invoice receipts. A failure event does not open a cycle, provision access or grant credits; payment later suppresses its queued failure notice. Renewal messages are keyed by annual cycle rather than subscription and recheck the live cycle before delivery. Existing legacy StripeEvent notice receipts only suppress that same cycle. See the shared [delivery contract](../../../docs/EMAIL-DELIVERY.md).
 
 ### Contracts settled with a manual 100% coupon
 
@@ -150,6 +154,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-10-07 | `218d5aa` + Gen2026 change | Source, deterministic and real DB tests, BMS/SEQ browser | Finite manual B2B cycle, allowance/stock, grace renewal/rollover, overlap rejection and new OWNER access exercised; checkout callbacks corrected. | [Audit](../../../docs/audits/GEN2026-2026-10-07.md) separates UI/persistence from mocked Stripe and disabled invitation transport. |
+| 2026-10-09 | `3826319` + consolidated release | Source, deterministic and local PostgreSQL checks | Updated contract above; [release audit](../../../docs/audits/PRODUCTION-RELEASE-2026-10-09.md) separates tests, runtime, deployment and cleanup. | Browser automation omitted at the user's request; production inbox delivery is not inferred. |
 
 ## Related
 

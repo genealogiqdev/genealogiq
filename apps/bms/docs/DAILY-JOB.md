@@ -3,7 +3,7 @@
 > **Code:** [src/app/api/cron/daily/route.ts](../src/app/api/cron/daily/route.ts)
 > **Entry points:** `/api/cron/daily`
 > **Depends on:** [PARTNER-CREDITS](../../../docs/PARTNER-CREDITS.md) · [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md) · [MEDIA-STORAGE](../../../docs/MEDIA-STORAGE.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-03 at `6e06634`, including this task’s uncommitted documentation, launcher and test changes. Source verification is separate from runtime/UI below.
+> **Last verified against code:** 2026-10-09 at `3826319` plus the consolidated release. Earlier source/runtime evidence remains in the verification log.
 
 The BMS application supplies daily partner lifecycle and reconciliation. A configured CRON_SECRET is required; bearer mismatch returns 401, missing configuration returns 500. The handler runs lifecycle sweep, partner notices, trial notices, reconciliation and media-usage refresh independently via Promise.allSettled, then emits per-step results.
 
@@ -28,6 +28,10 @@ The outer ok=true means the batch responded; each step may still contain error. 
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
+
+### Consolidated release, 2026-10-09
+
+After the existing lifecycle/notification producers, the authenticated daily endpoint runs runEmailOutbox and reports sent, pending and canceled counts. Each step retains the existing independent failure handling. A retry batch contains at most 100 eligible rows; provider failure releases the lease and defers availability without repeating business actions. Partner renewal and non-Stripe consumer expiry producers queue durable messages before sending. The existing 06:00 UTC schedule is unchanged; no customer mail is triggered as a release smoke test.
 
 A configured CRON_SECRET is required; bearer mismatch returns 401, missing configuration returns 500. The handler runs lifecycle sweep, partner notices, trial notices, reconciliation and media-usage refresh independently via Promise.allSettled, then emits per-step results.
 
@@ -124,6 +128,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
+| 2026-10-09 | `3826319` + consolidated release | Source, deterministic and local PostgreSQL checks | Updated contract above; [release audit](../../../docs/audits/PRODUCTION-RELEASE-2026-10-09.md) separates tests, runtime, deployment and cleanup. | Browser automation omitted at the user's request; production inbox delivery is not inferred. |
 
 ## Related
 

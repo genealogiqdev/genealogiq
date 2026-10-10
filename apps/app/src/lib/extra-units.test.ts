@@ -4,16 +4,22 @@ import type Stripe from "stripe"
 const { prismaMock } = vi.hoisted(() => ({
   prismaMock: {
     extraUnitPurchase: { aggregate: vi.fn(), create: vi.fn() },
+    appUser: { findUnique: vi.fn() },
+    $transaction: vi.fn(),
   },
 }))
 
 vi.mock("server-only", () => ({}))
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }))
+vi.mock('@genealogiq/services/email-outbox', () => ({ enqueueEmail: vi.fn(), notificationUrl: () => 'https://genealogiq.com.br/subscriptions' }))
+import { enqueueEmail } from '@genealogiq/services/email-outbox'
 
 import { getExtraUnits, applyExtraUnitPurchase } from "./extra-units"
 
 beforeEach(() => {
-  vi.clearAllMocks()
+  vi.resetAllMocks()
+  prismaMock.$transaction.mockImplementation(async (fn) => fn(prismaMock))
+  prismaMock.appUser.findUnique.mockResolvedValue({ email: 'ana@genealogiq.test', firstName: 'Ana', role: 'APP_USER', isActive: true })
 })
 
 describe("getExtraUnits", () => {
@@ -63,6 +69,10 @@ describe("applyExtraUnitPurchase", () => {
         stripeSessionId: "cs_test_123",
       },
     })
+    expect(enqueueEmail).toHaveBeenCalledWith(prismaMock, expect.objectContaining({
+      id: 'extra-unit:cs_test_123', recipient: 'ana@genealogiq.test', context: { type: 'app-user', appUserId: 'g1' },
+      message: expect.objectContaining({ details: expect.arrayContaining([{ label: 'Quantidade', value: '1' }, { label: 'Total', value: 'US$ 2,99' }]) }),
+    }))
   })
 
   it("is a no-op when required metadata is missing", async () => {
@@ -81,5 +91,16 @@ describe("applyExtraUnitPurchase", () => {
     prismaMock.extraUnitPurchase.create.mockRejectedValue(new Error("db down"))
 
     await expect(applyExtraUnitPurchase(makeSession())).rejects.toThrow("db down")
+  })
+
+  it('does not notify an inactive or non-login profile', async () => {
+    prismaMock.appUser.findUnique.mockResolvedValue({ email: 'pet@genealogiq.test', role: 'APP_PET', isActive: true })
+    await applyExtraUnitPurchase(makeSession())
+    expect(enqueueEmail).not.toHaveBeenCalled()
+  })
+
+  it('rejects an unknown resource before granting or notifying', async () => {
+    await applyExtraUnitPurchase(makeSession({ metadata: { buyerId: 'g1', resource: 'UNKNOWN', tier: 'FREE', currency: 'USD' } }))
+    expect(prismaMock.$transaction).not.toHaveBeenCalled()
   })
 })

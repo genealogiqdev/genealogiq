@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import type Stripe from "stripe"
 import { stripe } from "@/lib/stripe"
 import { prisma } from "@/lib/prisma"
+import { deliverEmail } from '@genealogiq/services/email-outbox'
+import { invoiceSubscriptionId, partnerInvoiceEmailId, queuePartnerInvoiceEmail } from '@genealogiq/services/sale-notifications'
 import {
   applyPartnerInvoicePaid,
   linkPartnerSubscription,
@@ -20,16 +22,11 @@ export const dynamic = "force-dynamic"
 // so there is nothing to grant.
 const RELEVANT_EVENTS = new Set<Stripe.Event["type"]>([
   "invoice.paid",
+  "invoice.payment_failed",
   "customer.subscription.created",
   "customer.subscription.updated",
   "customer.subscription.deleted",
 ])
-
-function subscriptionIdOf(invoice: Stripe.Invoice): string | null {
-  const raw = (invoice as unknown as { subscription?: string | { id: string } }).subscription
-  if (typeof raw === "string") return raw
-  return raw?.id ?? null
-}
 
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("stripe-signature")
@@ -53,9 +50,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true })
   }
 
-  if (event.type === "invoice.paid") {
+  if (event.type === "invoice.paid" || event.type === 'invoice.payment_failed') {
     const invoice = event.data.object as Stripe.Invoice
-    const subId = subscriptionIdOf(invoice)
+    const subId = invoiceSubscriptionId(invoice)
     if (!subId) return NextResponse.json({ received: true, ignored: "invoice without subscription" })
 
     try {
@@ -63,8 +60,14 @@ export async function POST(req: NextRequest) {
       if (sub.metadata?.origin !== "seq" || !sub.metadata?.partnerSubscriptionId) {
         return NextResponse.json({ received: true, ignored: "not a seq partner subscription" })
       }
+      if (event.type === 'invoice.payment_failed') {
+        await queuePartnerInvoiceEmail(prisma, sub.metadata.partnerSubscriptionId, invoice, true)
+        await deliverEmail(partnerInvoiceEmailId(invoice.id, true))
+        return NextResponse.json({ received: true })
+      }
       await linkPartnerSubscription(sub)
       const applied = await applyPartnerInvoicePaid(invoice)
+      if (applied.subscriptionId) await deliverEmail(partnerInvoiceEmailId(invoice.id))
       return NextResponse.json({ received: true, outcome: applied.outcome })
     } catch (err) {
       console.error("[seq-stripe-webhook] applyPartnerInvoicePaid failed", err)

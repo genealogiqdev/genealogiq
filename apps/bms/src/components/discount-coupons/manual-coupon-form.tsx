@@ -66,7 +66,7 @@ export function ManualCouponForm({ options, initial }: {
       setCompleted(true)
       setCompletionMessage(result.message)
       setAccessPending(!!result.data?.accessPending)
-      if (result.data?.accessPending) toast.warning(result.message)
+      if (result.data?.accessPending || result.data?.emailPending) toast.warning(result.message)
       else toast.success(result.message)
       router.refresh()
     })

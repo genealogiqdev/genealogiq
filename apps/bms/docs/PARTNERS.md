@@ -33,6 +33,12 @@ The enforcing files are linked above. Test names and literal assertions below re
 
 ## Contracts and data
 
+### Final-consumer selection in the new-customer wizard
+
+`/customers/new` includes **Guardião / Usuário Final** in **Segmento Genealogiq**. This selects the [consumer registration](CONSUMERS.md) contract: a person with App access and a complimentary Premium year. Steps 4 and 5 describe the App administrator/guardian and Premium permissions. Business tax identifiers, address, initial GenCodes and Sequoia module flags are absent from this branch. It calls `registerConsumer`, never `createCustomer`; no Tenant or staff User is created. The UI-only `FINAL_CONSUMER` value is deliberately excluded from `PARTNER_SEGMENTS`, so the partner action also rejects a forged submission.
+
+The five partner segments retain their company/individual inputs, OWNER access, optional initial GenCodes and Sequoia modules. Switching the selector back to a partner segment restores the partner form. The common [stepper](../src/components/customers/customer-registration-steps.tsx) presents the correct product for each branch; the [segment selector](../src/components/customers/customer-segment-select.tsx) is only a registration choice, not an authorization boundary.
+
 ### Immediate access and initial GenCodes
 
 New registration creates an active OWNER with a cryptographically generated password, persisted only as a bcrypt hash. The administrator email defaults to the partner contact email in the wizard and remains editable. After the transaction commits, `sendPartnerCredentialsEmail` sends that OWNER's email, initial password and SEQ sign-in URL. Access is independent of purchasing and also works with zero credits. Existing inactive accounts are not changed retroactively.
@@ -134,6 +140,15 @@ Current onboarding acceptance: create a partner with three initial GenCodes and 
 
 ## Gaps and fixes
 
+### PARTNERS-G2: New customer wizard omitted the B2C segment
+
+- **Status:** fixed
+- **Found:** 2026-10-09, screenshot and request for App-only internal registration of a guardian/end user.
+- **Evidence:** `/customers/new` offered only five partner segments; steps 4/5 always described Sequoia. Independent registration existed only in the separate consumer flow.
+- **Impact:** Staff could not choose the intended B2C account from the new-customer wizard and could mistake the partner's Sequoia access for App access.
+- **Root cause:** The entry rendered only `CustomerNewForm`'s partner contract, even after direct consumer registration was introduced.
+- **Resolution:** The B2C wizard change adds **Guardião / Usuário Final**, reuses `ConsumerForm`/`registerConsumer` and changes the fourth/fifth steps to App/Premium while preserving partner behavior. Literal stepper and action tests cover the product labels and rejection of B2C data by the partner action. Source, checks, runtime/UI and cleanup are recorded in the [B2C wizard audit](../../../docs/audits/BMS-B2C-WIZARD-2026-10-09.md).
+
 ### PARTNERS-G1: Invitation delivery fixture unavailable
 
 - **Status:** open
@@ -152,6 +167,7 @@ Current onboarding acceptance: create a partner with three initial GenCodes and 
 | 2026-10-07 | `218d5aa` + Gen2026 change | Action tests, real local state and SEQ browser | Coupon settlement now provisions first access; inactive OWNER rejected before, active OWNER signed in after; invitation-failure follow-up remained visible without repeating the sale. | [Audit](../../../docs/audits/GEN2026-2026-10-07.md); real mail delivery/password setup still requires its fixture. |
 | 2026-10-07 | `2632307` | Source, deterministic tests, local PostgreSQL and browser | Immediate active credentials, optional audited initial allowance, resend recovery and deletion guard; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](../../../docs/audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
 | 2026-10-09 | Global APP directory change | Source review | Added the administrator shortcut from `/customers` to `/consumers`, using the translated APP directory title and a wrapping header. | Automated tests and runtime/browser checks omitted at the user's request; no partner mutation changed or process started. |
+| 2026-10-09 | `3826319` + consolidated release | Completion of interrupted wizard/revocation/expiry chats | Final deterministic and local PostgreSQL checks plus release evidence in the [consolidated audit](../../../docs/audits/PRODUCTION-RELEASE-2026-10-09.md). | Browser automated QA waived; production inbox acceptance remains separate. |
 
 ## Related
 

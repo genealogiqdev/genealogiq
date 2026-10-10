@@ -3,7 +3,8 @@ import type { AppUserFormValues } from "@/schemas/app-user.schema"
 
 const { prismaMock } = vi.hoisted(() => ({
   prismaMock: {
-    appUser:         { create: vi.fn(), update: vi.fn() },
+    appUser:         { create: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
+    passwordResetToken: { create: vi.fn(), deleteMany: vi.fn() },
     appSale:         { count: vi.fn() },
     appUserGuardian: { count: vi.fn() },
     $transaction:    vi.fn(),
@@ -27,7 +28,9 @@ vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }))
 vi.mock("@/lib/dal", () => ({ verifyTenantSession: vi.fn() }))
 vi.mock("@/lib/email", () => ({ sendAppWelcomeEmail: vi.fn() }))
 
-import { createCustomer, updateCustomer, deleteCustomer } from "./customer.actions"
+import { createCustomer, updateCustomer, deleteCustomer, resendCustomerEmail } from "./customer.actions"
+import { sendAppWelcomeEmail } from '@/lib/email'
+import { hashToken } from '@genealogiq/core'
 import { verifyTenantSession } from "@/lib/dal"
 import { Prisma } from "@genealogiq/db"
 
@@ -58,8 +61,9 @@ const validUser: AppUserFormValues = {
 }
 
 beforeEach(() => {
-  vi.clearAllMocks()
+  vi.resetAllMocks()
   vi.mocked(verifyTenantSession).mockResolvedValue({ customerId: "c1" } as never)
+  prismaMock.$transaction.mockImplementation(async (fn) => fn(prismaMock))
 })
 
 describe("createCustomer", () => {
@@ -99,6 +103,50 @@ describe("createCustomer", () => {
         }),
       }),
     )
+    const token = vi.mocked(sendAppWelcomeEmail).mock.calls[0][1]
+    expect(token).toMatch(/^[a-f0-9]{64}$/)
+    expect(prismaMock.passwordResetToken.create).toHaveBeenCalledWith({ data: {
+      token: hashToken(token), appUserId: 'u1', expiresAt: expect.any(Date),
+    } })
+    expect(sendAppWelcomeEmail).toHaveBeenCalledExactlyOnceWith('ada@example.com', token, 'Ada')
+  })
+
+  it('preserves registration and explains how to recover a failed invitation', async () => {
+    prismaMock.appUser.create.mockResolvedValue({ id: 'u1' })
+    vi.mocked(sendAppWelcomeEmail).mockRejectedValue(new Error('provider rejected'))
+    expect(await createCustomer(validUser)).toEqual({ ok: true, message: 'customer.createdEmailPending' })
+    expect(prismaMock.appUser.create).toHaveBeenCalledOnce()
+  })
+
+  it('does not invite an inactive account', async () => {
+    prismaMock.appUser.create.mockResolvedValue({ id: 'u1' })
+    expect(await createCustomer({ ...validUser, isActive: false })).toEqual({ ok: true, message: 'customer.created' })
+    expect(sendAppWelcomeEmail).not.toHaveBeenCalled()
+    expect(prismaMock.passwordResetToken.create).not.toHaveBeenCalled()
+  })
+
+  it('does not send an invitation when its token transaction fails', async () => {
+    prismaMock.appUser.create.mockResolvedValue({ id: 'u1' })
+    prismaMock.passwordResetToken.create.mockRejectedValue(new Error('token write failed'))
+    await expect(createCustomer(validUser)).rejects.toThrow('token write failed')
+    expect(sendAppWelcomeEmail).not.toHaveBeenCalled()
+  })
+})
+
+describe('resendCustomerEmail', () => {
+  it('rejects a different tenant and an inactive account before issuing a link', async () => {
+    prismaMock.appUser.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'u1', email: 'ada@example.com', isActive: false })
+    expect(await resendCustomerEmail('u1')).toEqual({ ok: false, message: 'customer.notFound' })
+    expect(prismaMock.appUser.findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'u1', tenantId: 'c1' } }))
+    expect(await resendCustomerEmail('u1')).toEqual({ ok: false, message: 'customer.inactiveEmail' })
+    expect(prismaMock.passwordResetToken.create).not.toHaveBeenCalled()
+  })
+
+  it('reports a provider failure without another customer creation', async () => {
+    prismaMock.appUser.findUnique.mockResolvedValue({ id: 'u1', email: 'ada@example.com', firstName: 'Ada', isActive: true, password: null })
+    vi.mocked(sendAppWelcomeEmail).mockRejectedValue(new Error('unavailable'))
+    expect(await resendCustomerEmail('u1')).toEqual({ ok: false, message: 'customer.emailPending' })
+    expect(prismaMock.appUser.create).not.toHaveBeenCalled()
   })
 })
 

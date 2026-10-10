@@ -3,6 +3,8 @@ import "server-only"
 import type Stripe from "stripe"
 import type { Prisma } from "@genealogiq/db"
 import { prisma } from "@/lib/prisma"
+import { enqueueEmail, notificationUrl } from '@genealogiq/services/email-outbox'
+import { emailMoney } from '@genealogiq/services/sale-notifications'
 
 export type ExtraUnitResource = "GEO_PLACE" | "QR_CODE" | "MEMORIAL"
 
@@ -32,23 +34,33 @@ export async function applyExtraUnitPurchase(checkoutSession: Stripe.Checkout.Se
   const resource = meta.resource as ExtraUnitResource | undefined
   const tier     = meta.tier
   const currency = meta.currency
-  if (!buyerId || !resource || !tier || !currency) {
-    console.error("[extra-units] missing/invalid metadata", { sessionId: checkoutSession.id, meta })
+  if (!buyerId || !resource || !['GEO_PLACE', 'QR_CODE', 'MEMORIAL'].includes(resource)
+    || !tier || !currency || !['BRL', 'USD', 'MXN'].includes(currency.toUpperCase())) {
+    console.error("[extra-units] missing/invalid metadata", { sessionId: checkoutSession.id })
     return
   }
 
   const amountPaid = (checkoutSession.amount_total ?? 0) / 100
 
   try {
-    await prisma.extraUnitPurchase.create({
-      data: {
-        buyerId,
-        resource,
-        tier,
-        currency,
-        amountPaid,
-        stripeSessionId: checkoutSession.id,
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.extraUnitPurchase.create({
+        data: { buyerId, resource, tier, currency, amountPaid, stripeSessionId: checkoutSession.id },
+      })
+      const buyer = await tx.appUser.findUnique({ where: { id: buyerId }, select: { email: true, firstName: true, role: true, isActive: true } })
+      if (buyer?.email && buyer.role === 'APP_USER' && buyer.isActive) {
+        const names = { GEO_PLACE: 'Local extra', QR_CODE: 'Código QR extra', MEMORIAL: 'Memorial extra' }
+        await enqueueEmail(tx, {
+          id: `extra-unit:${checkoutSession.id}`, recipient: buyer.email,
+          context: { type: 'app-user', appUserId: buyerId },
+          message: {
+            subject: 'Genealogiq — compra de unidade extra confirmada', name: buyer.firstName,
+            paragraphs: ['Seu pagamento foi confirmado e a unidade extra já está disponível na sua conta.'],
+            details: [{ label: 'Produto', value: names[resource] }, { label: 'Quantidade', value: '1' }, { label: 'Total', value: emailMoney(amountPaid, currency.toUpperCase()) }],
+            action: { label: 'Acessar minha conta', url: notificationUrl('app', '/subscriptions') },
+          },
+        })
+      }
     })
   } catch (e) {
     if ((e as { code?: string }).code === "P2002") return // already processed

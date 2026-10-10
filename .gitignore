@@ -44,3 +44,7 @@ e2e/.auth/
 
 # Local QA logs and private browser evidence (summaries live in docs/audits).
 .local-qa/
+
+# Private source photos and local environment scratch file; never release them.
+/assets/
+/envs

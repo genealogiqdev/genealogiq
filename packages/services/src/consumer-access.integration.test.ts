@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PrismaClient } from '@genealogiq/db'
 
@@ -74,6 +74,38 @@ describe.skipIf(!url)('consumer Premium access on PostgreSQL', () => {
     await expect(grant(request)).rejects.toMatchObject({ reason: 'partner-account' })
     expect(await db.appUser.findUnique({ where: { id: user.id } })).toMatchObject({ tenantId: tenant.id, password: null })
     expect(await db.appSale.count({ where: { appUserId: user.id } })).toBe(0)
+  })
+
+  it('replaces a migration-origin test sale ending in 2099 and keeps the corrected gift on retry', async () => {
+    const request = input('legacy-test')
+    const user = await db.appUser.create({ data: { email: request.email, firstName: 'Legacy', lastName: 'Family', password: 'existing-hash', emailVerified: new Date('2025-01-01T00:00:00Z') } })
+    const testId = `test-premium-${createHash('md5').update(user.id).digest('hex')}`
+    await db.appSale.create({ data: { id: testId, appUserId: user.id, subscriptionId: premiumId, status: 'active', value: 0, currentPeriodEnd: new Date('2099-12-31T23:59:59Z') } })
+    const result = await grant(request)
+    expect(result.expiresAt).toEqual(new Date('2027-10-07T15:00:00Z'))
+    expect(await db.appSale.findUnique({ where: { id: testId } })).toMatchObject({ status: 'canceled', endedAt: new Date('2026-10-07T15:00:00Z') })
+    const effective = await db.appSale.findFirstOrThrow({ where: { appUserId: user.id, status: { in: ['active', 'trialing'] }, currentPeriodEnd: { gt: new Date('2026-10-07T15:00:00Z') } }, orderBy: { currentPeriodEnd: 'desc' } })
+    expect(effective.currentPeriodEnd).toEqual(new Date('2027-10-07T15:00:00Z'))
+    expect((await grant(request)).expiresAt).toEqual(new Date('2027-10-07T15:00:00Z'))
+    expect((await grant({ ...request, requestId: randomUUID() })).alreadyGranted).toBe(true)
+    expect(await db.consumerAccessGrant.count({ where: { recipientId: user.id } })).toBe(1)
+    expect(await db.appUser.findUnique({ where: { id: user.id } })).toMatchObject({ password: 'existing-hash' })
+  })
+
+  it('preserves purchased Premium alongside test access and rolls back replacement if the audit fails', async () => {
+    const request = input('legacy-paid')
+    const user = await db.appUser.create({ data: { email: request.email, firstName: 'Paid', lastName: 'Family' } })
+    const testId = `test-premium-${createHash('md5').update(user.id).digest('hex')}`
+    await db.appSale.create({ data: { id: testId, appUserId: user.id, subscriptionId: premiumId, status: 'active', value: 0, currentPeriodEnd: new Date('2099-12-31T23:59:59Z') } })
+    const paid = await db.appSale.create({ data: { appUserId: user.id, subscriptionId: premiumId, status: 'active', value: 150, currentPeriodEnd: new Date('2027-01-31T15:00:00Z') } })
+    await db.$executeRaw`ALTER TABLE consumer_access_grants ADD CONSTRAINT consumer_expiry_qa_failure CHECK (notes IS DISTINCT FROM 'qa-force-rollback')`
+    try {
+      await expect(grant({ ...request, notes: 'qa-force-rollback' })).rejects.toThrow()
+      expect(await db.appSale.findUnique({ where: { id: testId } })).toMatchObject({ status: 'active', endedAt: null })
+      expect(await db.appSale.count({ where: { appUserId: user.id } })).toBe(2)
+    } finally { await db.$executeRaw`ALTER TABLE consumer_access_grants DROP CONSTRAINT consumer_expiry_qa_failure` }
+    expect((await grant(request)).expiresAt).toEqual(new Date('2028-01-31T15:00:00Z'))
+    expect(await db.appSale.findUnique({ where: { id: paid.id } })).toMatchObject({ status: 'active', currentPeriodEnd: new Date('2027-01-31T15:00:00Z') })
   })
 
   it('blocks a live Stripe subscription even when another manual sale has a later end date', async () => {

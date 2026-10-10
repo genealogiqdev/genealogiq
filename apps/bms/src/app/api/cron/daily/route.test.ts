@@ -5,12 +5,14 @@ vi.mock('@genealogiq/services/partner-lifecycle', () => ({ sweepPartnerLifecycle
 vi.mock('@genealogiq/services/partner-notifications', () => ({ runPartnerNotifications: vi.fn(), runTrialNotifications: vi.fn() }))
 vi.mock('@genealogiq/services/reconciliation', () => ({ reconcile: vi.fn() }))
 vi.mock('@genealogiq/services/storage-usage', () => ({ sampleStorageUsage: vi.fn() }))
+vi.mock('@genealogiq/services/email-outbox', () => ({ runEmailOutbox: vi.fn() }))
 
 import { GET } from './route'
 import { sweepPartnerLifecycle } from '@genealogiq/services/partner-lifecycle'
 import { runPartnerNotifications, runTrialNotifications } from '@genealogiq/services/partner-notifications'
 import { reconcile } from '@genealogiq/services/reconciliation'
 import { sampleStorageUsage } from '@genealogiq/services/storage-usage'
+import { runEmailOutbox } from '@genealogiq/services/email-outbox'
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -26,7 +28,7 @@ function request(authorization?: string) {
 describe('daily job boundary and independent bookkeeping', () => {
   it('rejects an unsigned request before invoking any side effect', async () => {
     expect((await GET(request())).status).toBe(401)
-    for (const service of [sweepPartnerLifecycle, runPartnerNotifications, runTrialNotifications, reconcile, sampleStorageUsage]) {
+    for (const service of [sweepPartnerLifecycle, runPartnerNotifications, runTrialNotifications, reconcile, sampleStorageUsage, runEmailOutbox]) {
       expect(service).not.toHaveBeenCalled()
     }
   })
@@ -43,6 +45,7 @@ describe('daily job boundary and independent bookkeeping', () => {
     vi.mocked(sweepPartnerLifecycle).mockResolvedValue({ expired: 2 } as never)
     vi.mocked(runPartnerNotifications).mockRejectedValue(new Error('email unavailable'))
     vi.mocked(runTrialNotifications).mockResolvedValue({ sent: 0 } as never)
+    vi.mocked(runEmailOutbox).mockResolvedValue({ sent: 2, pending: 1, canceled: 0 })
     vi.mocked(sampleStorageUsage).mockResolvedValue({ bytes: 12 } as never)
     vi.mocked(reconcile).mockResolvedValue({
       checked: 3,
@@ -53,7 +56,7 @@ describe('daily job boundary and independent bookkeeping', () => {
     expect(response.status).toBe(200)
     expect(await response.json()).toMatchObject({
       ok: true, sweep: { expired: 2 }, renewals: { error: 'Error: email unavailable' },
-      reconciliation: { checked: 3, critical: 1, warnings: 0 }, storage: { bytes: 12 },
+      reconciliation: { checked: 3, critical: 1, warnings: 0 }, storage: { bytes: 12 }, emails: { sent: 2, pending: 1, canceled: 0 },
     })
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('grant-1'))
   })
