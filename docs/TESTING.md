@@ -1,7 +1,7 @@
 # Tests, fixtures and product verification
 
 > **Code:** [Vitest projects](../vitest.config.ts), [Playwright](../playwright.config.ts), [local launcher](../scripts/local-qa.mjs), app/package specs, [checks](../package.json).
-> **Last source verification:** 2026-10-07 at `9253152` plus the Gen2026 changes; earlier observations remain in the verification log.
+> **Last source verification:** 2026-10-09 at `462f8a9`; final local and cloud results are in the consolidated release audit. Earlier observations remain in the verification log.
 
 Run every command below from `C:/Users/Tiger/Desktop/dev/personal/genealogiq`. Test/source/runtime/UI layers prove different things; only the exercised layer gets a pass.
 

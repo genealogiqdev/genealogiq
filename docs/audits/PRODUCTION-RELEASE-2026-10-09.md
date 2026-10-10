@@ -31,7 +31,11 @@ The enabled Azurite integration passed its independent create-only upload, overw
 
 ## Local runtime and UI
 
-This chat started only repository PostgreSQL and Azurite containers after identifying no existing running containers. Local production-build and three-app HTTP evidence is appended after checks. Browser automated QA is omitted at the user's explicit request; current feature UI paths are not claimed as exercised. Prior feature-specific UI/QR/Unicode evidence remains in its original audit/chat.
+All three local production builds passed sequentially, including their TypeScript and route generation stages, using disabled external providers, the disposable database and an isolated Next output directory. Production container packaging is verified separately by CI.
+
+This chat started only repository PostgreSQL and Azurite containers after identifying no existing running containers. The built apps then ran on loopback ports 8000/8001/8002 using the standard local launcher's provider/credential isolation and the disposable database. Each app passed live/ready HTTP checks, public sign-in form retrieval, normal Credentials authentication with the public local fixture, invalid-credential rejection and authenticated page retrieval (APP /messages, BMS /consumers, SEQ /customers). Anonymous requests redirected to sign-in; APP uses Next's documented streamed meta redirect, so its initial HTTP status is 200. The authenticated BMS /customers/new route rendered successfully. Closed select options are covered by component tests, not claimed as browser interaction.
+
+Browser automated QA is omitted at the user's explicit request; current feature UI paths are not claimed as exercised. Prior feature-specific UI/QR/Unicode evidence remains in its original audit/chat.
 
 ## Production preparation
 
@@ -41,12 +45,42 @@ The first read-only expiry preview (`job-genealogiq-migrate-prod-oem80ny`) succe
 
 Production database public access stays disabled. PITR retention remains 14 days. On-demand backup `before-consolidated-release-20261009` completed at **2026-10-10 00:11:32.623794 UTC** (2026-10-09 local date). Deployment uses the existing main-branch GitHub/Azure workflow with immutable SHA tags, one migration job and all three app images plus scheduler/migration jobs. Image-change what-if, workflow results and live checks are recorded below after completion.
 
-Version-2 read-only preview `job-genealogiq-migrate-prod-j7h5nxr` succeeded: 43 independent migration sales and one gift, 45 rows total, exactly one replaced test allowance canceled. The gift ends on **2027-10-08 02:13:01.075**. Reviewed hash: `e63d311a54ef2d2f0b04868f6cf28a4506dbdd770215aa08733989cb6faed362`. All before/after rows are retained privately. Apply is still pending at this audit point.
+Version-2 read-only preview `job-genealogiq-migrate-prod-j7h5nxr` succeeded: 43 independent migration sales and one gift, 45 rows total, exactly one replaced test allowance to cancel. Expected gift end: **2027-10-08 02:13:01.075 UTC**. Reviewed hash: `e63d311a54ef2d2f0b04868f6cf28a4506dbdd770215aa08733989cb6faed362`. All before/after rows are retained privately; the successful application of this same plan is recorded below.
 
 ## Release completion
 
-Pending final builds, immutable deployment, version-2 data-repair receipt and live verification at this audit point. This section is updated before completion is reported to the user.
+Release source committed and pushed to main as **462f8a976ee02156f34e989778abdb00313baa57**, together with the five previously unpushed recent feature/audit commits. No branch change or force push was used.
+
+The image what-if read current resources with API version 2024-03-01 and showed only the six intended container image fields, plus removal of the read-only runningStatus display field for the three apps. There were no resource creations/replacements or configuration/secret/domain changes. The existing deployment workflow applies image-only CLI updates; the preview template itself is not deployed.
+
+[CI run 38009297090](https://github.com/genealogiqdev/genealogiq/actions/runs/38009297090) completed successfully, including its blocking quality gates and clean Linux production image/startup checks for APP, BMS and SEQ.
+
+[Deploy Azure run 38009297139](https://github.com/genealogiqdev/genealogiq/actions/runs/38009297139) compiled all five images, but attempt 1 failed during the BMS image upload when ACR refused a TCP connection. The migration/deployment job was skipped and production was unchanged. Only the failed job and its dependent deployment were retried against the same immutable source in attempt 2, which **succeeded**.
+
+Migration execution **job-genealogiq-migrate-prod-klvobww** succeeded on the release image. The two new migrations are recorded as finished and not rolled back; migration execution was not duplicated by the failed first build attempt.
+
+| Production app | Active revision | Health / traffic | Image source |
+| --- | --- | --- | --- |
+| APP | ca-genealogiq-app-prod--0000013 | Healthy, Running, 100% | 462f8a976ee02156f34e989778abdb00313baa57 |
+| BMS | ca-genealogiq-bms-prod--0000013 | Healthy, Running, 100% | 462f8a976ee02156f34e989778abdb00313baa57 |
+| SEQ | ca-genealogiq-seq-prod--0000013 | Healthy, Running, 100% | 462f8a976ee02156f34e989778abdb00313baa57 |
+
+The daily scheduler, schema migration and media migration jobs all use the same release SHA and report succeeded provisioning. The existing daily execution at 2026-10-09 06:00 UTC succeeded; no extra daily run was triggered to send customer mail as QA.
+
+Live HTTP verification passed at genealogiq.com.br, bms.genealogiq.com.br and sequoia.genealogiq.com.br: live/ready endpoints and public sign-in forms returned 200, and anonymous protected pages redirected to sign-in. The unauthenticated BMS daily endpoint returned 401. www.genealogiq.com.br liveness also returned 200. The repository Azure verifier passed all default-host health/database checks and the media HTTPS/TLS/blob-access contract. All eight existing metric alerts remain enabled; PostgreSQL is Ready, privately networked, with 14-day PITR.
+
+## Production data correction and independent verification
+
+After the corrected BMS writer was healthy and receiving all traffic, **job-genealogiq-migrate-prod-blxapnn** applied version 2 successfully using the exact reviewed hash above. It changed 45 rows across the 43 migration allowances and one audited gift, including cancellation of the one test allowance replaced by that gift. No account, credential, purchase or email was created by the repair.
+
+Independent read-only execution **job-genealogiq-migrate-prod-q3sge3o** compared every reviewed target field with its expected value: **45 of 45 matched**. It independently confirmed both release migrations, zero independent 2099 test sentinels and an active, unrevoked gift with start **2026-10-08 02:13:01.075 UTC** and effective end **2027-10-08 02:13:01.075 UTC**. EmailOutbox contained zero rows at that check, consistent with no historical mail backfill.
+
+Final read-only preview **job-genealogiq-migrate-prod-8qho5iv** succeeded with **zero legacy sales, zero gifts and zero repair rows**. Empty-plan hash: `98f1b41e4af659c74646165c5acb378bc0a2bce40544715663e6507e61f6051a`. The private receipts retain the full before/after values. This follow-up release record changes documentation only; running application source remains `462f8a9`.
 
 ## Cleanup and limits
 
-Owned app processes, disposable test database and repository container cleanup are recorded below after verification. Existing local data volumes and private original assets are preserved. Provider acceptance is distinct from inbox delivery; no new real customer email is sent as QA. Google OAuth, physical plaque behavior, browser interaction, production PWA/push and the six uncertain legacy text originals remain the previously documented integration limits.
+The owned launcher stopped its three apps; ports 8000/8001/8002 had no listeners afterward. With zero remaining database sessions, the disposable release database was dropped. Only the PostgreSQL/Azurite containers started for this task were stopped; their original data volumes remain. The three generated tsconfig changes were restored, and git was clean after the source push.
+
+Automatic approval review rejected removal of the three .next-qa-release-20261009 build directories, stating that the action was blocked by policy. They remain ignored locally; no alternate deletion method was attempted. Private original assets and ignored test logs are preserved.
+
+Provider acceptance is distinct from inbox delivery; no new real customer email is sent as QA. Google OAuth, physical plaque behavior, browser interaction, production PWA/push and the six uncertain legacy text originals remain the previously documented integration limits.

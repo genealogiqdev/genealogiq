@@ -1,7 +1,7 @@
 # Shared database and migrations
 
 > **Code:** [schema.prisma](../packages/db/prisma/schema.prisma), [Prisma configuration](../packages/db/prisma.config.ts), [client initialization](../packages/db/src/index.ts), [migration gate](../scripts/check-migrations.mjs)
-> **Last verified against code:** 2026-10-07 at `9253152` plus the Gen2026 schema and migration; earlier audits remain below.
+> **Last verified against code:** 2026-10-09 at `462f8a9`; the consolidated release audit records local SQL replay, production migrations and independent data-repair verification. Earlier audits remain below.
 
 All three apps consume @genealogiq/db. The schema contains 46 models and the migration tree contains 78 migration.sql files, including the additive consumer gift revocation and durable email outbox changes. Counts are recomputed from files; the single-schema gate excludes competing app schemas.
 

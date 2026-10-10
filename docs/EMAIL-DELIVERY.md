@@ -195,7 +195,7 @@ message still requires the authorized recipient and scenario. The
 - **Evidence:** Manual sales lacked a receipt producer; several send failures were only logged. Renewal claims were stored before sending and keyed by subscription rather than annual cycle.
 - **Impact:** A successful sale could remain unannounced; a failed reminder could be lost or suppress a later year's notice.
 - **Root cause:** Business completion and transport acceptance were not modeled separately.
-- **Resolution:** Consolidated release based on 3826319: atomic outbox producers, lease/idempotency, live recipient checks, cycle-specific receipts and daily/email-only retries. Unit tests and six real PostgreSQL outbox cases cover provider rejection, concurrency, rollback, immutable duplicate receipts, changed recipients and GenCode resale. Production inbox delivery remains G2.
+- **Resolution:** 2026-10-09, commit `462f8a9`: atomic outbox producers, lease/idempotency, live recipient checks, cycle-specific receipts and daily/email-only retries. Unit tests and six real PostgreSQL outbox cases cover provider rejection, concurrency, rollback, immutable duplicate receipts, changed recipients and GenCode resale. Production inbox delivery remains G2.
 
 ## Verification log
 
