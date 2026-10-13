@@ -85,6 +85,39 @@ the production UI/boundary and job checks above. Billing acceptance is no longer
 the pending user action. No images, migrations, data, configuration, DNS or
 secrets were changed, and no owned process remains running.
 
+### Second recheck after activation
+
+At 13:18–13:20 America/Sao_Paulo (16:18–16:20 UTC), on `f43cc69`, live
+subscription state remained Enabled/PayAsYouGo/limit Off. All three app resource
+summaries now returned `Succeeded`, `Running`, and latest/ready revision
+`--0000013`. APP retained image
+`acrgenohqluyie.azurecr.io/genealogiq-app:462f8a976ee02156f34e989778abdb00313baa57`
+and 100% latest-revision traffic. These restored control-plane fields did not
+correspond to serving traffic:
+
+- Custom-domain live **and** ready requests for APP/BMS/SEQ all timed out at
+  15 seconds. Azure-generated hostname liveness requests also all timed out.
+- Revision list APIs for all three apps still returned `ManagedClusterSuspended`.
+  APP revision show returned `RevisionNotFound` for the revision advertised by
+  the app resource summary; it is not evidence that the revision was deleted.
+- One further APP start request was rejected with
+  `ReadOnlyDisabledSubscription`; no restart or configuration write succeeded.
+- The managed infrastructure public IP still reported Succeeded with the
+  original `20.197.202.148`; no managed infrastructure was changed.
+- Daily-job history became readable: latest returned successful execution was
+  `job-genealogiq-daily-prod-29860200` on October 10 at 06:00 UTC. Its configured
+  schedule remained `0 6 * * *` and the scheduler retained release image
+  `462f8a976ee02156f34e989778abdb00313baa57`. Historical execution success is not
+  proof that the schedule has resumed; no extra mail-producing job was started.
+
+**Still unavailable at 13:20 local time.** Account activation and restored app
+summary metadata are confirmed; live compute/provider recovery remains blocked.
+The 30-minute resource-access escalation threshold is approximately 13:41 local
+time, measured conservatively from the first observed Enabled state at 13:11.
+This is not a promised recovery deadline. Production browser/authenticated checks
+remain n/a while HTTPS cannot connect; no local/cloud processes need cleanup.
+The documentation checker and `git diff --check` passed for this appended audit.
+
 ## Tests, local runtime, UI and cleanup
 
 - Source: documentation-only incident/runbook update; no product behavior changed.
@@ -105,3 +138,4 @@ secrets were changed, and no owned process remains running.
 | --- | --- | --- | --- |
 | 2026-10-13 | 45305e6 + incident documentation | Source/runtime | Subscription suspension confirmed independently by live ARM and all three revision APIs; recovery remains blocked on account reactivation. |
 | 2026-10-13 | 0a0e5ec + follow-up docs | Azure runtime | User upgrade confirmed by live Enabled/PayAsYouGo/limit Off; provider still suspended and APP start rejected. Public health still times out; app recovery pending. |
+| 2026-10-13 | f43cc69 + follow-up docs | Azure runtime | Resource summaries now Running/Succeeded, but revision APIs still suspended, both custom/default HTTPS hosts timed out and APP start was rejected. Daily-job history readable; compute recovery pending. |
