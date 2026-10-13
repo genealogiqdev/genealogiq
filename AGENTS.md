@@ -102,3 +102,5 @@ ASCII decoding of UTF-8 bytes reproduces the historical loss signature, but
 does not identify the original symbols or the operation that damaged them.
 
 **Consolidated release verification:** 2026-10-09, [release audit](docs/audits/PRODUCTION-RELEASE-2026-10-09.md). Reviews recent Genealogiq chats and records the combined source/tests, local HTTP, production images and guarded Premium date repair separately. Browser automated QA is omitted at the user's request.
+
+**Production subscription outage:** 2026-10-13, [incident audit](docs/audits/PRODUCTION-OUTAGE-2026-10-13.md). All three apps reported subscription-related compute suspension. Read live ARM subscription state rather than relying on cached `az account show`; billing reactivation and subsequent service verification remain pending in this audit.

@@ -303,6 +303,44 @@ origin updates reuse immutable images and do not replay database migrations.
 
 ## Verification and observability
 
+### All apps unavailable: check the live subscription first
+
+`az account show` can report a cached `Enabled` state while Azure Resource
+Manager reports `Warned`. Before restarting or redeploying a shared outage,
+read the current subscription state directly:
+
+```powershell
+az rest --method get `
+  --url 'https://management.azure.com/subscriptions/c710b26f-e3c7-4a45-9477-eaaf3bdcc329?api-version=2022-12-01' `
+  --query '{state:state,subscriptionPolicies:subscriptionPolicies}' --output json
+az containerapp revision list `
+  --resource-group rg-genealogiq-prod --name ca-genealogiq-app-prod --output table
+```
+
+`ManagedClusterSuspended` explicitly attributing suspension to a disabled
+subscription is an account/platform incident. An environment provisioning state
+of `Succeeded` does not prove that its compute is running. On 2026-10-13, all
+three app resources reported `Failed`, their revision APIs reported this
+suspension, and the subscription was `Warned` with `FreeTrial_2014-09-01` and
+`spendingLimit: On`. This identifies the platform blocker, but does not by
+itself distinguish exhausted credit from trial expiry or another billing issue.
+
+Have the billing owner review **Subscriptions > Azure subscription 1** in
+Azure Portal and resolve its reactivation/upgrade notice. Do not recreate the
+environment, reset secrets, redeploy foundation resources or change DNS to
+work around a subscription suspension. Paid-plan acceptance/payment details
+require the billing owner's action or explicit authorization.
+
+After the live subscription returns `Enabled`, recheck all three revision APIs
+and public custom-domain live/ready endpoints. Inspect existing revisions before
+choosing a targeted restart if compute has not recovered. Complete the normal
+verification below, including sign-in rendering and anonymous protected-route
+rejection, and inspect daily-job executions. Existing metric alerts being enabled
+does not prove that they detected a subscription-wide outage.
+
+The [October 13 incident audit](audits/PRODUCTION-OUTAGE-2026-10-13.md) separates
+the observed outage, account blocker, local prerequisites and recovery status.
+
 Run:
 
 ```powershell

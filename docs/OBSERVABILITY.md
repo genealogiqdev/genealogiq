@@ -23,6 +23,7 @@ The applications use Next terminal/runtime logs, HTTP responses, optional Sentry
 | Symptom | Inspect first | Independent evidence |
 | --- | --- | --- |
 | Sign-in redirect loop | Canonical origin, separate app cookie, launcher restart | Fresh Credentials submit + protected save/reload, not injected storage state |
+| All production apps time out together | Live ARM subscription state and Container Apps revision API; see [subscription outage procedure](AZURE-AGENT-RUNBOOK.md#all-apps-unavailable-check-the-live-subscription-first) | Cached account state and environment provisioning success can mask suspended compute; verify recovery with public live/ready and product boundaries |
 | Unauthorized read/write | DAL role/tenant/profile scope and query where clause | Forbidden response plus unchanged target row |
 | Wrong dashboard money/count | Raw rows, paid snapshots, soldAt, currency | Count/group rows independently before comparing UI |
 | Missing entitlement | Signed event routing/idempotency, cycle snapshot, grant expiry | One expected cycle/grant/event after duplicate replay |
@@ -58,6 +59,7 @@ The 2026-10-03 local evidence includes company save/reload/restoration in BMS/SE
 | --- | --- | --- | --- |
 | 2026-10-03 | 6e06634 + working changes | Source | Health/DAL/daily/provider logging paths traced. |
 | 2026-10-03 | Same | Runtime/UI | Local Next logs and persisted baseline rows inspected; Sentry/cloud retention and full provider correlation not exercised. |
+| 2026-10-13 | 45305e6 + incident docs | Azure runtime | All three apps timed out; revision APIs confirmed subscription-related compute suspension. Live ARM was Warned despite cached Enabled. [Incident audit](audits/PRODUCTION-OUTAGE-2026-10-13.md); reactivation and UI recovery pending. |
 
 ## Related
 
