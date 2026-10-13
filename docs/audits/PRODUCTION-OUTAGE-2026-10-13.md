@@ -35,7 +35,7 @@ policy and `Warned` state require billing-owner investigation, but these API
 responses do not prove the exact credit balance, expiry date or billing trigger.
 Database control-plane readiness is not a data-integrity or app-connection test.
 
-## Recovery status and next steps
+## Initial recovery status and next steps
 
 **Unresolved: awaiting subscription billing/reactivation.** Asked the user to
 review Azure Portal > Subscriptions > Azure subscription 1 and resolve its
@@ -53,6 +53,37 @@ No release, migration or rollback was performed. Previously recorded release
 images and migration history remain historical evidence until Azure exposes
 the active revisions again. Do not claim service restored from subscription
 activation alone.
+
+## Follow-up after user upgrade
+
+At 13:11–13:14 America/Sao_Paulo (16:11–16:14 UTC), after the user reported
+upgrading the plan, the live subscription API changed to **Enabled**,
+`PayAsYouGo_2014-09-01`, `spendingLimit: Off`. The billing upgrade is confirmed;
+compute recovery is not.
+
+- All three app resources still reported `Failed`, with ready/latest/ingress
+  fields unavailable. APP revision listing continued to return
+  `ManagedClusterSuspended`, including the 16:13:46 UTC recheck.
+- All three custom-domain liveness requests again timed out, with 15-second
+  bounds and curl `000`. No TLS/HTTP or product recovery pass is claimed.
+- One authorized attempt to start the existing APP resource using
+  `Microsoft.App/containerApps/start`, API `2025-01-01`, was rejected with
+  `ReadOnlyDisabledSubscription`. No successful cloud mutation occurred; there
+  was no reason to send identical start requests to BMS/SEQ while the provider
+  still rejected subscription writes.
+- PostgreSQL still reported `Ready` and public access `Disabled`; the environment
+  still reported provisioning `Succeeded`. These do not establish app readiness.
+- Read [Microsoft's reactivation guidance](https://learn.microsoft.com/en-us/azure/cost-management-billing/manage/subscription-disabled#after-reactivation):
+  resources generally resume automatically; resource management may lag account
+  activation, and a delay exceeding 30 minutes should be referred to Azure Billing
+  Support. This is an escalation threshold, not a guaranteed recovery time.
+
+**Current status: subscription active, applications still unavailable while the
+Container Apps provider reports subscription suspension.** The remaining work is
+to repeat revision/public health checks after provider recovery, then complete
+the production UI/boundary and job checks above. Billing acceptance is no longer
+the pending user action. No images, migrations, data, configuration, DNS or
+secrets were changed, and no owned process remains running.
 
 ## Tests, local runtime, UI and cleanup
 
@@ -73,3 +104,4 @@ activation alone.
 | Date | Revision | Scope | Evidence / limits |
 | --- | --- | --- | --- |
 | 2026-10-13 | 45305e6 + incident documentation | Source/runtime | Subscription suspension confirmed independently by live ARM and all three revision APIs; recovery remains blocked on account reactivation. |
+| 2026-10-13 | 0a0e5ec + follow-up docs | Azure runtime | User upgrade confirmed by live Enabled/PayAsYouGo/limit Off; provider still suspended and APP start rejected. Public health still times out; app recovery pending. |

@@ -60,6 +60,7 @@ The 2026-10-03 local evidence includes company save/reload/restoration in BMS/SE
 | 2026-10-03 | 6e06634 + working changes | Source | Health/DAL/daily/provider logging paths traced. |
 | 2026-10-03 | Same | Runtime/UI | Local Next logs and persisted baseline rows inspected; Sentry/cloud retention and full provider correlation not exercised. |
 | 2026-10-13 | 45305e6 + incident docs | Azure runtime | All three apps timed out; revision APIs confirmed subscription-related compute suspension. Live ARM was Warned despite cached Enabled. [Incident audit](audits/PRODUCTION-OUTAGE-2026-10-13.md); reactivation and UI recovery pending. |
+| 2026-10-13 | 0a0e5ec + follow-up docs | Azure runtime | After user upgrade, live ARM Enabled/PayAsYouGo/limit Off; Container Apps still suspended, APP start rejected as read-only disabled subscription, all public health requests timed out. Account recovery does not establish app recovery. |
 
 ## Related
 

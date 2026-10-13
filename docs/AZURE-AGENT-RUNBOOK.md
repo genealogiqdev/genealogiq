@@ -338,6 +338,16 @@ verification below, including sign-in rendering and anonymous protected-route
 rejection, and inspect daily-job executions. Existing metric alerts being enabled
 does not prove that they detected a subscription-wide outage.
 
+Reactivation can reach the subscription API before individual resource providers.
+In the October 13 follow-up, ARM reported `Enabled` / `PayAsYouGo_2014-09-01` /
+`spendingLimit: Off`, but Container Apps still returned `ManagedClusterSuspended`
+and an APP start request returned `ReadOnlyDisabledSubscription`. Do not repeatedly
+write/redeploy against that provider state. Microsoft documents a possible delay
+after reactivation and directs users to Azure Billing Support if resource access
+remains blocked for more than 30 minutes; see [Reactivate a disabled Azure
+subscription](https://learn.microsoft.com/en-us/azure/cost-management-billing/manage/subscription-disabled#after-reactivation).
+Record the account recovery separately from actual app recovery.
+
 The [October 13 incident audit](audits/PRODUCTION-OUTAGE-2026-10-13.md) separates
 the observed outage, account blocker, local prerequisites and recovery status.
 
