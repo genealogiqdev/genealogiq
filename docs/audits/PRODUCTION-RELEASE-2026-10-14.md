@@ -29,7 +29,7 @@ This chat started the isolated APP launcher on `127.0.0.1:4400`, with external p
 
 The original task-owned QR fixtures and ignored evidence remain available. Temporary generated TypeScript includes and formatting were restored after confirming the three changes were solely Next-generated artifacts. Other sessions' ignored builds, databases and private evidence were preserved.
 
-Chrome was explicitly selected, but returned `Codex auth token is unavailable`. The user was informed how to reconnect and offered continuation without a visual check. No browser visual acceptance is claimed. Earlier BMS/SEQ feature HTTP and persistence evidence remains in the [package](SEQ-GENCODE-PACKAGES-2026-10-14.md), [partner access](PARTNER-CUSTOMER-ACCESS-2026-10-14.md) and [partner email](BMS-PARTNER-EMAIL-2026-10-14.md) audits.
+Chrome was explicitly selected, but returned `Codex auth token is unavailable`. The user subsequently explicitly chose **Continue without the visual check**. No browser visual acceptance is claimed. Earlier BMS/SEQ feature HTTP and persistence evidence remains in the [package](SEQ-GENCODE-PACKAGES-2026-10-14.md), [partner access](PARTNER-CUSTOMER-ACCESS-2026-10-14.md) and [partner email](BMS-PARTNER-EMAIL-2026-10-14.md) audits.
 
 ## Production configuration preparation
 
@@ -39,14 +39,50 @@ All three apps already use `APP_URL=https://genealogiq.com.br`, `BMS_URL=https:/
 
 The Stripe API revealed enabled endpoints on the three legacy domains and insufficient event subscriptions. SEQ had no signing secret in either Azure or its local environment. A new live endpoint `we_1UQSrEEgOWciJoSE8V5kCCn7` was prepared at the canonical Sequoia URL, with all nine supported partner/package events and the existing Sequoia API version. Its secret was transferred directly to Key Vault `stripe-webhook-seq`, without printing or saving it locally, and the endpoint was disabled until rollout. A scoped Azure what-if showed only the new Key Vault reference and environment binding (plus the read-only runningStatus display property). The existing managed identity now supplies `STRIPE_WEBHOOK_SECRET=secretref:stripe-webhook-seq`; existing Bicep already declares this optional binding. The ignored enabled-secret inventory was refreshed for future deployments.
 
-Endpoint activation, legacy endpoint handling, final image SHA, deployment/migration executions and live verification will be appended after completion. No real checkout or customer email is used as QA. The production package catalog is checked read-only before claiming purchase readiness.
+Completed endpoint activation, final images, migration and live verification are recorded below. No real checkout or customer email was used as QA. The production package catalog was checked read-only.
 
 ## Deployment and remaining evidence
 
-Deployment uses the existing immutable-SHA GitHub workflow: five image builds, exactly one migration execution before application image updates, then APP/BMS/SEQ and scheduler/media-job updates. Image preview and completed run evidence will be appended. A revision rollback does not roll back the database; the previous image source is `462f8a976ee02156f34e989778abdb00313baa57`.
+Deployment used the existing immutable-SHA GitHub workflow: five image builds, exactly one migration execution before application image updates, then APP/BMS/SEQ and scheduler/media-job updates. Completed evidence follows. A revision rollback does not roll back the database; the previous image source is `462f8a976ee02156f34e989778abdb00313baa57`.
 
 Real payment settlement, inbox delivery and physical plaque scanning remain distinct integration scenarios. Local HTTP/DOM/decoded-file checks are not represented as Chrome UI acceptance.
 
 ## Clean CI correction
 
 Source `557974fb38d345e1317881b8113c1fa3388580e8` was committed and pushed with the eight prior unpushed commits. CI run `38578460934` passed type checking but failed three Premium confirmation DOM tests: the clean pnpm graph resolved the shared UI's Next navigation to a different peer instance from the BMS mock. The matching deployment run `38578460748` was canceled during image builds, before migration/application updates. BMS Vitest now deduplicates Next resolution; no production component behavior or business expectation was changed. Final rerun evidence is recorded below after completion.
+
+Corrected source **bfa4aa7b98d4f7259e8d353db8f741bede4ac07b** was committed and pushed on main. Six local confirmation tests passed. [CI run 38579229840](https://github.com/genealogiqdev/genealogiq/actions/runs/38579229840) completed successfully, including all quality gates and clean Linux production-image/liveness checks for APP, BMS and SEQ. The same-source Azure image what-if showed only the six intended image fields and read-only runningStatus display properties. No resource replacement, database change or unrelated environment/secret/domain change was present.
+
+## Production completion
+
+[Deploy Azure run 38579230208](https://github.com/genealogiqdev/genealogiq/actions/runs/38579230208) **succeeded**. Release image tag: **bfa4aa7b98d4f7259e8d353db8f741bede4ac07b**. CI passed **147 files / 1,360 tests**, including enabled Azurite; 50 opt-in cases remained skipped. Local Azurite also passed its scoped upload, overwrite rejection, promotion/read and owned-object deletion test.
+
+Migration execution **job-genealogiq-migrate-prod-6ieyq0w** succeeded and reported **No pending migrations to apply**. It ran once for this deployment. Earlier execution `bw1nq8o` was explicitly read-only catalog inspection, not another migration: active `GENCODE_VIRTUAL_BRL`, BRL 150.00, minimum 20, product/price IDs present and zero incomplete migration records. Stripe independently confirmed the linked price is active at 15,000 BRL cents and belongs to the stored product.
+
+| App | Active revision | Health / traffic | Custom-origin live / ready |
+| --- | --- | --- | --- |
+| APP | `ca-genealogiq-app-prod--0000014` | Healthy, Running, 100% | 200 / 200 |
+| BMS | `ca-genealogiq-bms-prod--0000014` | Healthy, Running, 100% | 200 / 200 |
+| SEQ | `ca-genealogiq-seq-prod--0000015` | Healthy, Running, 100% | 200 / 200 |
+
+Migration, daily scheduler and media migration jobs also use this SHA and have Succeeded provisioning. Today's existing daily execution `job-genealogiq-daily-prod-29865960` succeeded at 06:00 UTC; no extra mail-producing daily run was triggered. PostgreSQL is Ready, public access Disabled, PITR retention 14 days. All eight metric alerts remain enabled. All four managed certificates are Succeeded/SniEnabled. The repository Azure verifier passed generated-domain health and production media-storage checks; historical failed job records were retained.
+
+Seventeen production HTTP result groups passed after the latest revisions became ready: custom-domain health/readiness, three sign-in forms, anonymous protected-route redirects, canonical Credentials callback origins, www liveness, unauthenticated daily-job rejection (401), and the exact reported printed QR. That QR now emits the profile redirect; the destination profile and explicit `?view=details` both return 200. Streaming redirects legitimately begin with HTTP 200 and contain Next's meta redirect; status alone was not used to declare success.
+
+## Stripe production cutover
+
+After the new revisions were ready, APP/BMS existing webhook URLs were updated in place, preserving signing secrets/API versions and adding required events. The new SEQ endpoint was enabled and its legacy endpoint retained disabled, avoiding duplicate active endpoints for the same app.
+
+| App | Active endpoint | Canonical URL | Subscribed events |
+| --- | --- | --- | --- |
+| APP | `we_1U2M8EEgOWciJoSEzW1EobWS` | `https://genealogiq.com.br/api/stripe/webhook` | Seven consumer checkout/subscription/invoice events |
+| BMS | `we_1U8J9FEgOWciJoSENm7uDz5b` | `https://bms.genealogiq.com.br/api/stripe/webhook` | Nine package/subscription/invoice events |
+| SEQ | `we_1UQSrEEgOWciJoSE8V5kCCn7` | `https://sequoia.genealogiq.com.br/api/stripe/webhook` | Nine package/subscription/invoice events |
+
+Legacy SEQ endpoint `we_1U2MDEEgOWciJoSEpaW7miXS` remains recoverable at its prior URL. Its signing secret was unavailable; no APP/BMS secret was copied to SEQ. The new secret exists in Key Vault with an Azure reference. Bicep already declares this binding; future deployments must include `stripe-webhook-seq` in discovered enabled-secret names. The ignored local inventory was refreshed.
+
+All three deployed handlers accepted a correctly signed **irrelevant** event with 200 and rejected an invalid signature with 400, before and after deployment. This probe type is outside every business handler and creates no sale, entitlement, payment or email. It verifies the configured signing boundary, not real Stripe settlement/inbox delivery. Canonical auth/media settings remain verified; local `.env` files were neither copied into images nor changed to production databases.
+
+## Final cleanup and limits
+
+No owned local product/build process remains. Shared existing PostgreSQL/Azurite and earlier task fixtures/caches were preserved. No production customer/account/catalog values were rewritten; no real checkout or customer email was used as QA. Visual checking was explicitly waived. Physical scanning, live settlement, OAuth and inbox delivery remain separate unexercised scenarios. Final documentation is committed separately with CI skipped because executable release source is unchanged.

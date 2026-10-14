@@ -229,6 +229,12 @@ Azure CLI cannot reconfigure these external accounts:
 
 ## Missing optional production credentials
 
+### October 14 webhook configuration
+
+The [October 14 release audit](audits/PRODUCTION-RELEASE-2026-10-14.md) records the completed canonical Stripe endpoint cutover through the existing Stripe API credential. APP/BMS endpoint identities and signing secrets were preserved. SEQ uses `we_1UQSrEEgOWciJoSE8V5kCCn7` at `sequoia.genealogiq.com.br`, with Key Vault secret `stripe-webhook-seq`; its legacy endpoint is retained disabled.
+
+Future deployments must discover enabled Key Vault names and preserve the SEQ reference declared in `infra/modules/platform.bicep`. BMS/SEQ require the four checkout completion/asynchronous success/asynchronous failure/expiry events, three subscription lifecycle events and `invoice.paid`/`invoice.payment_failed`. APP subscribes to its seven supported events. Do not copy signing secrets between endpoints. Updating an existing URL retains its secret; replacement requires saving the new secret directly to Key Vault and disabling the obsolete endpoint once ready. Signed irrelevant-event acceptance and invalid-signature rejection verify configuration without creating payment/email activity; real settlement is separate.
+
 Azure media access uses managed identity and does not require an account key or
 Vercel token in production. Other optional integrations still require their own
 Key Vault secrets.

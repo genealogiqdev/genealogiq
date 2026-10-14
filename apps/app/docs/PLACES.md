@@ -162,6 +162,8 @@ For a tomb QR opening a location, decode the actual printed image first. Check t
 | 2026-10-09 | `01201a0` + SVG/PNG and pet downloads | Codex source review | Source: both format buttons use the same live Premium action; vector SVG and PNG retain the place destination and share rendering with pets. Existing action specs extended. | Automated tests and runtime/UI scenarios not executed at the user's request; no local product processes, provider calls or fixture writes. |
 | 2026-10-09 | Same SVG/PNG and pet-download changes | Static checks | APP TypeScript (`tsc --noEmit --incremental false`), focused ESLint, both i18n gates, documentation contracts and diff whitespace checks passed. | Automated specs, file decoding/saving and browser permission scenarios remain unexecuted. |
 
+| 2026-10-14 | `bfa4aa7` | Source, local runtime and clean CI | Shared memorial/resting destination and compatibility routes reviewed; 36 focused QR tests, nine earlier decoded files, 17 current HTTP/auth/boundary checks and unchanged fourteen-place persistence snapshot. Full suite and three clean Linux image/liveness checks passed. | Visual QA explicitly waived after Chrome authentication failure; production evidence is in the release audit. |
+
 ## Related
 
 The [October 14 consolidated release](../../../docs/audits/PRODUCTION-RELEASE-2026-10-14.md) completes the interrupted QR task. The combined suite passed 1,359 tests; seventeen local HTTP/normal-auth checks passed and fourteen fixture places were independently unchanged. Nine earlier decoded outputs matched their category destinations. The prior disk/resource build failure and unavailable Chrome acceptance remain separately recorded; clean production packaging is checked by the release workflow.

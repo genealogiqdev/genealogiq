@@ -191,4 +191,6 @@ The existing annual-plan scenarios remain:
 
 ## Related
 
+Production configuration was completed in the [October 14 release](../../../docs/audits/PRODUCTION-RELEASE-2026-10-14.md): the canonical SEQ Stripe endpoint subscribes to all nine package/annual-plan events and Azure resolves its distinct Key Vault signing secret. The active catalog and Stripe price independently match BRL 150 per unit and minimum 20. Deployed handlers accept signed irrelevant events and reject invalid signatures. Real Checkout settlement and inbox delivery remain separate provider scenarios.
+
 [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md) · [Audit](../../../docs/audits/AGENT-MEMORY-2026-10-03.md) · [PARTNER-CREDITS](../../../docs/PARTNER-CREDITS.md)
