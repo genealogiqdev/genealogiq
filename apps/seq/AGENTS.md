@@ -19,6 +19,8 @@ Resolve tenant scope with verifyTenantSession; never trust a browser tenantId. S
 
 Customer memorials are accepted APP_MEMO/APP_PET guardianships. Read human/pet capacity from the customer's live consumer plan; GenCode inventory is independent. The QR dialog rechecks customer tenant, guardianship and plan on opening and each export, including from the memorial detail screen.
 
+Customer registration defaults to **Somente cadastro**. A live tenant OWNER/ADMIN/SUPER_ADMIN may select one identified GenCode sale plus 12 calendar months of Premium; all database effects commit together before mail. Existing customers can have a specific physical code sold from their detail page. Premium grant/revoke uses a named audited gift and never alters inventory or purchased time. The customer list/detail and BMS read the same live AppSale. See [CUSTOMERS-MEMORIALS](docs/CUSTOMERS-MEMORIALS.md).
+
 The app uses Next.js App Router, server-side queries, server actions and Zod schema factories. Shared database/auth/services/email/core/UI/i18n contracts are indexed in [root AGENTS.md](../../AGENTS.md). Default local origin is http://localhost:3002; use the launcher's configured canonical host/port for auth redirects and cookies. See [LOCAL-DEVELOPMENT](../../docs/LOCAL-DEVELOPMENT.md) for isolated sessions.
 
 ## Feature index
@@ -26,7 +28,7 @@ The app uses Next.js App Router, server-side queries, server actions and Zod sch
 | Feature | Purpose | Main code | Test command from repo root |
 | --- | --- | --- | --- |
 | [ACCOUNTS-STAFF](docs/ACCOUNTS-STAFF.md) | Tenant accounts, staff and company | `src/actions/auth.ts` | `pnpm test` |
-| [CUSTOMERS-MEMORIALS](docs/CUSTOMERS-MEMORIALS.md) | Tenant consumers, categories and memorial records | `src/actions/customer.actions.ts` | `pnpm test` |
+| [CUSTOMERS-MEMORIALS](docs/CUSTOMERS-MEMORIALS.md) | Tenant consumers, Premium access, categories and memorial records | `src/actions/customer.actions.ts` | `pnpm test` |
 | [SUPPLIERS-CATEGORIES](docs/SUPPLIERS-CATEGORIES.md) | Tenant suppliers and categories | `src/actions/supplier.actions.ts` | `pnpm test` |
 | [GENCODE-OPERATIONS](docs/GENCODE-OPERATIONS.md) | GenCode sales, printing and installation | `src/actions/gencode.actions.ts` | `pnpm test` |
 | [PARTNER-PURCHASING](docs/PARTNER-PURCHASING.md) | Annual plans and standalone GenCode packages | `src/actions/partner-plan.actions.ts` | `pnpm test` |

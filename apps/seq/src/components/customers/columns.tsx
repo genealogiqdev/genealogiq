@@ -5,19 +5,14 @@ import { Badge } from '@genealogiq/ui/badge'
 import { DataTableColumnHeader } from '@genealogiq/ui/data-table-column-header'
 import { RowActions } from '@genealogiq/ui/row-actions'
 import { toggleCustomerActive, deleteCustomer, resendCustomerEmail } from '@/actions/customer.actions'
+import { CustomerAccessControls } from './customer-access-controls'
+import type { getCustomers } from '@/queries/customers'
 
 // Loose translator type so getColumns can stay a plain function (not a hook).
 // The caller (customers-data-table) passes useTranslations('Customers').
 type Translator = (key: string, values?: Record<string, string | number | Date>) => string
 
-export type CustomerRow = {
-  id: string
-  firstName: string
-  lastName: string
-  email: string | null
-  isActive: boolean
-  createdAt: Date
-}
+export type CustomerRow = Awaited<ReturnType<typeof getCustomers>>[number]
 
 function ActionsCell({ row, t }: { row: { original: CustomerRow }; t: Translator }) {
   const customer = row.original
@@ -55,7 +50,7 @@ function ActionsCell({ row, t }: { row: { original: CustomerRow }; t: Translator
   )
 }
 
-export function getColumns(t: Translator, locale: string): ColumnDef<CustomerRow>[] {
+export function getColumns(t: Translator, locale: string, canManageAccess = false): ColumnDef<CustomerRow>[] {
   return [
     {
       id: 'name',
@@ -77,6 +72,24 @@ export function getColumns(t: Translator, locale: string): ColumnDef<CustomerRow
         ) : (
           <Badge variant="destructive">{t('status.inactive')}</Badge>
         ),
+    },
+    {
+      id: 'premium',
+      accessorFn: (row) => row.access.planCode,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('table.plan')} />,
+      cell: ({ row }) => <div className="space-y-2 py-1">
+        <Badge variant={row.original.access.planCode === 'PREMIUM' ? 'default' : 'secondary'}>{row.original.access.planName}</Badge>
+        {row.original.access.expiresAt && <p className="text-xs text-muted-foreground">{t('premiumUntil', {
+          date: new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeZone: 'UTC' }).format(row.original.access.expiresAt),
+        })}</p>}
+        {canManageAccess && <CustomerAccessControls appUserId={row.original.id} consumerName={`${row.original.firstName} ${row.original.lastName}`}
+          grantId={row.original.access.grantId} canGrant={row.original.isActive && !!row.original.email} />}
+      </div>,
+    },
+    {
+      accessorKey: 'genCodesSold',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('table.genCodesSold')} />,
+      cell: ({ row }) => row.original.genCodesSold,
     },
     {
       accessorKey: 'createdAt',

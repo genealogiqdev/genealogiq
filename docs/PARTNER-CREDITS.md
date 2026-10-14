@@ -5,6 +5,8 @@
 > **Depends on:** [EMAIL-DELIVERY](EMAIL-DELIVERY.md) · [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) · [DATABASE](DATABASE.md) · [CONFIGURATION](CONFIGURATION.md) · [TESTING](TESTING.md) · [OBSERVABILITY](OBSERVABILITY.md) · [RUNBOOKS](RUNBOOKS.md)
 > **Last verified against code:** 2026-10-07 at `2632307` for the immediate partner onboarding change. Source, tests, local runtime/UI and deployment evidence are separated in the onboarding audit linked below; earlier verification history is preserved.
 
+> **Partner access source review:** 2026-10-14, starting at `58d4145` with the changes documented below; source, tests, HTTP runtime and unavailable Chrome UI evidence are recorded separately.
+
 This shared module supplies partner credit ledger, cycles and reconciliation. Grant balances, reservations and ledger events change transactionally under row locks. Idempotency keys are unique. HELD reservations consume availability; identified sales create a code-bound COMMITTED grant with its own twelve-month validity. TOPUP orders grant quantity plus bonus for twelve months. Cycle snapshot/rollover/grace rules are persisted, not recalculated from current plans.
 
 ## How it works
@@ -35,6 +37,12 @@ No LLM/model stage exists in this implementation.
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
+
+### Customer sale and Premium transaction, 2026-10-14
+
+[Partner customer access](../packages/services/src/partner-consumer-access.ts) uses `reserveCreditForSale(input, transaction?)` inside its caller's transaction. Omitting the optional transaction preserves the existing standalone reservation API. The new SEQ registration/existing-customer sale keeps customer/token, AVAILABLE → SOLD, identified COMMITTED credit/reservation, finite Premium sale/audit and receipt atomic. Locks and idempotency preserve the existing ledger history. Committed expiry uses the shared calendar-month helper, including February/leap-day clamping.
+
+Premium grant/revoke alone never touches the credit ledger or GenCode sale. A specific already-sold/activated code retried for the same customer cannot reserve again or restore revoked Premium. Blank onboarding code selects an available unit rather than searching for an empty code. [Seven PostgreSQL scenarios](../packages/services/src/partner-consumer-access.integration.test.ts) verify real reservation deltas, concurrent final-unit allocation, no-credit rollback, final-audit rollback, other-tenant rejection and preserved sales after toggles. Run with `PARTNER_CUSTOMER_TEST_DATABASE_URL` pointing only to a migrated disposable loopback `genealogiq_coupon_qa_*` database. [The audit](audits/PARTNER-CUSTOMER-ACCESS-2026-10-14.md) separates this evidence from visual/provider and existing reconciliation gaps.
 
 ### Sequoia standalone package purchase, 2026-10-14
 
@@ -147,6 +155,7 @@ Follow [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for exact setup/start/readiness
 - **Root cause:** The present implementation/contract is described in the evidence; original decision not recorded.
 - **Resolution:** Not fixed in this task. Provide a two-tenant transactional fixture and deterministic signed invoice/checkout replay, then compare raw ledger/grant/reservation sums.
 - **2026-10-14 partial coverage:** Standalone package PostgreSQL tests now prove 50 purchased = 50 credited/minted, concurrent replay idempotence, unchanged paid prices after catalog edits and no grant on unpaid/expired/provider-failed requests. Stripe transport is synthetic; full reconciliation/reservation and real signed-provider scenarios remain open.
+- **2026-10-14 customer coverage:** Seven real PostgreSQL cases now exercise identified reservations inside customer transactions, final-unit races, rollback and sale/access independence. Full activation/reconciliation and signed-provider replay remain open.
 
 ## Verification log
 
@@ -157,6 +166,7 @@ Follow [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for exact setup/start/readiness
 | 2026-10-07 | `218d5aa` + Gen2026 change | Literal unit expectations and seven real PostgreSQL tests | Shared writers, old-stock preservation, renewal/rollover, concurrency, usage cap and atomic audit rollback verified; SEQ displayed funded stock. | [Audit](audits/GEN2026-2026-10-07.md); no signed provider or complete reconciliation replay claim. |
 | 2026-10-07 | `2632307` | Source, deterministic tests, local PostgreSQL and browser | Audited initial TOPUP grants, zero, exhaustion and atomic rollback; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
 | 2026-10-14 | `58d4145` + SEQ package change | Shared pricing/service tests and four PostgreSQL cases | R$6,750 order snapshots, 50-credit/code grant, one receipt and concurrent replay verified through the existing writer. | [Package audit](audits/SEQ-GENCODE-PACKAGES-2026-10-14.md); real provider and complete reconciliation remain n/a. |
+| 2026-10-14 | `58d4145` + partner customer access | Shared service tests and seven PostgreSQL cases | Atomic customer/reservation/sale/access/outbox, blank selection, concurrent last unit, rollback and retry verified. | [Audit](audits/PARTNER-CUSTOMER-ACCESS-2026-10-14.md); no broader provider/reconciliation claim. |
 
 ## Related
 

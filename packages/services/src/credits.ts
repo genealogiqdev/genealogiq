@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { prisma, type Prisma } from '@genealogiq/db'
+import { addBillingMonths } from './billing-dates'
 
 /**
  * The credit ledger: the only thing allowed to move a partner's balance.
@@ -193,10 +194,10 @@ export async function reserveCreditForSale(input: {
   buyerId?:        string | null
   committedMonths: number
   actorId?:        string | null
-}): Promise<void> {
+}, transaction?: Prisma.TransactionClient): Promise<void> {
   const key = `reserve:${input.genCodeId}`
 
-  await prisma.$transaction(async (tx) => {
+  const reserve = async (tx: Prisma.TransactionClient) => {
     const already = await tx.creditReservation.findUnique({
       where:  { idempotencyKey: key },
       select: { id: true, status: true },
@@ -222,8 +223,7 @@ export async function reserveCreditForSale(input: {
     let expiresAt      = source.expiresAt
 
     if (input.committed) {
-      const committedUntil = new Date()
-      committedUntil.setMonth(committedUntil.getMonth() + input.committedMonths)
+      const committedUntil = addBillingMonths(new Date(), input.committedMonths)
 
       const committedGrant = await tx.creditGrant.create({
         data: {
@@ -269,7 +269,10 @@ export async function reserveCreditForSale(input: {
       },
       update: { grantId: backingGrantId, status: 'HELD', expiresAt },
     })
-  })
+  }
+  // Customer registration, stock write-off and Premium must commit together.
+  if (transaction) await reserve(transaction)
+  else await prisma.$transaction(reserve)
 }
 
 /**

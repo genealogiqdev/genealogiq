@@ -2,15 +2,20 @@
 
 import { randomBytes } from 'crypto'
 import { revalidatePath } from 'next/cache'
-import { getTranslations } from 'next-intl/server'
+import { getLocale, getTranslations } from 'next-intl/server'
 import { Prisma } from '@genealogiq/db'
-import { hashToken, done, fail, type ActionResult } from '@genealogiq/core'
+import { currencyForLocale, hashToken, done, fail, type ActionResult } from '@genealogiq/core'
+import { recordCustomerGenCodeSale, PartnerConsumerAccessError } from '@genealogiq/services/partner-consumer-access'
+import { InsufficientCreditsError } from '@genealogiq/services/credits'
+import { deliverEmail } from '@genealogiq/services/email-outbox'
 import { prisma } from '@/lib/prisma'
 import { verifyTenantSession } from '@/lib/dal'
 import { sendAppWelcomeEmail } from '@/lib/email'
 import { getAppUserSchema, type AppUserFormValues } from '@/schemas/app-user.schema'
 import { getDeceasedSchema, type DeceasedFormValues } from '@/schemas/deceased.schema'
 import { identityTranslator } from '@/schemas/i18n'
+import { getCustomerOnboardingSchema, type CustomerOnboarding } from '@/schemas/customer-access.schema'
+import { verifyCustomerAccessAdmin } from '@/lib/customer-access'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function buildAddressCreate(address: AppUserFormValues['address']): any {
@@ -34,18 +39,25 @@ function toDate(value: string | null | undefined): Date | null {
 
 export async function createCustomer(
   appUserData: AppUserFormValues,
+  onboarding: CustomerOnboarding = { mode: 'registration' },
 ): Promise<ActionResult> {
   const { customerId } = await verifyTenantSession()
   const t = await getTranslations('Actions')
 
   const validated = getAppUserSchema(identityTranslator).safeParse(appUserData)
   if (!validated.success) return fail(t('common.invalidData'))
+  const options = getCustomerOnboardingSchema(identityTranslator).safeParse(onboarding)
+  if (!options.success) return fail(t('common.invalidData'))
+  const access = options.data.mode === 'gencode-premium' ? await verifyCustomerAccessAdmin() : null
+  const currency = access ? currencyForLocale(await getLocale()).toUpperCase() : 'BRL'
+  const ta = await getTranslations('PremiumAccess')
 
   const { address, birthDate, categoryId, ...rest } = validated.data
   const token = randomBytes(32).toString('hex')
+  let sale: Awaited<ReturnType<typeof recordCustomerGenCodeSale>> | null
 
   try {
-    await prisma.$transaction(async (tx) => {
+    sale = await prisma.$transaction(async (tx) => {
       const customer = await tx.appUser.create({
         data: {
           ...rest,
@@ -58,8 +70,13 @@ export async function createCustomer(
       if (rest.isActive) await tx.passwordResetToken.create({
         data: { token: hashToken(token), appUserId: customer.id, expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000) },
       })
-    })
+      return access && options.data.mode === 'gencode-premium'
+        ? recordCustomerGenCodeSale(tx, { ...options.data, tenantId: customerId, appUserId: customer.id, actorId: access.user.id, currency })
+        : null
+    }, { timeout: 15_000 })
   } catch (e) {
+    if (e instanceof PartnerConsumerAccessError) return fail(ta(`errors.${e.reason}`))
+    if (e instanceof InsufficientCreditsError) return fail(ta('errors.no-credit'))
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
       return fail(t('customer.emailExists'))
     }
@@ -67,16 +84,26 @@ export async function createCustomer(
   }
 
   revalidatePath('/customers')
-  if (rest.isActive) {
-    try { await sendAppWelcomeEmail(rest.email, token, rest.firstName) }
-    catch { return done(t('customer.createdEmailPending')) }
+  if (sale) { revalidatePath('/inventory/activations'); revalidatePath('/dashboard') }
+  let emailPending = false
+  if (sale?.emailId) {
+    try { emailPending = await deliverEmail(sale.emailId) !== 'sent' } catch { emailPending = true }
   }
+  if (rest.isActive) {
+    try {
+      if (sale) await sendAppWelcomeEmail(rest.email, token, rest.firstName, `/qr/${sale.genCode}`)
+      else await sendAppWelcomeEmail(rest.email, token, rest.firstName)
+    } catch { emailPending = true }
+  }
+  if (sale) return done(ta(emailPending ? 'registeredEmailPending' : 'registered', { code: sale.genCode }))
+  if (emailPending) return done(t('customer.createdEmailPending'))
   return done(t('customer.created'))
 }
 
 export async function createCustomerWithDeceased(
   appUserData: AppUserFormValues,
   deceasedData: DeceasedFormValues,
+  onboarding: CustomerOnboarding = { mode: 'registration' },
 ): Promise<ActionResult> {
   const { customerId } = await verifyTenantSession()
   const t = await getTranslations('Actions')
@@ -86,13 +113,19 @@ export async function createCustomerWithDeceased(
 
   const validatedDeceased = getDeceasedSchema(identityTranslator).safeParse(deceasedData)
   if (!validatedDeceased.success) return fail(t('common.invalidData'))
+  const options = getCustomerOnboardingSchema(identityTranslator).safeParse(onboarding)
+  if (!options.success) return fail(t('common.invalidData'))
+  const access = options.data.mode === 'gencode-premium' ? await verifyCustomerAccessAdmin() : null
+  const currency = access ? currencyForLocale(await getLocale()).toUpperCase() : 'BRL'
+  const ta = await getTranslations('PremiumAccess')
 
   const { address, birthDate, categoryId, ...userRest } = validatedUser.data
   const token = randomBytes(32).toString('hex')
   const { birthDate: dBirthDate, deathDate, burialDate, burialLatitude, burialLongitude, ...deceasedRest } = validatedDeceased.data
+  let sale: Awaited<ReturnType<typeof recordCustomerGenCodeSale>> | null
 
   try {
-    await prisma.$transaction(async (tx) => {
+    sale = await prisma.$transaction(async (tx) => {
       const appUser = await tx.appUser.create({
         data: {
           ...userRest,
@@ -145,8 +178,13 @@ export async function createCustomerWithDeceased(
       if (userRest.isActive) await tx.passwordResetToken.create({
         data: { token: hashToken(token), appUserId: appUser.id, expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000) },
       })
-    })
+      return access && options.data.mode === 'gencode-premium'
+        ? recordCustomerGenCodeSale(tx, { ...options.data, tenantId: customerId, appUserId: appUser.id, actorId: access.user.id, currency })
+        : null
+    }, { timeout: 15_000 })
   } catch (e) {
+    if (e instanceof PartnerConsumerAccessError) return fail(ta(`errors.${e.reason}`))
+    if (e instanceof InsufficientCreditsError) return fail(ta('errors.no-credit'))
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
       return fail(t('common.duplicate'))
     }
@@ -154,10 +192,19 @@ export async function createCustomerWithDeceased(
   }
 
   revalidatePath('/customers')
-  if (userRest.isActive) {
-    try { await sendAppWelcomeEmail(userRest.email, token, userRest.firstName) }
-    catch { return done(t('customer.createdEmailPending')) }
+  if (sale) { revalidatePath('/inventory/activations'); revalidatePath('/dashboard') }
+  let emailPending = false
+  if (sale?.emailId) {
+    try { emailPending = await deliverEmail(sale.emailId) !== 'sent' } catch { emailPending = true }
   }
+  if (userRest.isActive) {
+    try {
+      if (sale) await sendAppWelcomeEmail(userRest.email, token, userRest.firstName, `/qr/${sale.genCode}`)
+      else await sendAppWelcomeEmail(userRest.email, token, userRest.firstName)
+    } catch { emailPending = true }
+  }
+  if (sale) return done(ta(emailPending ? 'registeredEmailPending' : 'registered', { code: sale.genCode }))
+  if (emailPending) return done(t('customer.createdEmailPending'))
   return done(t('customer.created'))
 }
 

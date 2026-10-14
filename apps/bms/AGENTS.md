@@ -19,6 +19,8 @@ Use verifyAdmin for administrative mutations; staff roles are session claims and
 
 Premium revocation uses the same live platform guard and the confirmed gift ID. It atomically ends only that complimentary sale and records who revoked it, preserving the recipient's account and paid time. Independent inactive/email-less recipients can have a gift removed; grant and resend eligibility remains unchanged. [CONSUMERS](docs/CONSUMERS.md) owns confirmation, retries and audit behavior.
 
+Partner APP_USER accounts have separate grant/revoke actions in the global directory, using the shared SEQ partner-access writer and a tenant derived from the stored customer. They preserve company affiliation and GenCode sales. The live platform guard also protects `/sales/partner-gencodes`, which shows available, sold, activated and pending units per partner, including empty partners, with exact-tenant links to the directory. These operational counts do not infer revenue or historical sales from registrations.
+
 The app uses Next.js App Router, server-side queries, server actions and Zod schema factories. Shared database/auth/services/email/core/UI/i18n contracts are indexed in [root AGENTS.md](../../AGENTS.md). Default local origin is http://localhost:3001; use the launcher's configured canonical host/port for auth redirects and cookies. See [LOCAL-DEVELOPMENT](../../docs/LOCAL-DEVELOPMENT.md) for isolated sessions.
 
 ## Feature index
@@ -32,7 +34,7 @@ The app uses Next.js App Router, server-side queries, server actions and Zod sch
 | [GENCODE-PACKAGES](docs/GENCODE-PACKAGES.md) | Standalone GenCode package sales | `src/actions/gencode-package.actions.ts` | `pnpm test` |
 | [CONSUMER-PRICING](docs/CONSUMER-PRICING.md) | Consumer plans and extra-unit price book | `src/actions/subscription.actions.ts` | `pnpm test` |
 | [DISCOUNT-COUPONS](docs/DISCOUNT-COUPONS.md) | Discount coupon management | `src/actions/discount-coupon.actions.ts` | `pnpm test` |
-| [REPORTING](docs/REPORTING.md) | Partner funnel and commercial reporting | `src/queries/reports.ts` | `pnpm test` |
+| [REPORTING](docs/REPORTING.md) | GenCode stock/sales by partner, funnel and commercial reporting | `src/queries/reports.ts` | `pnpm test` |
 | [DAILY-JOB](docs/DAILY-JOB.md) | Daily partner lifecycle and reconciliation | `src/app/api/cron/daily/route.ts` | `pnpm test` |
 | [SUPPORT-FEEDBACK](docs/SUPPORT-FEEDBACK.md) | Back-office support feedback | `src/actions/feedback.actions.ts` | `pnpm test` |
 

@@ -5,6 +5,8 @@
 > **Depends on:** [AUTHENTICATION](../../../docs/AUTHENTICATION.md) · [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
 > **Last verified against code:** 2026-10-09 at `3826319` plus the consolidated release. Earlier source/runtime evidence remains in the verification log.
 
+> **Partner access source review:** 2026-10-14, starting at `58d4145` with the changes documented below; source, tests, HTTP runtime and unavailable Chrome UI evidence are recorded separately.
+
 The SEQ application supplies tenant consumers, categories and memorial records. Tenant-owned consumer rows use AppUser.tenantId and are AppUser records, separate from BMS Tenant partners. Category and memorial forms use Zod schemas and scoped DAL access. Human death/birth/location fields and guardian links follow the AppUser model.
 
 **QR download source recheck:** 2026-10-09 at `4eb3d5c` plus the customer QR download change. The affected SEQ query, table and detail route had no committed changes since `6e06634`; the pre-existing working changes were outside these source files. Runtime/UI limitations are recorded below.
@@ -52,6 +54,22 @@ Use a stored `QrCode.url` when present, preserving activated code destinations. 
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
+
+### Customer sale and Premium access, 2026-10-14
+
+Step 4 is **Acesso ao App** and reviews the final customer's own email. The default **Somente cadastro** creates the existing account/invitation without selling a code or granting Premium. **GenCode vendido + Premium por 12 meses** is explicit and administrator-only. An optional GenCode identifies the physical plaque; blank/whitespace selects the oldest available code in this tenant. Social fields remain optional under a disclosure. No Genealogiq administrator email is needed to unlock access.
+
+[Customer onboarding schemas](../src/schemas/customer-access.schema.ts) validate the discriminated mode, stable request UUID and optional code. [Customer actions](../src/actions/customer.actions.ts) keep AppUser, hashed 72-hour setup token, optional memorial, sale, committed credit, Premium AppSale, ConsumerAccessGrant and notification outbox in one transaction. No available code, valid credit or Premium catalog means no account/sale side effects. Concurrent buyers cannot allocate the same final unit. Email and welcome-link delivery run after commit; provider failure reports completed registration with email pending. The setup link returns to the allocated `/qr/<code>`; activation still happens in APP.
+
+[The access guard](../src/lib/customer-access.ts) rechecks the live staff activation, role, tenant and active company. OWNER/ADMIN/SUPER_ADMIN may grant/revoke or sell; ordinary tenant staff retain normal registration but cannot submit the Premium mode. The server takes the operator and tenant from this verified scope, never the browser.
+
+[Access actions](../src/actions/customer-access.actions.ts), [access reads](../src/queries/customer-access.ts) and [the shared service](../../../packages/services/src/partner-consumer-access.ts) power the current plan/expiry and controls in the customer list/detail. A grant is a zero-value, non-renewing Premium AppSale with **12 calendar months**, audited using the existing ConsumerAccessGrant table. Genuine paid/manual Premium days are preserved; only the exact zero-value migration test allowance is replaced. Recurring Stripe or incompatible active plans block a gift. Duplicate clicks keep the valid grant rather than adding another year.
+
+Deactivation confirms the named customer and original grant ID. It cancels only that audited complimentary sale, records who/when and preserves purchased periods, account, stock, reservation and sale history. Inactive/email-less customers may have an existing grant revoked, but cannot receive a new one. Repeated or stale confirmation cannot cancel a replacement grant. The App may retain Premium from another valid purchased period.
+
+For a previously registered customer, **Registrar venda de GenCode** on the detail page requires the actual code delivered. It applies the same sale/credit/Premium transaction. Retrying that code for the same buyer after sale or activation is a read and never spends another unit or re-enables revoked Premium. Past registrations are not inferred to be sales. One example is 400 available/0 sold → plain registration 400/0 → sale 399/1; subsequent Premium toggles leave 399/1.
+
+No schema migration is introduced. The existing consumer-grant, revocation and email-outbox migrations are prerequisites. Source/test/runtime/UI evidence is separated in the [partner customer audit](../../../docs/audits/PARTNER-CUSTOMER-ACCESS-2026-10-14.md).
 
 ### Consolidated release, 2026-10-09
 
@@ -132,6 +150,14 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 
 ## Runbooks
 
+### Register and manage a partner customer
+
+1. In **Clientes → Novo cliente**, enter the actual final customer's email. On **Acesso ao App**, choose registration only or the confirmed GenCode sale plus Premium. Enter the plaque code if already selected; otherwise the system allocates one available unit.
+2. After success, verify **Plano no App**, expiry and **GenCodes vendidos** in the customer list, then reload the customer and inventory. An email-pending message is a delivery retry, not a reason to register again.
+3. For an existing customer, open their detail and register the specific sold GenCode. Never backfill stock from the number of customer records alone.
+4. Use **Ativar Premium** / **Desativar Premium** to manage access independently of the sale. Confirm the named recipient; compare stock before/after. A non-administrator must be denied even when posting the action directly.
+5. For regression checks run the customer/access/guard suites and [partner service tests](../../../packages/services/src/partner-consumer-access.test.ts). Set `PARTNER_CUSTOMER_TEST_DATABASE_URL` only to a migrated disposable loopback `genealogiq_coupon_qa_*` database and run `pnpm exec vitest run --project services packages/services/src/partner-consumer-access.integration.test.ts`. The seven PostgreSQL cases include blank-code allocation, concurrent final-stock selection, rollback and stale grants. Browser QA must also exercise both radio choices, cancel/error confirmation and reload.
+
 ### Change or diagnose this feature
 
 1. Read this document and [the applicable AGENTS.md](../AGENTS.md); trace the linked entry through session, schema, query/action and integration.
@@ -151,6 +177,15 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 Check whether the customer is in the session tenant and the guardian relation is accepted. Do not assign the linked profile to the tenant or remove the edit authorization to make a download work. The table's Baixar control must open `QrCodeDownloadDialog`, which obtains `getCustomer`'s `profileUrl` through `getCustomerMemorialQr`; it must not navigate to `/memorialized/[id]`. Inspect the customer's live AppSale, configured human/pet quotas and purchased units when the row is locked; the number of acquired GenCodes is not plan capacity. Verify stored QR URLs and `APP_URL` separately from QR generation. Existing **Ver**/edit routes still require direct tenant ownership. Reproduce renderer failures and run the real palette/decoder regression before changing a QR style.
 
 ## Gaps and fixes
+
+### CUSTOMERS-MEMORIALS-G5: Customer onboarding required a manual Premium handoff
+
+- **Status:** fixed
+- **Found:** 2026-10-14, user report and approval of registration-only versus one sale plus 12 months of Premium.
+- **Evidence:** Customer registration created the AppUser/invitation without recording a GenCode sale or a managed Premium grant; the user supplied an administrator email to request access manually.
+- **Impact:** Buyers waited for manual access and registered customers could leave stock at 400 available/0 sold.
+- **Root cause:** Registration, identified sales and consumer access had separate entry points with no atomic customer workflow.
+- **Resolution:** This change adds explicit onboarding choices, transactional sale/access, live tenant administration and independent grant/revoke controls, with the focused tests and PostgreSQL cases above. Runtime verified 400/0 → 399/1, duplicate/failure rollback, permission denial and persisted App access. The commit containing this entry owns the fix. Chrome visual acceptance remains unavailable as recorded in the audit.
 
 ### CUSTOMERS-MEMORIALS-G3: Plan capacity and memorial QR access disagreed
 
@@ -187,6 +222,7 @@ Check whether the customer is in the session tenant and the guardian relation is
 - **Impact:** A successful local company edit is not proof of customer or memorial isolation.
 - **Root cause:** The present implementation/contract is described in the evidence; original decision not recorded.
 - **Resolution:** Not fixed in this task. Add disposable consumer/invitation and two-tenant fixtures, then exercise save/reload and forbidden access.
+- **2026-10-14 partial coverage:** Normal Credentials HTTP/action checks now create and reload local customers, exercise permission denial and persist invitation tokens; real PostgreSQL tests reject another tenant. External mail and the Chrome invitation/cross-tenant browser scenario remain open.
 
 ## Verification log
 
@@ -201,6 +237,7 @@ The 2026-10-09 plan/download follow-up has 77 passing focused tests in eight fil
 | 2026-10-09 | Same QR download change | SEQ build and cleanup | Provider-disabled local `next build` passed using `LOCAL_QA_DIST_DIR=.next-qa-qr-download-20261009`, including TypeScript and 26/26 generated pages. Logs are retained under `.local-qa/2026-10-09/qr-download/`. The build exited and its two generated tsconfig include paths were removed while preserving the prior file contents. | Standalone packaging is intentionally omitted in local QA mode. Compilation is not an authenticated runtime/UI or cloud deployment pass. No product server or database fixture was created. |
 | 2026-10-09 | `08b2b1c` + memorial plan/download follow-up | Source, scoped tests and real QR decoding | 77 focused tests passed; 36 PNG/SVG files independently decoded. APP/SEQ types and local production builds passed; SEQ lint had zero errors/20 existing warnings. | Full-suite and locale-reference failures belong to concurrent work; PostgreSQL/Chrome product acceptance remains n/a. Build-cache removal was blocked by automatic review; [audit](../../../docs/audits/SEQ-MEMORIALS-2026-10-09.md). |
 | 2026-10-09 | `3826319` + consolidated release | Source, deterministic and local PostgreSQL checks | Updated contract above; [release audit](../../../docs/audits/PRODUCTION-RELEASE-2026-10-09.md) separates tests, runtime, deployment and cleanup. | Browser automation omitted at the user's request; production inbox delivery is not inferred. |
+| 2026-10-14 | `58d4145` + partner customer access | Source, deterministic/DOM tests, PostgreSQL and local HTTP actions | Explicit onboarding, shared finite Premium, stock accounting, failure/permission/retry boundaries and APP reload verified. | [Audit](../../../docs/audits/PARTNER-CUSTOMER-ACCESS-2026-10-14.md); Chrome authentication unavailable, external mail disabled. |
 
 ## Related
 

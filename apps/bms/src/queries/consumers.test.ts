@@ -45,7 +45,7 @@ describe('BMS APP consumer directory', () => {
     expect(db.appUser.findMany.mock.calls[0][0].select.consumerAccessGrants).toEqual({
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1, select: {
         id: true, expiresAt: true, emailSentAt: true, revokedAt: true,
-        appSale: { select: { status: true, currentPeriodEnd: true } },
+        appSale: { select: { status: true, currentPeriodEnd: true, tenantId: true } },
       },
     })
   })
@@ -64,5 +64,12 @@ describe('BMS APP consumer directory', () => {
   it('does not prefill a tenant-owned or inactive account by a submitted id', async () => {
     await getConsumerForRegistration('submitted-id')
     expect(db.appUser.findFirst.mock.calls[0][0].where).toEqual({ id: 'submitted-id', tenantId: null, role: 'APP_USER', isActive: true })
+  })
+  it('filters the overview shortcut to the exact partner while retaining account filters and sale evidence', async () => {
+    expect(await getConsumers('', 2, 'inactive', ' tenant-one ')).toMatchObject({ tenantId: 'tenant-one', page: 2 })
+    expect(db.appUser.count).toHaveBeenCalledWith({ where: { role: 'APP_USER', tenantId: 'tenant-one', isActive: false } })
+    expect(db.appUser.findMany.mock.calls[0][0]).toMatchObject({ skip: 25, select: {
+      _count: { select: { genCodesBought: { where: { soldAt: { not: null } } } } },
+    } })
   })
 })

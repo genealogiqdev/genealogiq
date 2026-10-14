@@ -10,6 +10,7 @@ import {
   SquarePlus,
   TicketPercent,
   Users,
+  QrCode,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -43,9 +44,9 @@ export const customers: MenuItem[] = [
   { labelKey: 'items.consumers', url: '/consumers', icon: Users },
 ]
 
-// Sales Reports is deliberately absent, not deleted: /sales/reports and its
-// queries stay in the tree and go back on this list once the report is ready.
+// The compact partner inventory view is available independently of financial reports.
 export const sales: MenuItem[] = [
+  { labelKey: 'items.partnerGenCodes', url: '/sales/partner-gencodes', icon: QrCode },
   { labelKey: 'items.discountCoupons', url: '/sales/discount-coupons', icon: TicketPercent },
   { labelKey: 'items.contracts',       url: '/sales/contracts',        icon: HandCoinsIcon },
 ]

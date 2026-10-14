@@ -12,7 +12,7 @@ const { prismaMock } = vi.hoisted(() => ({
 }))
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
-vi.mock("next-intl/server", () => ({ getTranslations: async () => (key: string) => key }))
+vi.mock("next-intl/server", () => ({ getTranslations: async () => (key: string) => key, getLocale: async () => 'pt-BR' }))
 vi.mock("@genealogiq/db", () => ({
   Prisma: {
     PrismaClientKnownRequestError: class extends Error {
@@ -27,12 +27,20 @@ vi.mock("@genealogiq/db", () => ({
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }))
 vi.mock("@/lib/dal", () => ({ verifyTenantSession: vi.fn() }))
 vi.mock("@/lib/email", () => ({ sendAppWelcomeEmail: vi.fn() }))
+vi.mock('@/lib/customer-access', () => ({ verifyCustomerAccessAdmin: vi.fn() }))
+vi.mock('@genealogiq/services/partner-consumer-access', async (original) => ({
+  ...await original<typeof import('@genealogiq/services/partner-consumer-access')>(), recordCustomerGenCodeSale: vi.fn(),
+}))
+vi.mock('@genealogiq/services/email-outbox', () => ({ deliverEmail: vi.fn() }))
 
 import { createCustomer, updateCustomer, deleteCustomer, resendCustomerEmail } from "./customer.actions"
 import { sendAppWelcomeEmail } from '@/lib/email'
 import { hashToken } from '@genealogiq/core'
 import { verifyTenantSession } from "@/lib/dal"
 import { Prisma } from "@genealogiq/db"
+import { verifyCustomerAccessAdmin } from '@/lib/customer-access'
+import { recordCustomerGenCodeSale } from '@genealogiq/services/partner-consumer-access'
+import { InsufficientCreditsError } from '@genealogiq/services/credits'
 
 // A valid AppUserFormValues — satisfies every required field in getAppUserSchema.
 const validUser: AppUserFormValues = {
@@ -130,6 +138,39 @@ describe("createCustomer", () => {
     prismaMock.passwordResetToken.create.mockRejectedValue(new Error('token write failed'))
     await expect(createCustomer(validUser)).rejects.toThrow('token write failed')
     expect(sendAppWelcomeEmail).not.toHaveBeenCalled()
+  })
+})
+
+describe('customer registration with a GenCode and Premium', () => {
+  const options = { mode: 'gencode-premium' as const, requestId: '12eb1a15-9991-410a-b4dc-cba66bb57422', genCode: '' }
+  beforeEach(() => {
+    prismaMock.appUser.create.mockResolvedValue({ id: 'u1' })
+    vi.mocked(verifyCustomerAccessAdmin).mockResolvedValue({ customerId: 'c1', user: { id: 'operator-1' } } as never)
+    vi.mocked(recordCustomerGenCodeSale).mockResolvedValue({ genCode: 'AAAA-BBBB-CCCC-DDDD', emailId: null, alreadySold: false })
+  })
+  it('keeps simple registration independent of inventory', async () => {
+    expect((await createCustomer(validUser)).ok).toBe(true)
+    expect(recordCustomerGenCodeSale).not.toHaveBeenCalled()
+  })
+  it('passes the same transaction, verified tenant and new customer to the sale and deep-links the invitation', async () => {
+    expect(await createCustomer(validUser, options)).toEqual({ ok: true, message: 'registered' })
+    expect(recordCustomerGenCodeSale).toHaveBeenCalledWith(prismaMock, { ...options, tenantId: 'c1', appUserId: 'u1', actorId: 'operator-1', currency: 'BRL' })
+    expect(sendAppWelcomeEmail).toHaveBeenCalledWith('ada@example.com', expect.any(String), 'Ada', '/qr/AAAA-BBBB-CCCC-DDDD')
+  })
+  it('rejects a non-admin before customer creation or sale', async () => {
+    vi.mocked(verifyCustomerAccessAdmin).mockRejectedValue(new Error('FORBIDDEN'))
+    await expect(createCustomer(validUser, options)).rejects.toThrow('FORBIDDEN')
+    expect(prismaMock.appUser.create).not.toHaveBeenCalled(); expect(recordCustomerGenCodeSale).not.toHaveBeenCalled()
+  })
+  it('returns the credit boundary without sending a welcome email after transaction failure', async () => {
+    vi.mocked(recordCustomerGenCodeSale).mockRejectedValue(new InsufficientCreditsError('c1'))
+    expect(await createCustomer(validUser, options)).toEqual({ ok: false, message: 'errors.no-credit' })
+    expect(sendAppWelcomeEmail).not.toHaveBeenCalled()
+  })
+  it('reports completed Premium registration when invitation delivery fails', async () => {
+    vi.mocked(sendAppWelcomeEmail).mockRejectedValue(new Error('mail unavailable'))
+    expect(await createCustomer(validUser, options)).toEqual({ ok: true, message: 'registeredEmailPending' })
+    expect(recordCustomerGenCodeSale).toHaveBeenCalledOnce()
   })
 })
 

@@ -3,10 +3,11 @@ import { getTranslations } from 'next-intl/server'
 import { getCustomers } from '@/queries/customers'
 import { CustomersDataTable } from '@/components/customers/customers-data-table'
 import { Button } from '@genealogiq/ui/button'
+import { canManageCustomerAccess } from '@/lib/customer-access'
 
 export default async function CustomersPage() {
 
-  const customers = await getCustomers()
+  const [customers, canManageAccess] = await Promise.all([getCustomers(), canManageCustomerAccess()])
   const t = await getTranslations('Customers')
 
   return (
@@ -20,7 +21,7 @@ export default async function CustomersPage() {
         </Button>
       </div>
 
-      <CustomersDataTable data={customers} />
+      <CustomersDataTable data={customers} canManageAccess={canManageAccess} />
     </div>
   )
 }

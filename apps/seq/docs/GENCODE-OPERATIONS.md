@@ -5,6 +5,8 @@
 > **Depends on:** [PARTNER-CREDITS](../../../docs/PARTNER-CREDITS.md) · [GENCODE-ACTIVATION](../../app/docs/GENCODE-ACTIVATION.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
 > **Last verified against code:** 2026-10-09 at `3826319` plus the consolidated release. Earlier source/runtime evidence remains in the verification log.
 
+> **Partner access source review:** 2026-10-14, starting at `58d4145` with the changes documented below; source, tests, HTTP runtime and unavailable Chrome UI evidence are recorded separately.
+
 The SEQ application supplies gencode sales, printing and installation. Tenant inventory operations check scope and eligibility, then reserve/release credits for manual or platform sales. Physical QR printed/installed flags are distinct from code sale/activation state. Identified sales carry customer binding and committed credits; anonymous holds follow the source grant window.
 
 ## How it works
@@ -31,6 +33,14 @@ No LLM/model stage exists in this implementation.
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
+
+### Customer-linked sale, 2026-10-14
+
+[Customer onboarding](CUSTOMERS-MEMORIALS.md) now optionally sells one GenCode and grants a finite Premium year in the same transaction as the new customer. The existing-customer detail exposes the same operation for a specific physical code. [The shared writer](../../../packages/services/src/partner-consumer-access.ts) locks the scoped available code, reserves its identified credit inside the caller transaction, records SOLD/buyer/operator/time, grants audited Premium and queues the existing receipt. Missing credit/stock or a later audit failure rolls back all effects. Blank code means automatic allocation only on new registration; existing-customer sale requires an exact code and supports safe retry even after activation.
+
+`getLicenses` now counts sold units by `soldAt != null`, preserving the sold total after activation. Available units still use AVAILABLE; activated units use ACTIVATED. A customer record or a Premium toggle alone never changes stock or sale evidence. The new sale records no assumed funeral-home price. Existing manual sale, printing, installation and explicit undo remain separate operations.
+
+Run [licenses.test.ts](../src/queries/licenses.test.ts), [customer access actions](../src/actions/customer-access.actions.test.ts) and the shared partner-customer unit/PostgreSQL suites. The local acceptance example is 400 available/0 sold, unchanged by plain registration, then 399/1 after sale; deactivation/reactivation of Premium preserves 399/1. [The audit](../../../docs/audits/PARTNER-CUSTOMER-ACCESS-2026-10-14.md) records HTTP/persistence and browser limits separately.
 
 ### Consolidated release, 2026-10-09
 
@@ -119,6 +129,15 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 
 ## Gaps and fixes
 
+### GENCODE-OPERATIONS-G2: Registration did not record sales and activated codes disappeared from sold totals
+
+- **Status:** fixed
+- **Found:** 2026-10-14, user screenshot showing 400 available and zero sold despite registered buyers.
+- **Evidence:** Registration did not enter a sale workflow; `getLicenses` used only status SOLD for its sold card.
+- **Impact:** The counter could omit actual sales and decrease when a sold code was activated.
+- **Root cause:** Customer registration had no explicit sale option, and current lifecycle status was used instead of durable sale time.
+- **Resolution:** The approved explicit sale choice uses the atomic customer writer; existing customers can record their specific plaque sale. Sold totals use `soldAt`. Unit, action and real PostgreSQL regression cases plus local 400 → 399 → 398 observations are retained in the audit and this change's commit. No automatic historical backfill or production data mutation was performed.
+
 ### GENCODE-OPERATIONS-G1: Inventory browser fixture lacks funded codes
 
 - **Status:** open
@@ -136,6 +155,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-10-07 | `2632307` | Source, deterministic tests, local PostgreSQL and browser | Generated-password login and persisted inventories with three and zero codes; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](../../../docs/audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
 | 2026-10-09 | `3826319` + consolidated release | Source, deterministic and local PostgreSQL checks | Updated contract above; [release audit](../../../docs/audits/PRODUCTION-RELEASE-2026-10-09.md) separates tests, runtime, deployment and cleanup. | Browser automation omitted at the user's request; production inbox delivery is not inferred. |
+| 2026-10-14 | `58d4145` + partner customer access | Source, tests and local transactions | Atomic customer-linked sales, soldAt totals, retry and failure boundaries verified. | [Audit](../../../docs/audits/PARTNER-CUSTOMER-ACCESS-2026-10-14.md); inventory visual QA and real mail remain n/a. |
 
 ## Related
 

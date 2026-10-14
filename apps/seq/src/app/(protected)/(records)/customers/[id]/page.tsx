@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { getTranslations } from 'next-intl/server'
+import { getLocale, getTranslations } from 'next-intl/server'
 import { getCustomer } from '@/queries/customers'
 import { getCustomerCategories } from '@/queries/customer-categories'
 import { CustomerForm } from '@/components/customers/customer-form'
@@ -7,17 +7,25 @@ import { MemorializedDataTable } from '@/components/memorialized/memorialized-da
 import { StatCard } from '@/components/ui/stat-card'
 import { Separator } from '@genealogiq/ui/separator'
 import type { AppUserFormValues } from '@/schemas/app-user.schema'
+import { getCustomerAccess } from '@/queries/customer-access'
+import { canManageCustomerAccess } from '@/lib/customer-access'
+import { CustomerAccessControls } from '@/components/customers/customer-access-controls'
+import { Badge } from '@genealogiq/ui/badge'
 
 export default async function EditCustomerPage({ params }: { params: Promise<{ id: string }> }) {
 
   const { id } = await params
-  const [customer, categories] = await Promise.all([
+  const [customer, categories, access, canManageAccess] = await Promise.all([
     getCustomer(id),
     getCustomerCategories(),
+    getCustomerAccess(id),
+    canManageCustomerAccess(),
   ])
   if (!customer) notFound()
 
   const t = await getTranslations('Customers')
+  const ta = await getTranslations('PremiumAccess')
+  const date = new Intl.DateTimeFormat(await getLocale(), { dateStyle: 'medium', timeZone: 'UTC' })
 
   const defaultValues: AppUserFormValues = {
     firstName:        customer.firstName,
@@ -62,6 +70,15 @@ export default async function EditCustomerPage({ params }: { params: Promise<{ i
 
   return (
     <div className="flex flex-col gap-6 pb-16">
+      {access && <section className="flex flex-wrap items-center justify-between gap-4 rounded-lg border p-4">
+        <div className="space-y-1"><h2 className="font-semibold">{ta('onboardingTitle')}</h2>
+          <Badge variant={access.planCode === 'PREMIUM' ? 'default' : 'secondary'}>{access.planName}</Badge>
+          {access.expiresAt && <p className="text-sm text-muted-foreground">{t('premiumUntil', { date: date.format(access.expiresAt) })}</p>}
+          <p className="text-sm text-muted-foreground">{ta('soldCount', { count: customer._count.genCodesBought })}</p>
+        </div>
+        {canManageAccess && <CustomerAccessControls appUserId={id} consumerName={`${customer.firstName} ${customer.lastName}`}
+          grantId={access.grantId} canGrant={customer.isActive && !!customer.email} showSale />}
+      </section>}
       <CustomerForm
         id={id}
         name={`${customer.firstName} ${customer.lastName}`}

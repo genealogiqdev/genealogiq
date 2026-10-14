@@ -32,9 +32,10 @@ import {
 } from '@genealogiq/ui/select'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@genealogiq/ui/field'
 import { cn } from '@/lib/utils'
+import { CustomerOnboardingOptions } from './customer-onboarding-options'
 
 interface Category { id: string; name: string }
-interface Props { categories?: Category[] }
+interface Props { categories?: Category[]; canManageAccess?: boolean }
 
 const SOCIAL_KEYS = ['fb', 'instagram', 'linkedin', 'tiktok', 'x', 'youtube', 'otherSocial', 'website'] as const
 type SocialKey = typeof SOCIAL_KEYS[number]
@@ -46,7 +47,7 @@ function socialLabel(key: SocialKey, otherLabel: string): string {
   return key.charAt(0).toUpperCase() + key.slice(1)
 }
 
-const STEP_KEYS = ['personal', 'contact', 'address', 'social'] as const
+const STEP_KEYS = ['personal', 'contact', 'address', 'access'] as const
 
 type StepIndex = 0 | 1 | 2 | 3
 
@@ -57,13 +58,16 @@ const STEP_FIELDS: Record<StepIndex, (keyof AppUserFormValues)[]> = {
   3: [],
 }
 
-export function CustomerNewForm({ categories = [] }: Props) {
+export function CustomerNewForm({ categories = [], canManageAccess = false }: Props) {
   const t  = useTranslations('Customers')
   const tc = useTranslations('Common')
   const tErr = useTranslations('Errors')
   const [step, setStep]               = useState<StepIndex>(0)
   const [localCats, setLocalCats]     = useState(categories)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [premium, setPremium] = useState(false)
+  const [genCode, setGenCode] = useState('')
+  const [requestId] = useState(() => crypto.randomUUID())
   const router = useRouter()
 
   const STEPS = STEP_KEYS.map((k) => ({
@@ -98,7 +102,7 @@ export function CustomerNewForm({ categories = [] }: Props) {
 
   async function onSubmit(data: AppUserFormValues) {
     setServerError(null)
-    const result = await createCustomer(data)
+    const result = await createCustomer(data, premium ? { mode: 'gencode-premium', genCode, requestId } : { mode: 'registration' })
     if (!result.ok) {
       setServerError(result.message)
     } else {
@@ -318,9 +322,13 @@ export function CustomerNewForm({ categories = [] }: Props) {
           </div>
         )}
 
-        {/* ── Step 3: Social ── */}
+        {/* ── Step 3: App access and optional social links ── */}
         {step === 3 && (
           <FieldGroup>
+            <CustomerOnboardingOptions email={form.getValues('email')} premium={premium} genCode={genCode}
+              canManage={canManageAccess} onPremiumChange={setPremium} onGenCodeChange={setGenCode} />
+            <details className="rounded-lg border p-4">
+              <summary className="cursor-pointer text-sm font-medium">{t('steps.social.title')}</summary>
             <div className="grid grid-cols-12 gap-3">
               {SOCIAL_KEYS.map((key) => (
                 <Controller key={key} name={key} control={control} render={({ field }) => (
@@ -331,6 +339,7 @@ export function CustomerNewForm({ categories = [] }: Props) {
                 )} />
               ))}
             </div>
+            </details>
           </FieldGroup>
         )}
 

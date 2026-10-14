@@ -38,7 +38,7 @@ export async function getLicenseSummary() {
   const [total, available, sold, activated] = await Promise.all([
     prisma.genCode.count({ where }),
     prisma.genCode.count({ where: { ...where, status: 'AVAILABLE' } }),
-    prisma.genCode.count({ where: { ...where, status: 'SOLD' } }),
+    prisma.genCode.count({ where: { ...where, soldAt: { not: null } } }),
     prisma.genCode.count({ where: { ...where, status: 'ACTIVATED' } }),
   ])
 

@@ -6,9 +6,10 @@ import { getColumns, type CustomerRow } from './columns'
 
 interface CustomersDataTableProps {
   data: CustomerRow[]
+  canManageAccess?: boolean
 }
 
-export function CustomersDataTable({ data }: CustomersDataTableProps) {
+export function CustomersDataTable({ data, canManageAccess = false }: CustomersDataTableProps) {
   const t = useTranslations('Customers')
   const locale = useLocale()
 
@@ -17,11 +18,13 @@ export function CustomersDataTable({ data }: CustomersDataTableProps) {
     email:     t('table.email'),
     isActive:  t('table.status'),
     createdAt: t('table.createdAt'),
+    premium:   t('table.plan'),
+    genCodesSold: t('table.genCodesSold'),
   }
 
   return (
     <DataTable
-      columns={getColumns(t, locale)}
+      columns={getColumns(t, locale, canManageAccess)}
       data={data}
       emptyMessage={t('table.empty')}
       columnLabels={columnLabels}

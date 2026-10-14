@@ -985,7 +985,8 @@
       "partnerPlans": "Planos B2B",
       "subscriptions": "Assinaturas B2C",
       "systemUsers": "Usuários do Sistema",
-      "consumers": "Clientes finais"
+      "consumers": "Clientes finais",
+      "partnerGenCodes": "GenCodes das funerárias"
     }
   },
   "Subscriptions": {
@@ -1295,6 +1296,73 @@
       "purposeHint": "Registre o motivo: presentear, homenagear ou agilizar a liberação de um perfil.",
       "guardianHint": "Confira os dados de quem receberá acesso ao App para administrar os perfis sob sua responsabilidade.",
       "premiumHint": "Os recursos e limites do plano Premium ficam disponíveis no App ao concluir o cadastro."
+    },
+    "partnerGenCodes": "GenCodes das funerárias",
+    "allPartners": "Ver todos os clientes",
+    "genCodesSold": "GenCodes vendidos"
+  },
+  "PremiumAccess": {
+    "activate": "Ativar Premium",
+    "deactivate": "Desativar Premium",
+    "activateTitle": "Ativar Premium por 12 meses",
+    "deactivateTitle": "Desativar Premium",
+    "activateDescription": "Liberar 12 meses de Premium para {name}? Os dias de Premium já pagos serão preservados.",
+    "deactivateDescription": "Desativar o Premium concedido a {name}? O cadastro e os períodos de Premium comprados separadamente serão preservados.",
+    "stockUnchanged": "Esta alteração não modifica a venda nem o saldo de GenCodes.",
+    "cancel": "Cancelar",
+    "saving": "Salvando…",
+    "granted": "Premium liberado por 12 meses.",
+    "alreadyGranted": "Este cliente já tem Premium liberado. A validade foi mantida.",
+    "revoked": "A concessão de Premium foi desativada. Períodos pagos foram preservados.",
+    "invitationTitle": "Convite para o App",
+    "invitationDescription": "O convite para definir a senha e acessar o App será enviado para {email}.",
+    "onboardingTitle": "Acesso ao App",
+    "registrationOnly": "Somente cadastro",
+    "registrationDescription": "Enviar o convite ao cliente e manter o saldo de GenCodes.",
+    "saleAndPremium": "GenCode vendido + Premium por 12 meses",
+    "saleDescription": "Registrar a venda de 1 GenCode, descontar uma unidade do estoque e liberar o Premium agora.",
+    "adminRequired": "Um administrador da funerária pode registrar a venda e gerenciar o Premium.",
+    "codeOptional": "GenCode entregue ao cliente (opcional)",
+    "codeOptionalHelp": "Se a placa já foi entregue, informe o código dela. Em branco, uma unidade disponível será selecionada automaticamente.",
+    "registered": "Cliente cadastrado com Premium. GenCode {code} vendido e descontado do estoque.",
+    "registeredEmailPending": "Cliente cadastrado com Premium e GenCode {code} vendido. O e-mail está pendente; reenvie o convite pelo cadastro.",
+    "recordSale": "Registrar venda de GenCode",
+    "existingSaleDescription": "Registrar 1 GenCode vendido para {name} e liberar Premium por 12 meses.",
+    "code": "GenCode da placa vendida",
+    "existingSaleHelp": "Use o código da placa entregue. Se o cliente já tem um Premium concedido válido, a data será mantida.",
+    "confirmSale": "Confirmar venda e Premium",
+    "sold": "GenCode {code} vendido e descontado do estoque. Premium disponível.",
+    "soldEmailPending": "Venda do GenCode {code} registrada e Premium disponível. O aviso por e-mail está pendente de reenvio automático.",
+    "alreadySold": "O GenCode {code} já está vendido para este cliente. O saldo e o Premium foram mantidos.",
+    "soldCount": "GenCodes vendidos para este cliente: {count}",
+    "errors": {
+      "invalid-data": "Confira os dados informados.",
+      "customer-unavailable": "O cliente não está disponível neste parceiro ou não tem uma conta ativa com e-mail.",
+      "premium-unavailable": "O plano Premium não está disponível. Consulte a administração.",
+      "active-subscription": "O cliente tem uma assinatura recorrente ou outro plano ativo. Gerencie essa assinatura pelo fluxo de cobrança.",
+      "request-conflict": "Esta solicitação já foi usada para outro cliente. Atualize a página.",
+      "grant-unavailable": "Esta concessão não está mais disponível. Atualize a página.",
+      "grant-revoked": "Esta concessão já foi desativada. Atualize a página para iniciar uma nova solicitação.",
+      "gencode-unavailable": "Nenhum GenCode disponível foi encontrado. Confira o código e o estoque da funerária.",
+      "no-credit": "A funerária não tem crédito válido para esta venda. O cadastro e a venda não foram concluídos.",
+      "failed": "Não foi possível concluir. Confira a conexão e tente novamente."
     }
+  },
+  "PartnerGenCodes": {
+    "title": "GenCodes das funerárias",
+    "description": "Acompanhe o estoque e as vendas de cada funerária para o cliente final.",
+    "available": "Disponíveis",
+    "sold": "Vendidos",
+    "activated": "Ativados",
+    "pending": "Aguardando ativação",
+    "search": "Buscar funerária…",
+    "filter": "Buscar",
+    "clear": "Ver todas",
+    "partner": "Funerária",
+    "lastSale": "Última venda",
+    "customers": "Clientes",
+    "viewCustomers": "Ver clientes",
+    "empty": "Nenhuma funerária encontrada.",
+    "countHelp": "Os códigos vendidos continuam no total de vendas após a ativação. Ativação é quando o cliente vincula a placa a um memorial. Os totais acompanham o filtro."
   }
 }

@@ -5,6 +5,8 @@
 > **Depends on:** [AUTHENTICATION](../../../docs/AUTHENTICATION.md) · [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md) · [APP ACCOUNTS](../../app/docs/ACCOUNTS.md) · [BILLING-QUOTAS](../../app/docs/BILLING-QUOTAS.md)
 > **Last verified against code:** 2026-10-08 at `4eb3d5c` plus the expiry correction. See the [original consumer access audit](../../../docs/audits/CONSUMER-ACCESS-2026-10-07.md) and [expiry correction audit](../../../docs/audits/CONSUMER-EXPIRY-2026-10-08.md) for source, tests, runtime/UI and production evidence separately.
 
+> **Partner access source review:** 2026-10-14, starting at `58d4145` with the changes documented below; source, tests, HTTP runtime and unavailable Chrome UI evidence are recorded separately.
+
 > **Directory source review:** 2026-10-09, global APP directory change. Automated tests and runtime/browser verification were omitted at the user's request; see the separate evidence below.
 
 > **Revocation review:** 2026-10-09, starting at `01201a0` with the existing expiry correction in the working tree. Source, tests, runtime/UI and cleanup for **Desfazer Premium** are recorded separately in the [revocation audit](../../../docs/audits/CONSUMER-REVOCATION-2026-10-09.md). The verified-sender email fix at `4d1af78` is retained.
@@ -45,6 +47,18 @@ No model/LLM or checkout step is involved.
 - Recipient row locking serializes grants and revocations. A duplicate revocation returns the first cancellation without changing its actor/time. An old grant UUID returns `grant-revoked`, while a fresh request can offer another finite year. A stale confirmation for the old gift cannot cancel the replacement.
 
 ## Contracts and data
+
+### Partner Premium controls, 2026-10-14
+
+The directory now shows **GenCodes vendidos**, supports an exact `tenant` filter from [the partner GenCode overview](REPORTING.md), and offers **Ativar Premium** / **Desativar Premium** for partner customers. [Partner actions](../src/actions/partner-consumer.actions.ts) use [their own Zod contracts](../src/schemas/partner-consumer.schema.ts) and the existing live platform administrator guard. They derive the tenant from the stored APP_USER and call [the shared partner service](../../../packages/services/src/partner-consumer-access.ts); browser-supplied company/operator IDs are not accepted. Independent account registration/gift/resend actions retain the tenantless restrictions documented below.
+
+A partner grant is a zero-value audited AppSale in that tenant, valid for 12 calendar months without automatic renewal. The service preserves genuine paid/manual Premium days and replaces only the exact safe migration test allowance. Recurring Stripe or incompatible active plans block a new grant; repeated clicks do not extend a valid gift. Granting requires an active recipient with email. Revocation accepts the named original grant, allows inactive/email-less recipients, cancels only its matching complimentary sale and records operator/time atomically. Purchased time and account/company identity remain intact. An old confirmation cannot cancel a new replacement gift.
+
+These controls change App access only. They never sell, return, reserve or activate a GenCode, and do not infer a sale from an existing customer. SEQ administrators manage the same recorded partner grant. APP reads its real finite end date and displays **Premium liberado · sem cobrança**. No new schema migration or provider payment is introduced.
+
+`getConsumers(query?, page?, status?, tenantId?)` applies the same exact company filter to counts and rows and preserves it across search/pagination. The new sold count uses `soldAt`, including sold codes subsequently activated. Current plan and audited controllable gift are separate: another paid period can keep Premium after a gift is deactivated. Partner rows do not offer the independent gift's invitation resend flow.
+
+Run [partner action tests](../src/actions/partner-consumer.actions.test.ts), [directory query tests](../src/queries/consumers.test.ts), [confirmation DOM tests](../src/components/consumers/partner-premium-control.test.ts) and the shared partner-customer unit/PostgreSQL suites. In product QA open **Vendas → GenCodes das funerárias → Ver clientes**, confirm the exact company filter, cancel a revocation, then confirm/reload BMS and APP. Expect stock and sold totals unchanged; an ordinary internal USER must be denied both actions and report data. See the [audit](../../../docs/audits/PARTNER-CUSTOMER-ACCESS-2026-10-14.md) for actual source/test/runtime evidence and unavailable Chrome acceptance.
 
 `FINAL_CONSUMER` is a wizard choice, not a Tenant segment or a new authorization role. This branch collects only the consumer action's supported fields and never submits the partner form, tax identifiers, staff owner, modules or initial GenCodes. The partner action continues to reject that segment. “Guardião” describes the person receiving App access; registration does not assign guardianship over an arbitrary existing profile. The App's existing profile authorization still applies.
 
@@ -131,6 +145,15 @@ Use the [private database access runbook](../../../docs/AZURE-DATABASE-ACCESS.md
 
 ## Gaps and fixes
 
+### CONSUMERS-G6: Partner customers had no simple Premium management
+
+- **Status:** fixed
+- **Found:** 2026-10-14, user request for shared SEQ/BMS activation and deactivation.
+- **Evidence:** The global directory displayed partner customers but the independent gift actions intentionally rejected them.
+- **Impact:** Partner Premium access required a separate administrative handoff.
+- **Root cause:** Independent gifts and partner-managed access have different identity/scope contracts and only the former had a BMS action.
+- **Resolution:** This change adds separately guarded partner grant/revoke controls using the shared tenant-aware service, a named confirmation and exact company filtering. Service/PostgreSQL/HTTP tests verify finite access, preserved stock/paid time, permission denial and stale confirmation. Independent actions retain their original boundary. The audit and the commit containing this entry preserve the verification limits.
+
 ### CONSUMERS-G5: No way to undo a complimentary Premium grant
 
 - **Status:** fixed
@@ -188,6 +211,7 @@ Use the [private database access runbook](../../../docs/AZURE-DATABASE-ACCESS.md
 | 2026-10-09 | Same change | Automated checks | Query regression definitions updated but not executed. No automated tests, typecheck, lint, build or docs validator run in this task; automated tests were waived by the user. |
 | 2026-10-09 | Same change | Runtime / UI / persistence | n/a: omitted at the user's request. No app started, browser used, database/provider writes made or owned processes left running. |
 | 2026-10-09 | `3826319` + consolidated release | Completion of interrupted wizard/revocation/expiry chats | Final deterministic and local PostgreSQL checks plus release evidence in the [consolidated audit](../../../docs/audits/PRODUCTION-RELEASE-2026-10-09.md). | Browser automated QA waived; production inbox acceptance remains separate. |
+| 2026-10-14 | `58d4145` + partner customer access | Shared partner grant/revoke, directory and local BMS/APP requests | Finite Premium, stock independence, exact tenant filtering, operator audit and permission rejection verified; component confirmation tests pass. Chrome visual QA remains unavailable. [Audit](../../../docs/audits/PARTNER-CUSTOMER-ACCESS-2026-10-14.md). |
 
 ## Related
 

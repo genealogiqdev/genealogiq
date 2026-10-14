@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { verifyTenantSession } from '@/lib/dal'
 import { getMemorialQrStatus } from '@genealogiq/core'
 import type { Prisma } from '@genealogiq/db'
+import { customerAccessSelect, summarizeCustomerAccess } from './customer-access'
 
 const memorialPlanSelect = {
   name: true, code: true, memorialsMax: true, petsMax: true, qrCodeMax: true,
@@ -28,7 +29,7 @@ const addressSelect = {
 export async function getCustomers() {
   const { customerId } = await verifyTenantSession()
 
-  return prisma.appUser.findMany({
+  const customers = await prisma.appUser.findMany({
     where:   { tenantId: customerId, role: 'APP_USER' },
     select: {
       id:        true,
@@ -37,9 +38,14 @@ export async function getCustomers() {
       email:     true,
       isActive:  true,
       createdAt: true,
+      ...customerAccessSelect(customerId),
+      _count: { select: { genCodesBought: { where: { tenantId: customerId, soldAt: { not: null } } } } },
     },
     orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
   })
+  return customers.map(({ appSales, consumerAccessGrants, _count, ...customer }) => ({
+    ...customer, access: summarizeCustomerAccess({ appSales, consumerAccessGrants }), genCodesSold: _count.genCodesBought,
+  }))
 }
 
 export async function getCustomer(id: string) {

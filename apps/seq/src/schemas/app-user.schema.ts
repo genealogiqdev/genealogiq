@@ -8,14 +8,14 @@ export const GENDER_OPTIONS = ['FEMALE', 'MALE'] as const
 
 export function getAppUserSchema(t: Translator) {
   return z.object({
-    firstName:       z.string().min(1, t('required')).max(100, t('maxChars', { count: 100 })),
-    lastName:        z.string().min(1, t('required')).max(100, t('maxChars', { count: 100 })),
+    firstName:       z.string().trim().min(1, t('required')).max(100, t('maxChars', { count: 100 })),
+    lastName:        z.string().trim().min(1, t('required')).max(100, t('maxChars', { count: 100 })),
     gender:          z.enum(GENDERS).nullish(),
     birthDate:       z.string().min(1, t('required')),
     birthCity:       z.string().max(200).nullish(),
     birthState:      z.string().max(200).nullish(),
     birthCountry:    z.string().min(1, t('required')).max(200),
-    email:           z.string().email(t('invalidEmail')),
+    email:           z.string().trim().toLowerCase().email(t('invalidEmail')).max(320),
     phoneCountryCode: z.string().min(1, t('countryCodeRequired')),
     phone:           z.string().min(1, t('required')),
     categoryId:      z.string().nullish(),

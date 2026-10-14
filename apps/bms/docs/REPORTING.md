@@ -1,9 +1,11 @@
 # Partner funnel and commercial reporting
 
 > **Code:** [src/queries/reports.ts](../src/queries/reports.ts) · [src/queries/dashboard.ts](../src/queries/dashboard.ts)
-> **Entry points:** `/dashboard` · `/sales/reports`
+> **Entry points:** `/dashboard` · `/sales/reports` · `/sales/partner-gencodes`
 > **Depends on:** [PARTNER-CREDITS](../../../docs/PARTNER-CREDITS.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
 > **Last verified against code:** 2026-10-03 at `6e06634`, including this task’s uncommitted documentation, launcher and test changes. Source verification is separate from runtime/UI below.
+
+> **Partner access source review:** 2026-10-14, starting at `58d4145` with the changes documented below; source, tests, HTTP runtime and unavailable Chrome UI evidence are recorded separately.
 
 The BMS application supplies partner funnel and commercial reporting. Reports fold raw database rows into funnel/channel/reseller/currency metrics. soldAt establishes a sale independent of current activation status; STALE_AFTER_DAYS is 30. Money comes from paid order/sale snapshots, grouped by currency when the report supports it.
 
@@ -29,6 +31,14 @@ A sale that later activates is still sold: reports.test.ts pins soldAt-based cla
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
+
+### Simple partner GenCode overview, 2026-10-14
+
+**Vendas → GenCodes das funerárias** opens [the overview](../src/app/(protected)/sales/partner-gencodes/page.tsx). [Its query](../src/queries/partner-gencodes.ts) rechecks live BMS platform administrator scope before any rows are read. It includes every tenant, even with zero codes, and searches legal/trade name. Parameter-bound SQL produces available (AVAILABLE), sold (`soldAt != null`), activated (ACTIVATED), pending activation (SOLD), and last sale. Sold is cumulative across currently sold and subsequently activated codes; activated does not imply that every code has a recorded sale.
+
+The four cards total the currently filtered rows. Each company links to its partner record and `/consumers?tenant=<id>` for exact customer/plan management. The report reads units only; it does not invent sale value, count registrations as purchases, or activate codes. Query errors propagate rather than rendering a successful zero. Existing financial/cohort reports and their gaps remain unchanged.
+
+Run [partner-gencodes.test.ts](../src/queries/partner-gencodes.test.ts) for live-guard enforcement, zero tenants, literal aggregates and errors. Runtime acceptance uses a company with 400 initial codes: two confirmed sales produce 398 available, 2 sold, 0 activated, 2 pending; plain registration and Premium toggles preserve the totals. Filter to that company, follow **Ver clientes**, reload, and reject an ordinary internal USER. Chrome visual acceptance remains a separate prerequisite in the [audit](../../../docs/audits/PARTNER-CUSTOMER-ACCESS-2026-10-14.md).
 
 Reports fold raw database rows into funnel/channel/reseller/currency metrics. soldAt establishes a sale independent of current activation status; STALE_AFTER_DAYS is 30. Money comes from paid order/sale snapshots, grouped by currency when the report supports it.
 
@@ -111,6 +121,15 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 
 ## Gaps and fixes
 
+### REPORTING-G4: No simple operational view of each funeral home's GenCodes
+
+- **Status:** fixed
+- **Found:** 2026-10-14, user request for clear BMS tenant stock/sales control.
+- **Evidence:** Existing funnel/financial reporting did not offer the requested simple per-partner inventory/customer workflow.
+- **Impact:** Administrators could not quickly compare remaining units, sales and pending activations by funeral home.
+- **Root cause:** The BMS lacked a dedicated scoped operational overview.
+- **Resolution:** This change adds the live-platform-guarded report and exact-tenant customer links above, with deterministic query tests and local HTTP/real-row checks. The containing commit and audit record evidence; visual acceptance is n/a until Chrome reconnects.
+
 ### REPORTING-G1: Dashboard combines currencies
 
 - **Status:** open
@@ -144,6 +163,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
+| 2026-10-14 | `58d4145` + partner customer access | Query tests and local BMS HTTP/rows | Four operational totals, company filtering/link, zero-stock rows/errors and live permission boundaries verified. | [Audit](../../../docs/audits/PARTNER-CUSTOMER-ACCESS-2026-10-14.md); existing financial gaps retained, Chrome UI n/a. |
 
 ## Related
 
