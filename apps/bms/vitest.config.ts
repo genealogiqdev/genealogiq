@@ -3,6 +3,9 @@ import { fileURLToPath } from "node:url"
 
 export default defineConfig({
   resolve: {
+    // Workspace UI can resolve a different pnpm peer instance of Next in a
+    // clean install. Keep its navigation imports on the same mocked instance.
+    dedupe: ["next"],
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
       // Next marker packages — stubbed so server modules can be unit-tested.

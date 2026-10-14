@@ -46,3 +46,7 @@ Endpoint activation, legacy endpoint handling, final image SHA, deployment/migra
 Deployment uses the existing immutable-SHA GitHub workflow: five image builds, exactly one migration execution before application image updates, then APP/BMS/SEQ and scheduler/media-job updates. Image preview and completed run evidence will be appended. A revision rollback does not roll back the database; the previous image source is `462f8a976ee02156f34e989778abdb00313baa57`.
 
 Real payment settlement, inbox delivery and physical plaque scanning remain distinct integration scenarios. Local HTTP/DOM/decoded-file checks are not represented as Chrome UI acceptance.
+
+## Clean CI correction
+
+Source `557974fb38d345e1317881b8113c1fa3388580e8` was committed and pushed with the eight prior unpushed commits. CI run `38578460934` passed type checking but failed three Premium confirmation DOM tests: the clean pnpm graph resolved the shared UI's Next navigation to a different peer instance from the BMS mock. The matching deployment run `38578460748` was canceled during image builds, before migration/application updates. BMS Vitest now deduplicates Next resolution; no production component behavior or business expectation was changed. Final rerun evidence is recorded below after completion.
