@@ -36,6 +36,10 @@ The enforcing files are linked above. Test names and literal assertions below re
 
 ## Contracts and data
 
+### Sequoia standalone package purchase, 2026-10-14
+
+[The SEQ package storefront](../apps/seq/docs/PARTNER-PURCHASING.md) enters the existing `GenCodeOrder`/TOPUP lifecycle. Its automatic 10% discount at 50 units affects the recorded price only: 50 purchased units grant exactly 50 codes and credits, with the existing independent 12-month term and no annual rollover. Only a confirmed payment can settle the order and enqueue its receipt. The new [PostgreSQL spec](../packages/services/src/gencode-package.integration.test.ts) verifies persisted R$6,750, concurrent event replay, unchanged catalog snapshots, unpaid/expired rejection and provider-failure cleanup. It uses a synthetic payment transport in a disposable database; [the audit](audits/SEQ-GENCODE-PACKAGES-2026-10-14.md) keeps this distinct from live Stripe delivery.
+
 ### Initial partner allowance
 
 [BMS registration](../apps/bms/docs/PARTNERS.md) can grant initial GenCodes through [partner-onboarding.ts](../packages/services/src/partner-onboarding.ts). This is a standalone TOPUP allowance with 12-month calendar expiry and rolloverGeneration=1; it works without an annual contract using the existing activation/reservation rules. A GRANT receipt uses `grant:registration:<tenantId>`, the session operator and an explicit registration reason. Exactly the chosen number of AVAILABLE codes is created in the same transaction as the tenant and active OWNER. Zero creates no grant, receipt or code. No sale or package-order revenue is recorded. Initial codes carry no package premium-trial promise.
@@ -142,6 +146,7 @@ Follow [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for exact setup/start/readiness
 - **Impact:** Database locking races and cross-service reconciliation cannot be claimed from helper/action tests.
 - **Root cause:** The present implementation/contract is described in the evidence; original decision not recorded.
 - **Resolution:** Not fixed in this task. Provide a two-tenant transactional fixture and deterministic signed invoice/checkout replay, then compare raw ledger/grant/reservation sums.
+- **2026-10-14 partial coverage:** Standalone package PostgreSQL tests now prove 50 purchased = 50 credited/minted, concurrent replay idempotence, unchanged paid prices after catalog edits and no grant on unpaid/expired/provider-failed requests. Stripe transport is synthetic; full reconciliation/reservation and real signed-provider scenarios remain open.
 
 ## Verification log
 
@@ -151,6 +156,7 @@ Follow [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for exact setup/start/readiness
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-10-07 | `218d5aa` + Gen2026 change | Literal unit expectations and seven real PostgreSQL tests | Shared writers, old-stock preservation, renewal/rollover, concurrency, usage cap and atomic audit rollback verified; SEQ displayed funded stock. | [Audit](audits/GEN2026-2026-10-07.md); no signed provider or complete reconciliation replay claim. |
 | 2026-10-07 | `2632307` | Source, deterministic tests, local PostgreSQL and browser | Audited initial TOPUP grants, zero, exhaustion and atomic rollback; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
+| 2026-10-14 | `58d4145` + SEQ package change | Shared pricing/service tests and four PostgreSQL cases | R$6,750 order snapshots, 50-credit/code grant, one receipt and concurrent replay verified through the existing writer. | [Package audit](audits/SEQ-GENCODE-PACKAGES-2026-10-14.md); real provider and complete reconciliation remain n/a. |
 
 ## Related
 

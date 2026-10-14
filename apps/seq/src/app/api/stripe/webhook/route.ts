@@ -3,7 +3,9 @@ import type Stripe from "stripe"
 import { stripe } from "@/lib/stripe"
 import { prisma } from "@/lib/prisma"
 import { deliverEmail } from '@genealogiq/services/email-outbox'
-import { invoiceSubscriptionId, partnerInvoiceEmailId, queuePartnerInvoiceEmail } from '@genealogiq/services/sale-notifications'
+import { invoiceSubscriptionId, packageSaleEmailId, partnerInvoiceEmailId, queuePartnerInvoiceEmail } from '@genealogiq/services/sale-notifications'
+import { closeGenCodePackageCheckout, fulfillGenCodePackageCheckout, isGenCodePackageCheckout } from '@genealogiq/services/gencode-package'
+import { CHECKOUT_ORIGINS } from '@genealogiq/services/partner-checkout'
 import {
   applyPartnerInvoicePaid,
   linkPartnerSubscription,
@@ -26,6 +28,10 @@ const RELEVANT_EVENTS = new Set<Stripe.Event["type"]>([
   "customer.subscription.created",
   "customer.subscription.updated",
   "customer.subscription.deleted",
+  'checkout.session.completed',
+  'checkout.session.async_payment_succeeded',
+  'checkout.session.async_payment_failed',
+  'checkout.session.expired',
 ])
 
 export async function POST(req: NextRequest) {
@@ -48,6 +54,28 @@ export async function POST(req: NextRequest) {
 
   if (!RELEVANT_EVENTS.has(event.type)) {
     return NextResponse.json({ received: true })
+  }
+
+  if (event.type.startsWith('checkout.session.')) {
+    const checkout = event.data.object as Stripe.Checkout.Session
+    if (!isGenCodePackageCheckout(checkout, CHECKOUT_ORIGINS.seq)) {
+      return NextResponse.json({ received: true, ignored: 'not a seq GenCode package checkout' })
+    }
+    try {
+      if (event.type === 'checkout.session.async_payment_failed' || event.type === 'checkout.session.expired') {
+        const failed = event.type === 'checkout.session.async_payment_failed'
+        const changed = await closeGenCodePackageCheckout(checkout, failed ? 'FAILED' : 'EXPIRED')
+        return NextResponse.json({ received: true, outcome: changed ? (failed ? 'failed' : 'expired') : 'ignored' })
+      }
+      const result = await fulfillGenCodePackageCheckout(checkout)
+      if (result.outcome === 'fulfilled' || result.outcome === 'already-fulfilled') {
+        await deliverEmail(packageSaleEmailId(checkout.metadata!.genCodeOrderId))
+      }
+      return NextResponse.json({ received: true, outcome: result.outcome })
+    } catch (error) {
+      console.error('[seq-stripe-webhook] GenCode package checkout failed', error)
+      return NextResponse.json({ error: 'internal' }, { status: 500 })
+    }
   }
 
   if (event.type === "invoice.paid" || event.type === 'invoice.payment_failed') {

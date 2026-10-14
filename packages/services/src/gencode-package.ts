@@ -2,7 +2,7 @@ import 'server-only'
 import { queuePackageSaleEmail } from './sale-notifications'
 
 import type Stripe from 'stripe'
-import { generateGenCode } from '@genealogiq/core'
+import { generateGenCode, GENCODE_PACKAGE_OFFER, quoteGenCodePackage } from '@genealogiq/core'
 import { prisma, type GenCodeOrderStatus, type Prisma } from '@genealogiq/db'
 import { CHECKOUT_TTL_HOURS, CHECKOUT_ORIGINS, type CheckoutOrigin } from './partner-checkout'
 import { ensureTenantStripeCustomer } from './stripe-customer'
@@ -105,13 +105,20 @@ export async function openGenCodePackageCheckout(
   if (!packageRow) {
     throw new GenCodePackageCheckoutError('package-not-found', 'GenCode package not found or inactive')
   }
-  if (!Number.isInteger(input.quantity) || input.quantity < packageRow.minimumQuantity) {
+  const selfService = input.origin === CHECKOUT_ORIGINS.seq
+  if (selfService && (packageRow.code !== GENCODE_PACKAGE_OFFER.code || packageRow.currency !== 'BRL')) {
+    throw new GenCodePackageCheckoutError('package-not-found', 'Package is not offered in Sequoia')
+  }
+  const minimumQuantity = selfService
+    ? Math.max(packageRow.minimumQuantity, GENCODE_PACKAGE_OFFER.minimumQuantity)
+    : packageRow.minimumQuantity
+  if (!Number.isSafeInteger(input.quantity) || input.quantity < minimumQuantity) {
     throw new GenCodePackageCheckoutError(
       'invalid-quantity',
-      `Quantity must be an integer greater than or equal to ${packageRow.minimumQuantity}`,
+      `Quantity must be an integer greater than or equal to ${minimumQuantity}`,
     )
   }
-  if (!packageRow.stripePriceId) {
+  if (!packageRow.stripePriceId || (selfService && !packageRow.stripeProductId)) {
     throw new GenCodePackageCheckoutError('package-not-synced', 'GenCode package is not synced with Stripe')
   }
 
@@ -126,18 +133,33 @@ export async function openGenCodePackageCheckout(
     )
   }
 
+  // Sequoia's volume offer is automatic; BMS's privileged/manual coupons cannot
+  // be supplied by a self-service buyer or stacked with the volume discount.
+  if (selfService && input.discountCouponId) {
+    throw new GenCodePackageCheckoutError('coupon-not-applicable', 'Self-service accepts only its automatic volume discount')
+  }
   const coupon = input.discountCouponId
     ? await resolveCoupon(input.discountCouponId, packageRow.id, packageRow.currency)
     : null
 
-  const customer = await ensureTenantStripeCustomer(tenant.id)
   const unitPrice = Number(packageRow.unitPrice)
   const subtotalCents = Math.round(unitPrice * 100) * input.quantity
-  const discountCents = coupon ? discountInCents(coupon, packageRow.currency, subtotalCents) : 0
+  // Stripe amounts support at most eight digits. Reject impossible requests
+  // before creating a customer, coupon, order or checkout.
+  if (selfService && (!Number.isSafeInteger(subtotalCents) || subtotalCents > 99_999_999)) {
+    throw new GenCodePackageCheckoutError('invalid-quantity', 'Quantity exceeds the checkout amount limit')
+  }
+  const volumeQuote = selfService ? quoteGenCodePackage(unitPrice, input.quantity) : null
+  const volumeDiscount = Boolean(volumeQuote?.discountPercent)
+  const discountCents = coupon
+    ? discountInCents(coupon, packageRow.currency, subtotalCents)
+    : Math.round((volumeQuote?.discountAmount ?? 0) * 100)
+  const discountCode = coupon?.code ?? (volumeDiscount ? GENCODE_PACKAGE_OFFER.discountCode : null)
   const subtotalAmount = subtotalCents / 100
   const discountAmount = discountCents / 100
   const totalAmount = (subtotalCents - discountCents) / 100
   const expiresAt = new Date(Date.now() + CHECKOUT_TTL_HOURS * 60 * 60 * 1000)
+  const customer = await ensureTenantStripeCustomer(tenant.id)
 
   const order = await prisma.genCodeOrder.create({
     data: {
@@ -145,7 +167,7 @@ export async function openGenCodePackageCheckout(
       tenantId: tenant.id,
       partnerSubscriptionId: null,
       discountCouponId: coupon?.id ?? null,
-      discountCode: coupon?.code ?? null,
+      discountCode,
       createdById: input.createdById,
       quantity: input.quantity,
       currency: packageRow.currency,
@@ -160,6 +182,23 @@ export async function openGenCodePackageCheckout(
   })
 
   try {
+    let discounts: Stripe.Checkout.SessionCreateParams.Discount[] | undefined
+    if (coupon) {
+      discounts = [{ promotion_code: coupon.stripePromotionCodeId }]
+    } else if (volumeDiscount) {
+      // One automatically applied coupon per order, restricted to this product
+      // and checkout lifetime. There is no reusable public promotion code.
+      const volumeCoupon = await stripe.coupons.create({
+        name: GENCODE_PACKAGE_OFFER.discountCode,
+        percent_off: GENCODE_PACKAGE_OFFER.discountPercent,
+        duration: 'once',
+        max_redemptions: 1,
+        redeem_by: Math.floor(expiresAt.getTime() / 1000),
+        applies_to: { products: [packageRow.stripeProductId!] },
+        metadata: { genCodeOrderId: order.id, origin: CHECKOUT_ORIGINS.seq },
+      }, { idempotencyKey: `gencode-volume:${order.id}` })
+      discounts = [{ coupon: volumeCoupon.id }]
+    }
     const metadata = {
       origin: input.origin,
       genCodeOrderId: order.id,
@@ -167,12 +206,13 @@ export async function openGenCodePackageCheckout(
       tenantId: tenant.id,
       quantity: String(input.quantity),
       ...(coupon && { discountCouponId: coupon.id, discountCode: coupon.code }),
+      ...(volumeDiscount && { discountCode: GENCODE_PACKAGE_OFFER.discountCode, discountPercent: String(GENCODE_PACKAGE_OFFER.discountPercent) }),
     }
     const checkout = await stripe.checkout.sessions.create({
       mode: 'payment',
       customer,
       line_items: [{ price: packageRow.stripePriceId, quantity: input.quantity }],
-      ...(coupon && { discounts: [{ promotion_code: coupon.stripePromotionCodeId }] }),
+      ...(discounts && { discounts }),
       client_reference_id: tenant.id,
       metadata,
       // A 100% coupon produces no PaymentIntent. Session metadata is enough to
@@ -200,7 +240,7 @@ export async function openGenCodePackageCheckout(
       quantity: input.quantity,
       subtotalAmount,
       discountAmount,
-      discountCode: coupon?.code ?? null,
+      discountCode,
       totalAmount,
       currency: packageRow.currency,
       expiresAt,
@@ -361,8 +401,11 @@ export async function closeGenCodePackageCheckout(
 }
 
 /** Stripe fans all account events to this endpoint; metadata identifies ours. */
-export function isGenCodePackageCheckout(session: Stripe.Checkout.Session): boolean {
-  return session.metadata?.origin === CHECKOUT_ORIGINS.bms && !!session.metadata?.genCodeOrderId
+export function isGenCodePackageCheckout(
+  session: Stripe.Checkout.Session,
+  origin: CheckoutOrigin = CHECKOUT_ORIGINS.bms,
+): boolean {
+  return session.metadata?.origin === origin && !!session.metadata?.genCodeOrderId
 }
 
 function addMonths(from: Date, months: number): Date {

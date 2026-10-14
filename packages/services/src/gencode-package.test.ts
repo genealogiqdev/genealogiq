@@ -19,6 +19,7 @@ const { prismaMock, txMock, stripeMock, customerMock, generateMock } = vi.hoiste
   stripeMock: {
     products: { create: vi.fn(), update: vi.fn() },
     prices: { create: vi.fn() },
+    coupons: { create: vi.fn() },
     checkout: { sessions: { create: vi.fn() } },
   },
   customerMock: vi.fn(),
@@ -26,7 +27,9 @@ const { prismaMock, txMock, stripeMock, customerMock, generateMock } = vi.hoiste
 }))
 
 vi.mock('@genealogiq/db', () => ({ prisma: prismaMock }))
-vi.mock('@genealogiq/core', () => ({ generateGenCode: generateMock }))
+vi.mock('@genealogiq/core', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@genealogiq/core')>(), generateGenCode: generateMock,
+}))
 vi.mock('server-only', () => ({}))
 vi.mock('./stripe', () => ({ stripe: stripeMock }))
 vi.mock('./stripe-customer', () => ({ ensureTenantStripeCustomer: customerMock }))
@@ -40,6 +43,7 @@ import {
   closeGenCodePackageCheckout,
   fulfillGenCodePackageCheckout,
   openGenCodePackageCheckout,
+  isGenCodePackageCheckout,
   syncGenCodePackage,
 } from './gencode-package'
 
@@ -83,6 +87,7 @@ beforeEach(() => {
   prismaMock.discountCoupon.findFirst.mockResolvedValue(null)
   prismaMock.tenant.findFirst.mockResolvedValue({ id: 'tenant_1' })
   customerMock.mockResolvedValue('cus_1')
+  stripeMock.coupons.create.mockResolvedValue({ id: 'coupon_volume_10' })
   prismaMock.genCodeOrder.create.mockResolvedValue({ id: 'order_1' })
   stripeMock.checkout.sessions.create.mockResolvedValue({
     id: 'cs_1',
@@ -130,6 +135,71 @@ describe('syncGenCodePackage', () => {
 })
 
 describe('openGenCodePackageCheckout', () => {
+  it.each([[20, 3000], [49, 7350]])('charges the full catalog price for %i self-service units', async (quantity, totalAmount) => {
+    const result = await openGenCodePackageCheckout({ ...checkoutInput, origin: 'seq', quantity })
+    expect(result).toMatchObject({ totalAmount, discountAmount: 0, discountCode: null })
+    expect(stripeMock.coupons.create).not.toHaveBeenCalled()
+    expect(stripeMock.checkout.sessions.create.mock.calls[0][0]).not.toHaveProperty('discounts')
+  })
+
+  it.each([[50, 7500, 750, 6750], [51, 7650, 765, 6885]])('applies and records the automatic 10%% coupon at %i units', async (quantity, subtotalAmount, discountAmount, totalAmount) => {
+    const result = await openGenCodePackageCheckout({ ...checkoutInput, origin: 'seq', quantity })
+    expect(result).toMatchObject({ subtotalAmount, discountAmount, totalAmount, discountCode: 'GENCODES10' })
+    expect(prismaMock.genCodeOrder.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ quantity, unitPrice: 150, discountAmount, totalAmount, discountCode: 'GENCODES10', discountCouponId: null }),
+      select: { id: true },
+    })
+    expect(stripeMock.coupons.create).toHaveBeenCalledWith({
+      name: 'GENCODES10', percent_off: 10, duration: 'once', max_redemptions: 1,
+      redeem_by: expect.any(Number), applies_to: { products: ['prod_1'] },
+      metadata: { genCodeOrderId: 'order_1', origin: 'seq' },
+    }, { idempotencyKey: 'gencode-volume:order_1' })
+    expect(stripeMock.checkout.sessions.create).toHaveBeenCalledWith(expect.objectContaining({
+      line_items: [{ price: 'price_1', quantity }], discounts: [{ coupon: 'coupon_volume_10' }],
+      metadata: expect.objectContaining({ origin: 'seq', discountCode: 'GENCODES10', discountPercent: '10' }),
+    }))
+  })
+
+  it('preserves BMS pricing without opting it into the Sequoia offer', async () => {
+    expect(await openGenCodePackageCheckout({ ...checkoutInput, quantity: 50 })).toMatchObject({ totalAmount: 7500, discountAmount: 0 })
+    expect(stripeMock.coupons.create).not.toHaveBeenCalled()
+  })
+
+  it('rejects a self-service attempt to supply another coupon', async () => {
+    await expect(openGenCodePackageCheckout({ ...checkoutInput, origin: 'seq', quantity: 50, discountCouponId: 'manual-100' }))
+      .rejects.toMatchObject({ reason: 'coupon-not-applicable' })
+    expect(prismaMock.discountCoupon.findFirst).not.toHaveBeenCalled()
+    expect(prismaMock.genCodeOrder.create).not.toHaveBeenCalled()
+  })
+
+  it.each([19, 20.5, 10000000, Number.MAX_SAFE_INTEGER])('rejects invalid self-service quantity %s before provider writes', async (quantity) => {
+    await expect(openGenCodePackageCheckout({ ...checkoutInput, origin: 'seq', quantity }))
+      .rejects.toMatchObject({ reason: 'invalid-quantity' })
+    expect(customerMock).not.toHaveBeenCalled()
+    expect(prismaMock.genCodeOrder.create).not.toHaveBeenCalled()
+  })
+
+  it('does not expose another BMS product in self-service', async () => {
+    prismaMock.genCodePackage.findFirst.mockResolvedValueOnce({ ...PACKAGE, code: 'PRIVATE_BMS_OFFER' })
+    await expect(openGenCodePackageCheckout({ ...checkoutInput, origin: 'seq' }))
+      .rejects.toMatchObject({ reason: 'package-not-found' })
+    expect(customerMock).not.toHaveBeenCalled()
+  })
+
+  it('removes the pending order if automatic coupon creation fails', async () => {
+    stripeMock.coupons.create.mockRejectedValueOnce(new Error('provider unavailable'))
+    await expect(openGenCodePackageCheckout({ ...checkoutInput, origin: 'seq', quantity: 50 })).rejects.toThrow('provider unavailable')
+    expect(prismaMock.genCodeOrder.delete).toHaveBeenCalledWith({ where: { id: 'order_1' } })
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled()
+    expect(txMock.creditGrant.create).not.toHaveBeenCalled()
+  })
+
+  it('removes the pending order if Stripe cannot create a checkout', async () => {
+    stripeMock.checkout.sessions.create.mockRejectedValueOnce(new Error('checkout unavailable'))
+    await expect(openGenCodePackageCheckout({ ...checkoutInput, origin: 'seq', quantity: 50 })).rejects.toThrow('checkout unavailable')
+    expect(prismaMock.genCodeOrder.delete).toHaveBeenCalledWith({ where: { id: 'order_1' } })
+    expect(txMock.creditGrant.create).not.toHaveBeenCalled()
+  })
   it('rejects quantities below the package minimum before creating an order', async () => {
     await expect(openGenCodePackageCheckout({ ...checkoutInput, quantity: 19 }))
       .rejects.toMatchObject({ reason: 'invalid-quantity' })
@@ -263,6 +333,17 @@ describe('openGenCodePackageCheckout', () => {
 
     expect(prismaMock.genCodeOrder.create).toHaveBeenCalledTimes(2)
     expect(stripeMock.checkout.sessions.create).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('package webhook ownership', () => {
+  it('keeps the BMS default and admits only the explicitly requested origin', () => {
+    expect(isGenCodePackageCheckout(checkoutSession())).toBe(true)
+    expect(isGenCodePackageCheckout(checkoutSession(), 'seq')).toBe(false)
+    const seq = checkoutSession({ metadata: { origin: 'seq', genCodeOrderId: 'order_1' } })
+    expect(isGenCodePackageCheckout(seq)).toBe(false)
+    expect(isGenCodePackageCheckout(seq, 'seq')).toBe(true)
+    expect(isGenCodePackageCheckout(checkoutSession({ metadata: { origin: 'seq' } }), 'seq')).toBe(false)
   })
 })
 

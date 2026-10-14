@@ -1,4 +1,4 @@
-import { BuildingIcon, IdCardIcon, LayoutDashboard, QrCode, SquareChartGantt, UsersIcon, type LucideIcon } from 'lucide-react'
+import { BuildingIcon, IdCardIcon, LayoutDashboard, Package, QrCode, SquareChartGantt, UsersIcon, type LucideIcon } from 'lucide-react'
 
 // The Cadastros / Compras / Estoque groups were removed: every entry in them was
 // already in the fast menu above, so the sidebar offered the same four
@@ -27,6 +27,7 @@ export const main: MenuItem[][] = [
   ],
   [
     { labelKey: 'items.buyGenCodes', url: '/purchasing/plans', icon: SquareChartGantt },
+    { labelKey: 'items.genCodePackages', url: '/purchasing/packages', icon: Package },
     { labelKey: 'items.myGenCodes',  url: '/inventory/activations',  icon: QrCode },
   ],
   [

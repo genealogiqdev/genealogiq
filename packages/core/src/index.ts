@@ -2,6 +2,7 @@ export { hashToken } from "./token"
 export { BLOB_URL_PATTERN, isAllowedMediaUrl, isLegacyVercelBlobUrl } from "./blob"
 export { uploadMedia, type MediaUploadOptions, type UploadedMedia } from "./media-upload"
 export { generateGenCode, formatGenCode } from "./gen-code"
+export { GENCODE_PACKAGE_OFFER, quoteGenCodePackage } from './gencode-package'
 export { ok, done, fail, type ActionResult } from "./result"
 export {
   COUNTRIES,

@@ -29,7 +29,7 @@ The app uses Next.js App Router, server-side queries, server actions and Zod sch
 | [CUSTOMERS-MEMORIALS](docs/CUSTOMERS-MEMORIALS.md) | Tenant consumers, categories and memorial records | `src/actions/customer.actions.ts` | `pnpm test` |
 | [SUPPLIERS-CATEGORIES](docs/SUPPLIERS-CATEGORIES.md) | Tenant suppliers and categories | `src/actions/supplier.actions.ts` | `pnpm test` |
 | [GENCODE-OPERATIONS](docs/GENCODE-OPERATIONS.md) | GenCode sales, printing and installation | `src/actions/gencode.actions.ts` | `pnpm test` |
-| [PARTNER-PURCHASING](docs/PARTNER-PURCHASING.md) | Partner purchasing and annual subscription | `src/actions/partner-plan.actions.ts` | `pnpm test` |
+| [PARTNER-PURCHASING](docs/PARTNER-PURCHASING.md) | Annual plans and standalone GenCode packages | `src/actions/partner-plan.actions.ts` | `pnpm test` |
 | [DASHBOARD](docs/DASHBOARD.md) | Tenant operational dashboard | `src/queries/dashboard.ts` | `pnpm test` |
 | [SUPPORT-FEEDBACK](docs/SUPPORT-FEEDBACK.md) | Tenant support feedback | `src/actions/feedback.actions.ts` | `pnpm test` |
 

@@ -386,6 +386,10 @@
       "social": {
         "desc": "Social media & website",
         "title": "Social"
+      },
+      "access": {
+        "title": "App access",
+        "desc": "Invitation, GenCode and Premium"
       }
     },
     "stepsLabel": "Form steps",
@@ -394,7 +398,9 @@
       "email": "E-mail",
       "empty": "No customers found",
       "name": "Name",
-      "status": "Status"
+      "status": "Status",
+      "plan": "App plan",
+      "genCodesSold": "GenCodes sold"
     },
     "title": "Customers",
     "toasts": {
@@ -421,7 +427,8 @@
         "personal": "Personal data",
         "social": "Social media"
       }
-    }
+    },
+    "premiumUntil": "Valid until {date}"
   },
   "Dashboard": {
     "availableQr": "Available QR Codes for Sale",
@@ -774,6 +781,7 @@
       "system": "System"
     },
     "items": {
+      "genCodePackages": "GenCode packages",
       "buyGenCodes": "Subscribe to a plan",
       "companyData": "Company Data",
       "customers": "Customers",
@@ -934,6 +942,91 @@
       "deleted": "User deleted successfully.",
       "emailResent": "Email resent successfully.",
       "reactivated": "User reactivated."
+    }
+  },
+  "PremiumAccess": {
+    "activate": "Enable Premium",
+    "deactivate": "Disable Premium",
+    "activateTitle": "Enable Premium for 12 months",
+    "deactivateTitle": "Disable Premium",
+    "activateDescription": "Grant 12 months of Premium to {name}? Previously purchased Premium time will be preserved.",
+    "deactivateDescription": "Disable the Premium grant for {name}? Their account and separately purchased Premium periods will be preserved.",
+    "stockUnchanged": "This change does not affect the sale or GenCode stock.",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "granted": "Premium granted for 12 months.",
+    "alreadyGranted": "This customer already has a valid Premium grant. The expiry is unchanged.",
+    "revoked": "The Premium grant was disabled. Purchased periods were preserved.",
+    "invitationTitle": "App invitation",
+    "invitationDescription": "The invitation to set a password and access the App will be sent to {email}.",
+    "onboardingTitle": "App access",
+    "registrationOnly": "Registration only",
+    "registrationDescription": "Send the customer invitation and keep GenCode stock unchanged.",
+    "saleAndPremium": "GenCode sold + 12 months of Premium",
+    "saleDescription": "Record the sale of 1 GenCode, deduct one unit from stock and enable Premium now.",
+    "adminRequired": "A funeral home administrator can record sales and manage Premium.",
+    "codeOptional": "GenCode delivered to the customer (optional)",
+    "codeOptionalHelp": "If the plaque was already delivered, enter its code. Leave blank to select an available unit automatically.",
+    "registered": "Customer registered with Premium. GenCode {code} sold and deducted from stock.",
+    "registeredEmailPending": "Customer registered with Premium and GenCode {code} sold. Email is pending; resend the invitation from the customer record.",
+    "recordSale": "Record GenCode sale",
+    "existingSaleDescription": "Record 1 GenCode sold to {name} and grant 12 months of Premium.",
+    "code": "GenCode on the sold plaque",
+    "existingSaleHelp": "Use the code on the delivered plaque. If the customer already has a valid Premium grant, its expiry will stay unchanged.",
+    "confirmSale": "Confirm sale and Premium",
+    "sold": "GenCode {code} sold and deducted from stock. Premium is available.",
+    "soldEmailPending": "GenCode {code} sale recorded and Premium available. The email notification is awaiting automatic retry.",
+    "alreadySold": "GenCode {code} is already sold to this customer. Stock and Premium are unchanged.",
+    "soldCount": "GenCodes sold to this customer: {count}",
+    "errors": {
+      "invalid-data": "Check the submitted details.",
+      "customer-unavailable": "The customer is not available under this partner or does not have an active account with an email.",
+      "premium-unavailable": "The Premium plan is unavailable. Contact the administrator.",
+      "active-subscription": "The customer has a recurring subscription or another active plan. Use the billing workflow to manage it.",
+      "request-conflict": "This request was already used for another customer. Refresh the page.",
+      "grant-unavailable": "This grant is no longer available. Refresh the page.",
+      "grant-revoked": "This grant has already been disabled. Refresh the page to start a new request.",
+      "gencode-unavailable": "No available GenCode was found. Check the code and the funeral home stock.",
+      "no-credit": "The funeral home has no valid credit for this sale. Registration and sale were not completed.",
+      "failed": "Unable to complete the request. Check your connection and try again."
+    }
+  },
+  "GenCodePackages": {
+    "title": "GenCode packages",
+    "description": "Buy standalone GenCodes for your customers without a plan subscription.",
+    "chooseQuantity": "Choose your package",
+    "quantity": "Number of GenCodes",
+    "units": "{count} units",
+    "perUnit": "{amount} per unit",
+    "standardPrice": "Standard price",
+    "minimumQuantity": "Enter a whole number of at least {count} units.",
+    "invalidQuantity": "Enter a valid number of GenCodes.",
+    "discountHint": "For {count} units or more, a {percent}% discount coupon is applied automatically.",
+    "coupon": "{percent}% coupon",
+    "summary": "Order summary",
+    "unitPrice": "Price per unit",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "paymentHint": "One-time payment. GenCodes become available after payment confirmation and are valid for 12 months.",
+    "buy": "Buy GenCodes",
+    "redirecting": "Opening payment…",
+    "unavailable": "This package is temporarily unavailable for purchase. Please contact Genealogiq.",
+    "checkoutFailed": "We couldn't open the payment page. Please try again shortly.",
+    "tenantInactive": "Your company is inactive. Please contact Genealogiq to make a purchase.",
+    "toasts": {
+      "success": "Payment submitted. GenCodes will be released after confirmation; check your order history."
+    },
+    "orders": {
+      "title": "Package history",
+      "empty": "No package purchases yet.",
+      "requestedAt": "Requested on",
+      "discount": "Discount",
+      "status": "Status",
+      "expiresAt": "GenCodes valid until",
+      "pending": "Awaiting payment",
+      "paid": "Paid",
+      "failed": "Payment not completed",
+      "expired": "Payment link expired"
     }
   }
 }

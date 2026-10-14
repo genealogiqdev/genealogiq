@@ -386,6 +386,10 @@
       "social": {
         "desc": "Redes sociales y sitio web",
         "title": "Sociales"
+      },
+      "access": {
+        "title": "Acceso a la App",
+        "desc": "Invitación, GenCode y Premium"
       }
     },
     "stepsLabel": "Pasos del formulario",
@@ -394,7 +398,9 @@
       "email": "Correo electrónico",
       "empty": "No se encontraron clientes",
       "name": "Nombre",
-      "status": "Estado"
+      "status": "Estado",
+      "plan": "Plan en la App",
+      "genCodesSold": "GenCodes vendidos"
     },
     "title": "Clientes",
     "toasts": {
@@ -421,7 +427,8 @@
         "personal": "Datos personales",
         "social": "Redes sociales"
       }
-    }
+    },
+    "premiumUntil": "Válido hasta {date}"
   },
   "Dashboard": {
     "availableQr": "QR Codes disponibles para venta",
@@ -774,6 +781,7 @@
       "system": "Sistema"
     },
     "items": {
+      "genCodePackages": "Paquetes de GenCodes",
       "buyGenCodes": "Contratar un plan",
       "companyData": "Datos de la Empresa",
       "customers": "Clientes",
@@ -934,6 +942,91 @@
       "deleted": "Usuario eliminado con éxito.",
       "emailResent": "Correo reenviado con éxito.",
       "reactivated": "Usuario reactivado."
+    }
+  },
+  "PremiumAccess": {
+    "activate": "Activar Premium",
+    "deactivate": "Desactivar Premium",
+    "activateTitle": "Activar Premium por 12 meses",
+    "deactivateTitle": "Desactivar Premium",
+    "activateDescription": "¿Otorgar 12 meses de Premium a {name}? Se conservarán los días de Premium ya pagados.",
+    "deactivateDescription": "¿Desactivar el Premium otorgado a {name}? Se conservarán su cuenta y los períodos de Premium comprados por separado.",
+    "stockUnchanged": "Este cambio no modifica la venta ni el inventario de GenCodes.",
+    "cancel": "Cancelar",
+    "saving": "Guardando…",
+    "granted": "Premium otorgado por 12 meses.",
+    "alreadyGranted": "Este cliente ya tiene Premium otorgado vigente. Se conservó la fecha de vencimiento.",
+    "revoked": "Se desactivó el Premium otorgado. Se conservaron los períodos pagados.",
+    "invitationTitle": "Invitación a la App",
+    "invitationDescription": "La invitación para definir la contraseña y acceder a la App se enviará a {email}.",
+    "onboardingTitle": "Acceso a la App",
+    "registrationOnly": "Solo registro",
+    "registrationDescription": "Enviar la invitación al cliente y conservar el inventario de GenCodes.",
+    "saleAndPremium": "GenCode vendido + Premium por 12 meses",
+    "saleDescription": "Registrar la venta de 1 GenCode, descontar una unidad del inventario y activar Premium ahora.",
+    "adminRequired": "Un administrador de la funeraria puede registrar ventas y gestionar Premium.",
+    "codeOptional": "GenCode entregado al cliente (opcional)",
+    "codeOptionalHelp": "Si la placa ya fue entregada, ingrese su código. Deje el campo vacío para seleccionar una unidad disponible automáticamente.",
+    "registered": "Cliente registrado con Premium. GenCode {code} vendido y descontado del inventario.",
+    "registeredEmailPending": "Cliente registrado con Premium y GenCode {code} vendido. El correo está pendiente; reenvíe la invitación desde el registro del cliente.",
+    "recordSale": "Registrar venta de GenCode",
+    "existingSaleDescription": "Registrar 1 GenCode vendido a {name} y otorgar Premium por 12 meses.",
+    "code": "GenCode de la placa vendida",
+    "existingSaleHelp": "Use el código de la placa entregada. Si el cliente ya tiene Premium otorgado vigente, se conservará su vencimiento.",
+    "confirmSale": "Confirmar venta y Premium",
+    "sold": "GenCode {code} vendido y descontado del inventario. Premium disponible.",
+    "soldEmailPending": "Venta de GenCode {code} registrada y Premium disponible. El aviso por correo está pendiente de reintento automático.",
+    "alreadySold": "El GenCode {code} ya está vendido a este cliente. El inventario y Premium no cambiaron.",
+    "soldCount": "GenCodes vendidos a este cliente: {count}",
+    "errors": {
+      "invalid-data": "Revise los datos ingresados.",
+      "customer-unavailable": "El cliente no está disponible para este socio o no tiene una cuenta activa con correo.",
+      "premium-unavailable": "El plan Premium no está disponible. Consulte a la administración.",
+      "active-subscription": "El cliente tiene una suscripción recurrente u otro plan activo. Gestione esa suscripción desde facturación.",
+      "request-conflict": "Esta solicitud ya se usó para otro cliente. Actualice la página.",
+      "grant-unavailable": "Esta concesión ya no está disponible. Actualice la página.",
+      "grant-revoked": "Esta concesión ya fue desactivada. Actualice la página para iniciar otra solicitud.",
+      "gencode-unavailable": "No se encontró un GenCode disponible. Revise el código y el inventario de la funeraria.",
+      "no-credit": "La funeraria no tiene crédito vigente para esta venta. El registro y la venta no se completaron.",
+      "failed": "No se pudo completar. Revise su conexión e inténtelo de nuevo."
+    }
+  },
+  "GenCodePackages": {
+    "title": "Paquetes de GenCodes",
+    "description": "Compra GenCodes para tus clientes sin necesidad de suscribirte a un plan.",
+    "chooseQuantity": "Elige tu paquete",
+    "quantity": "Cantidad de GenCodes",
+    "units": "{count} unidades",
+    "perUnit": "{amount} por unidad",
+    "standardPrice": "Precio estándar",
+    "minimumQuantity": "Ingresa una cantidad entera de al menos {count} unidades.",
+    "invalidQuantity": "Ingresa una cantidad válida de GenCodes.",
+    "discountHint": "A partir de {count} unidades, se aplica automáticamente un cupón de {percent}% de descuento.",
+    "coupon": "Cupón de {percent}%",
+    "summary": "Resumen de compra",
+    "unitPrice": "Precio por unidad",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "paymentHint": "Pago único. Los GenCodes estarán disponibles tras confirmar el pago y tendrán una vigencia de 12 meses.",
+    "buy": "Comprar GenCodes",
+    "redirecting": "Abriendo pago…",
+    "unavailable": "Este paquete no está disponible para compra temporalmente. Contacta a Genealogiq.",
+    "checkoutFailed": "No se pudo abrir la página de pago. Inténtalo de nuevo en unos momentos.",
+    "tenantInactive": "Tu empresa está inactiva. Contacta a Genealogiq para realizar una compra.",
+    "toasts": {
+      "success": "Pago enviado. Los GenCodes se liberarán tras la confirmación; consulta el historial de pedidos."
+    },
+    "orders": {
+      "title": "Historial de paquetes",
+      "empty": "Aún no has comprado paquetes.",
+      "requestedAt": "Solicitado el",
+      "discount": "Descuento",
+      "status": "Estado",
+      "expiresAt": "Vigencia de los GenCodes",
+      "pending": "Pendiente de pago",
+      "paid": "Pagado",
+      "failed": "Pago no completado",
+      "expired": "Enlace de pago vencido"
     }
   }
 }
