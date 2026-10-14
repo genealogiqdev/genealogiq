@@ -7,6 +7,8 @@
 
 The BMS application supplies partner registry and invitations. Customer forms describe a partner tenant and its contact/address fields; creation/invitation establishes SEQ staff access. Mutations check privileged BMS roles; taxId/email uniqueness is enforced by the Prisma schema and translated to form errors.
 
+The sidebar entry for `/customers` is **Clientes B2B** in Portuguese and Spanish and **B2B Customers** in English (`Sidebar.items.customers`). This identifies the partner registry within the **Clientes** group, alongside **Clientes finais** (`/consumers`). The group label, page title and route retain their existing contracts.
+
 The `/customers` header includes **Clientes finais** for administrators, linking to the [global APP customer directory](CONSUMERS.md) at `/consumers`. That directory includes independent accounts and the customers of every SEQ partner. The partner table continues to represent Tenant records.
 
 ## How it works
@@ -110,6 +112,8 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 
 ### Manual scenarios
 
+For the sidebar label, sign in normally, expand **Clientes**, open **Clientes B2B** and reload `/customers`; expect the partner registry and the same sidebar label. Check the English/Spanish labels and the adjacent **Clientes finais** link. Sign out and revisit `/customers`; expect `/sign-in` without the protected sidebar.
+
 Current onboarding acceptance: create a partner with three initial GenCodes and capture its credential email in the loopback mail fixture; sign in to SEQ with the generated password, reload inventory and verify three funded codes with no order/contract. Create another with zero and verify access with empty inventory. Reject a negative/fractional quantity; simulate rejected mail, retain one registration/grant, and recover through the existing resend action. PostgreSQL tests also consume three credits, reject a fourth, verify rollback and reject a duplicate grant. Source/tests/runtime/UI evidence is appended in [the onboarding audit](../../../docs/audits/PARTNER-ONBOARDING-2026-10-07.md).
 
 1. **Happy path:** Create a synthetic partner with a disposable invitation email, save and reload /customers/<id>; verify the Tenant and invited User share the intended tenant. Requires a test mail recipient.
@@ -168,6 +172,10 @@ Current onboarding acceptance: create a partner with three initial GenCodes and 
 | 2026-10-07 | `2632307` | Source, deterministic tests, local PostgreSQL and browser | Immediate active credentials, optional audited initial allowance, resend recovery and deletion guard; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](../../../docs/audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
 | 2026-10-09 | Global APP directory change | Source review | Added the administrator shortcut from `/customers` to `/consumers`, using the translated APP directory title and a wrapping header. | Automated tests and runtime/browser checks omitted at the user's request; no partner mutation changed or process started. |
 | 2026-10-09 | `3826319` + consolidated release | Completion of interrupted wizard/revocation/expiry chats | Final deterministic and local PostgreSQL checks plus release evidence in the [consolidated audit](../../../docs/audits/PRODUCTION-RELEASE-2026-10-09.md). | Browser automated QA waived; production inbox acceptance remains separate. |
+| 2026-10-14 | `58d4145` + sidebar label change | Source review | `Sidebar.items.customers` now reads **Clientes B2B** (pt-BR/es-MX) and **B2B Customers** (en-US); the existing sidebar still links to `/customers`. Group labels, consumer link, routes and data contracts are unchanged. | Scoped to navigation copy; earlier onboarding evidence remains separate. |
+| 2026-10-14 | Same | Automated checks | `pnpm test`: 131 files / 1,218 tests passed, six integration files / 40 tests skipped. Locale parity, locale references, documentation and whitespace checks passed. | Locale references retain 88 dynamic calls and one unmapped columns file; integration skips are not passes. |
+| 2026-10-14 | Same | Local runtime | Guarded BMS launcher started on localhost:3001; readiness returned `ready` and `/sign-in` returned HTTP 200 with its login form. Anonymous `/customers` returned HTTP 200 without the protected sidebar label. | HTTP alone does not verify the rendered label or browser redirect. |
+| 2026-10-14 | Same | UI prerequisite and cleanup | Chrome creation and tab inspection were blocked by the integration's unavailable Codex authentication token. | UI n/a: reconnect Chrome, then run the label/navigation/reload/locale and sign-out scenarios above. Stopped the owned BMS launcher and removed its generated tsconfig additions; the pre-existing PostgreSQL service was retained. |
 
 ## Related
 
