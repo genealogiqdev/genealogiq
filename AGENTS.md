@@ -67,6 +67,7 @@ The app indexes contain 18 APP, ten BMS and seven SEQ feature documents; the fiv
 | Document | Use |
 | --- | --- |
 | [LOCAL-DEVELOPMENT](docs/LOCAL-DEVELOPMENT.md) | Setup, normal local identity, three-app baseline, readiness, stop/recovery |
+| [DISK-AUDIT](docs/DISK-AUDIT.md) | Read-only local disk inventory, permission limits and development-data preservation |
 | [DATABASE](docs/DATABASE.md) | Model/table/migration inventory, schema paths and reviewed stored-text recovery |
 | [CONFIGURATION](docs/CONFIGURATION.md) | Environment ownership/defaults, restart/rebuild rules and optional provider modes |
 | [TESTING](docs/TESTING.md) | Deterministic, schema/i18n, build, public E2E and enabled Azurite checks |

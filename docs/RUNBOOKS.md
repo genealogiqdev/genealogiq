@@ -44,6 +44,13 @@
 4. Sign in separately at localhost:3000/3001/3002, then rerun the relevant happy/boundary and persistence check. Ephemeral secrets invalidate old cookies after restart.
 5. Restore temporary edits, record a new Verification row and finish the owned-process cleanup from [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md).
 
+## Diagnose local disk pressure
+
+For workstation storage pressure, use the [read-only disk audit](DISK-AUDIT.md)
+before choosing cleanup targets. It separates logical directory sizes, physical
+volume usage, inaccessible profiles and development data that must be preserved.
+The audit never deletes files or prunes Docker volumes.
+
 ## Verification log
 
 | Date | Revision | Scope | Evidence / limits |
