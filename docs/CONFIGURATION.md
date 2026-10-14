@@ -37,6 +37,8 @@ There is no single environment-validation schema. Settings are read at import, r
 
 ### BMS partner email destinations
 
+The [October 14 release audit](audits/PRODUCTION-RELEASE-2026-10-14.md) verifies the current production origins against Azure and updates the three `.env.example` files. Local development `.env` files remain excluded from container builds. SEQ package purchases also require the distinct `stripe-webhook-seq` Key Vault reference and the canonical Stripe endpoint's supported events; copying APP/BMS signing secrets is invalid.
+
 Partner credentials, invitation resend and legacy activation use `SEQUOIA_URL`; the final consumer uses `APP_URL`, and back-office staff uses `BMS_URL`. These are server runtime settings. The partner email adapter requires all three to contain an HTTP(S) origin only: no embedded credentials, path, query or fragment. It trims whitespace and normalizes the root slash before comparing origins, including their ports. Sequoia must differ from both other products. Production addresses remain documented in [the domain runbook](AZURE-DEPLOYMENT.md#dns-and-managed-tls), not embedded in application code.
 
 Changing a setting requires restarting the serving process. Fix configuration before resending the partner's setup email; a previously delivered email is not rewritten. Invalid configuration leaves a new partner registered with email pending, and an explicit resend reports failure. Do not register the company again. [PARTNERS](../apps/bms/docs/PARTNERS.md) owns the recovery workflow and [the audit](audits/BMS-PARTNER-EMAIL-2026-10-14.md) separates current production settings from the unverified historical email.

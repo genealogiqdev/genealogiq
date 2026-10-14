@@ -73,7 +73,7 @@ export function PlacesClient({
         {places.map((p, i) => (
           <Link
             key={p.id}
-            href={`/profile/${profileId}/places/${p.id}`}
+            href={`/profile/${profileId}/places/${p.id}?view=details`}
             onClick={(e) => {
               if (gated) {
                 e.preventDefault()

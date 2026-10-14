@@ -18,7 +18,9 @@ beforeEach(() => {
   vi.stubEnv("APP_URL", "https://genealogiq.example/")
   vi.mocked(verifySession).mockResolvedValue({ user: { id: "viewer" } } as never)
   vi.mocked(getMemorialFeatures).mockResolvedValue({ code: "PREMIUM" } as never)
-  vi.mocked(getPlaceById).mockResolvedValue({ id: "place-1", userId: "memorial-1", qrGenerated: true } as never)
+  vi.mocked(getPlaceById).mockResolvedValue({
+    id: "place-1", userId: "memorial-1", categories: ["memorial_site"], qrGenerated: true,
+  } as never)
   qrMock.mockResolvedValue("data:image/png;base64,cG5n")
   svgMock.mockResolvedValue("<svg/>")
 })
@@ -28,13 +30,13 @@ afterEach(() => {
 })
 
 describe("downloadPlaceQrCode", () => {
-  it("returns a printable PNG linking to the place for the Premium viewer", async () => {
+  it("returns a printable PNG linking to the deceased's profile for the Premium viewer", async () => {
     const result = await downloadPlaceQrCode("memorial-1", "place-1")
 
     expect(result).toEqual({ ok: true, data: { dataUrl: "data:image/png;base64,cG5n" }, message: undefined })
     expect(getMemorialFeatures).toHaveBeenCalledExactlyOnceWith("viewer")
     expect(getPlaceById).toHaveBeenCalledExactlyOnceWith("memorial-1", "place-1")
-    expect(qrMock).toHaveBeenCalledExactlyOnceWith("https://genealogiq.example/profile/memorial-1/places/place-1", {
+    expect(qrMock).toHaveBeenCalledExactlyOnceWith("https://genealogiq.example/profile/memorial-1", {
       errorCorrectionLevel: "H",
       margin: 4,
       width: 2048,
@@ -52,17 +54,43 @@ describe("downloadPlaceQrCode", () => {
     expect(svgMock).not.toHaveBeenCalled()
   })
 
-  it("returns vector SVG with the same place destination", async () => {
+  it("returns vector SVG with the same deceased's profile destination", async () => {
     expect(await downloadPlaceQrCode("memorial-1", "place-1", "svg")).toEqual({
       ok: true, data: { dataUrl: "data:image/svg+xml;base64,PHN2Zy8+" }, message: undefined,
     })
-    expect(svgMock).toHaveBeenCalledExactlyOnceWith("https://genealogiq.example/profile/memorial-1/places/place-1", {
+    expect(svgMock).toHaveBeenCalledExactlyOnceWith("https://genealogiq.example/profile/memorial-1", {
       type: "svg",
       errorCorrectionLevel: "H",
       margin: 4,
       color: { dark: "#0F172A", light: "#FFFFFF" },
     })
     expect(qrMock).not.toHaveBeenCalled()
+  })
+
+  it.each(["png", "svg"] as const)("opens the profile for a resting-place %s even with other categories", async (format) => {
+    vi.mocked(getPlaceById).mockResolvedValue({
+      id: "place-1", userId: "memorial-1", categories: ["favorite_place", "resting_place"], qrGenerated: true,
+    } as never)
+
+    await downloadPlaceQrCode("memorial-1", "place-1", format)
+
+    expect(format === "png" ? qrMock : svgMock).toHaveBeenCalledWith(
+      "https://genealogiq.example/profile/memorial-1", expect.any(Object),
+    )
+  })
+
+  it.each([
+    { categories: ["school"] }, { categories: [] }, { categories: ["favorite_place"] },
+  ])("keeps the location destination for non-memorial categories $categories", async ({ categories }) => {
+    vi.mocked(getPlaceById).mockResolvedValue({
+      id: "place-1", userId: "memorial-1", categories, qrGenerated: true,
+    } as never)
+
+    await downloadPlaceQrCode("memorial-1", "place-1")
+
+    expect(qrMock).toHaveBeenCalledWith(
+      "https://genealogiq.example/profile/memorial-1/places/place-1", expect.any(Object),
+    )
   })
 
   it.each([

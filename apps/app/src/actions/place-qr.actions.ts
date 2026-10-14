@@ -7,6 +7,7 @@ import { verifySession } from "@/lib/dal"
 import { getMemorialFeatures } from "@/lib/subscription"
 import { getPlaceById } from "@/queries/places"
 import { generateQrDataUrl, type QrDownloadFormat } from "@/lib/qr-download"
+import { getPlaceQrPath } from "@/lib/place-qr"
 
 const downloadPlaceQrSchema = z.object({
   profileId: z.string().min(1),
@@ -33,7 +34,7 @@ export async function downloadPlaceQrCode(
   if (!place?.qrGenerated) return fail(t("places.notFound"))
 
   const dataUrl = await generateQrDataUrl(
-    `/profile/${place.userId}/places/${place.id}`,
+    getPlaceQrPath(place),
     parsed.data.format,
   )
 

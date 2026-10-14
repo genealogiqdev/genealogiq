@@ -17,13 +17,16 @@ import { canManageProfile } from "@/lib/profile"
 import { assertPublicMemorialAccess } from "@/lib/public-profile-access"
 import { formatDateProse } from "@/lib/format-date"
 import { getMemorialFeatures } from "@/lib/subscription"
+import { getPlaceQrPath, isMemorialPlace } from "@/lib/place-qr"
 
 interface Props {
   params: Promise<{ id: string; placeId: string }>
+  searchParams: Promise<{ view?: string | string[] }>
 }
 
-export default async function PlaceDetailPage({ params }: Props) {
+export default async function PlaceDetailPage({ params, searchParams }: Props) {
   const { id, placeId } = await params
+  const { view } = await searchParams
   const session = await auth()
   const viewerId = session?.user?.id
   const isAnon = !viewerId
@@ -35,14 +38,23 @@ export default async function PlaceDetailPage({ params }: Props) {
   assertPublicMemorialAccess(profile, viewerId, id)
 
   const isOwn = viewerId ? canManageProfile(profile, viewerId) : false
-  const place = await getPlaceById(id, placeId, isAnon ? ANON_PLACES_LIMIT : undefined)
+  const place = await getPlaceById(id, placeId)
   if (!place) {
-    // For anon, a null here is ambiguous by design (doesn't exist vs. exists
-    // but past the anon limit) — send them to the list, which already shows
-    // the correct truncated view and its own wall, instead of inventing a
-    // second "you've hit the limit" UI just for this route.
     if (isAnon) redirect(`/profile/${id}/places`)
     notFound()
+  }
+
+  const qrPath = getPlaceQrPath(place)
+  // Already-printed plaques contain this old detail URL. In-app links opt in
+  // to the location details; scans open the profile for every viewer.
+  if (view !== "details" && place.qrGenerated && isMemorialPlace(place)) {
+    redirect(qrPath)
+  }
+
+  // A scan may redirect to the public profile even beyond the preview slice,
+  // but rendering any place details still enforces the anonymous limit.
+  if (isAnon && !(await getPlaceById(id, placeId, ANON_PLACES_LIMIT))) {
+    redirect(`/profile/${id}/places`)
   }
 
   const canDownloadQr = viewerId && place.qrGenerated
@@ -114,7 +126,7 @@ export default async function PlaceDetailPage({ params }: Props) {
           <div className="order-1 md:order-2 md:col-span-1 lg:col-span-1 flex flex-col">
             <div className="items-end flex flex-col gap-6">
               {place.qrGenerated && (
-                <PlaceQrDisplay profileId={id} placeId={placeId} canDownload={canDownloadQr} />
+                <PlaceQrDisplay profileId={id} placeId={placeId} targetPath={qrPath} canDownload={canDownloadQr} />
               )}
 
               <div className="w-fit items-start flex flex-col gap-1 text-sm text-muted-foreground">

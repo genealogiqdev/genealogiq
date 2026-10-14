@@ -3,7 +3,7 @@
 > **Code:** [src/actions/places.actions.ts](../src/actions/places.actions.ts) · [src/actions/place-qr.actions.ts](../src/actions/place-qr.actions.ts) · [src/components/place-qr-display.tsx](../src/components/place-qr-display.tsx) · [src/queries/places.ts](../src/queries/places.ts) · [src/schemas/place.schema.ts](../src/schemas/place.schema.ts) · [src/lib/geo-quota.ts](../src/lib/geo-quota.ts) · [src/consts/place-categories.ts](../src/consts/place-categories.ts)
 > **Entry points:** `/profile/[id]/places` · `/profile/[id]/places/new` · `/profile/[id]/places/[placeId]` · `/profile/[id]/places/[placeId]/edit` · `/profile/[id]/places/map` · `/api/places/upload`
 > **Depends on:** [GEOLOCATION](GEOLOCATION.md) · [BILLING-QUOTAS](BILLING-QUOTAS.md) · [MEDIA-STORAGE](../../../docs/MEDIA-STORAGE.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-09 at `01201a0` plus the SVG/PNG and pet-profile download changes. Source verification is separate from tests/runtime/UI below; the new automated specs and interactive scenarios were not run at the user's request.
+> **Last verified against code:** 2026-10-14 at `58d4145` plus the memorial-place GenCode destination changes. Source, automated checks, local HTTP/database evidence and browser limitations are recorded separately below.
 
 The APP application supplies life places and maps. GeoPlace owns category/startDate/optional endDate/address/coordinates/images/qrGenerated. Blank endDate parses to null. Creation checks guardian-wide place units; photos share the profile image pool. 20260721000000_geo_places created rows; 20260726000000_geo_place_qr_generated added marker.
 
@@ -24,6 +24,7 @@ No LLM/model stage exists in this implementation.
 | [src/components/place-qr-display.tsx](../src/components/place-qr-display.tsx) | `PlaceQrDisplay` | QR preview with Premium export controls |
 | [src/components/gen-code-download-buttons.tsx](../src/components/gen-code-download-buttons.tsx) | `GenCodeDownloadButtons` | Shared visible PNG/SVG buttons, pending state and translated download feedback |
 | [src/lib/qr-download.ts](../src/lib/qr-download.ts) | `generateQrDataUrl` | Server-only PNG/vector SVG rendering, also used by [pet profile downloads](PETS.md) |
+| [src/lib/place-qr.ts](../src/lib/place-qr.ts) | `getPlaceQrPath`, `isMemorialPlace` | Shared destination for place QR previews, exports and existing memorial plaques |
 | [src/queries/places.ts](../src/queries/places.ts) | `getPlaceById`, `getPlacesForMap` | Scoped data reads and output shaping |
 | [src/schemas/place.schema.ts](../src/schemas/place.schema.ts) | See exports/component in file | Input validation and defaults |
 | [src/lib/geo-quota.ts](../src/lib/geo-quota.ts) | See exports/component in file | Shared policy or integration implementation |
@@ -35,7 +36,11 @@ Anonymous detail respects the list’s twelve-place preview slice (ANON_PLACES_L
 
 On a generated place QR, the detail page shows **Baixar GenCode** with directly visible **PNG** and **SVG** buttons below the image only when the signed-in viewer's own effective plan has code `PREMIUM`. This covers the same place detail for living profiles, memorials and pets. Download is a read available to Premium viewers under the existing authenticated place visibility rules; it does not require editing rights. A Premium guardian of the viewed profile, a physical GenCode or extra QR units cannot grant download access to a FREE viewer. `getMemorialFeatures(viewerId)` reads the database-backed entitlement, including valid complimentary Premium and trials, and falls back to FREE when the term is no longer live. The action checks it again for either format on every click, so a page opened before expiry cannot authorize a later download by itself.
 
-The existing public QR preview/generation remains separate from this Premium export. Both format buttons keep their labels on small screens, disable during a request and report a translated failure without downloading a file. This request adds no subscription, credit consumption, permanent image upload or new GenCode record. The first implementation in `e80c449` offered PNG only; the follow-up adds vector SVG and shares the controls/renderer with direct pet-profile exports. The place export continues to open the specific place; the pet-profile export opens the pet itself.
+The existing public QR preview/generation remains separate from this Premium export. Both format buttons keep their labels on small screens, disable during a request and report a translated failure without downloading a file. This request adds no subscription, credit consumption, permanent image upload or new GenCode record. The first implementation in `e80c449` offered PNG only; the follow-up added vector SVG and shared the controls/renderer with direct pet-profile exports. Initially all place exports opened the specific place; the pet-profile export opened the pet itself.
+
+Since 2026-10-14, a place categorized as `resting_place` or `memorial_site` encodes the associated profile root in both its displayed QR and PNG/SVG exports. A scan at a tomb should introduce the deceased. Other life-place categories retain their location destination, including places with no categories. Category order and additional categories do not change the memorial rule.
+
+Previously printed memorial-place QRs contain `/profile/<id>/places/<placeId>`; when the scoped place has `qrGenerated=true`, that bare URL redirects to `/profile/<id>` for anonymous visitors and signed-in guardians alike. Old `/places?place=<placeId>` links still forward through this resolver. The places list explicitly opens `?view=details` to retain the location, its editing link and QR export controls. This parameter is navigation intent, never authorization: the profile privacy guard still runs first, and anonymous location details still require membership in the twelve-place preview. A scan for a generated memorial place outside that slice may redirect to the public profile without exposing the location. Missing/mismatched places retain the anonymous list redirect or authenticated not-found response. Neither navigation nor export changes the persisted place/QR flag or consumes credit.
 
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
@@ -45,7 +50,7 @@ GeoPlace owns category/startDate/optional endDate/address/coordinates/images/qrG
 
 Inputs, defaults and output types live in the linked schema/actions/query files. APP/BMS/SEQ actions generally return [ActionResult (`done`/`ok`/`fail`)](../../../packages/core/src/result.ts); redirects/forbidden errors propagate from the DAL. Shared helpers retain their declared return types.
 
-`downloadPlaceQrCode(profileId, placeId, format)` requires two nonempty string IDs, format `png` or `svg` (PNG when omitted, preserving the original call contract) and a verified APP session. It checks the viewer's Premium entitlement before reading `getPlaceById(profileId, placeId)`, which scopes the place to the requested profile; a missing place or `qrGenerated=false` returns `Actions.places.notFound`. Non-Premium requests return `Actions.places.premiumRequired`; unsupported formats return `Actions.common.invalidData`. Success carries only `{ dataUrl }` in the ActionResult: a 2048 × 2048 PNG or a vector SVG, both with H error correction, a four-module quiet zone and dark modules on white. It encodes `/profile/<stored userId>/places/<stored id>` under `APP_URL` (fallback `https://genealogiq.app`, matching the profile QR page), and the client saves `gencode-<placeId>.<format>`. SVG is generated with `QRCode.toString({ type: "svg" })`, encoded with the SVG MIME type, and is not a PNG embedded in an SVG wrapper. Generation is local to the server process through the existing `qrcode` dependency; no provider call or database write is involved.
+`downloadPlaceQrCode(profileId, placeId, format)` requires two nonempty string IDs, format `png` or `svg` (PNG when omitted, preserving the original call contract) and a verified APP session. It checks the viewer's Premium entitlement before reading `getPlaceById(profileId, placeId)`, which scopes the place to the requested profile; a missing place or `qrGenerated=false` returns `Actions.places.notFound`. Non-Premium requests return `Actions.places.premiumRequired`; unsupported formats return `Actions.common.invalidData`. Success carries only `{ dataUrl }` in the ActionResult: a 2048 × 2048 PNG or a vector SVG, both with H error correction, a four-module quiet zone and dark modules on white. `getPlaceQrPath` uses the stored categories and IDs: `/profile/<stored userId>` for `resting_place`/`memorial_site`, otherwise `/profile/<stored userId>/places/<stored id>`. Exports use `APP_URL` (fallback `https://genealogiq.app`); the displayed QR receives the same path from the server and uses the current browser origin. The client saves `gencode-<placeId>.<format>`. SVG is generated with `QRCode.toString({ type: "svg" })`, encoded with the SVG MIME type, and is not a PNG embedded in an SVG wrapper. Generation is local to the server process through the existing `qrcode` dependency; no provider call or database write is involved.
 
 | Prisma model | PostgreSQL table | Creation migration / provenance |
 | --- | --- | --- |
@@ -86,6 +91,8 @@ Run commands from the repository root `C:/Users/Tiger/Desktop/dev/personal/genea
 
 The follow-up extends these unexecuted specs with SVG MIME/vector-renderer expectations for the same destination, denied requests in both formats and unsupported-format rejection. PNG remains the omitted-format default.
 
+**2026-10-14 destination regression:** [place-qr.actions.test.ts](../src/actions/place-qr.actions.test.ts) now pins the memorial profile destination for PNG/SVG and preserves other categories plus the existing permission/format boundaries. [place detail entry tests](../src/app/(public)/profile/[id]/places/[placeId]/page.test.tsx) cover printed links, guardian/anonymous readers, explicit details, privacy, preview limits and missing/mismatched places. [place-qr-display.test.tsx](../src/components/place-qr-display.test.tsx) checks that the client uses the server-selected profile path. These tests mock their DB/session or QR renderer boundaries; the entry tests do not claim a full Next.js browser render. The focused run passed all 36 tests.
+
 **Expected answers:** literal hand-authored `expect` values in these specs and the scenario values below. The full run’s pass count is a coverage ledger, never the expected business output. Do not generate a golden answer from the function being tested.
 
 **Acceptance:** the stated happy-path outputs/persisted rows match the independent scenario, and the boundary rejects without an unauthorized write or duplicate side effect. A unit/helper pass does not satisfy a missing product step.
@@ -103,8 +110,9 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 1. **Happy path:** Create a disposable place with start date, blank end date and coordinates. Save/reload detail/list/map; expect one row with null endDate and matching marker.
 2. **Boundary:** Blank start date and anonymous edit reject; no new GeoPlace row. External map tiles require network.
 3. **Persistence/cleanup:** independently query the feature-owned rows or downstream result. Restore temporary edits; retain ledger/audit history. Only delete disposable fixtures when authorized by the task.
-4. **Premium download:** As a user with live Premium, open a generated place QR on a memorial and a pet. Expect **Baixar GenCode** plus primary **PNG**/**SVG** buttons below the QR on desktop/mobile. Download both; expect a 2048 × 2048 PNG and a vector SVG. Scan each file and expect that exact place detail, then reload and repeat. The download does not change the place or any entitlement/credit row.
+4. **Premium download:** As a user with live Premium, open a generated place QR through the Geolocalizações list on a memorial and a pet. Expect **Baixar GenCode** plus primary **PNG**/**SVG** buttons below the QR on desktop/mobile. Download both; expect a 2048 × 2048 PNG and a vector SVG. Scan each file: `resting_place`/`memorial_site` must open the associated profile; a `school` place must still open its own detail. Reload and repeat. The download does not change the place or any entitlement/credit row.
 5. **Download boundaries:** An anonymous/FREE/custom-plan viewer has no format buttons, including on another guardian's Premium memorial. Direct action invocation without a session or without Premium must fail in either format; if Premium expires after rendering, clicking must fail too. A mismatched profile/place ID, missing place, ungenerated QR or unsupported format must produce no file. A renderer/network failure must show an error and leave both buttons available for retry.
+6. **Printed plaques:** Open the original bare detail URL and the older `?place=<id>` URL for a generated memorial place, both anonymously and after normal guardian sign-in. Expect the deceased's profile, including for a place outside the anonymous preview. Open the place through the list and expect `?view=details`, location content and permitted editing/export controls. Anonymous `?view=details` outside the preview still goes to the list; a private living profile stays behind sign-in. Repeat the scan and independently confirm that the place IDs, categories, QR flags and timestamps are unchanged.
 
 ### QA evidence
 
@@ -118,12 +126,14 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 ### Change or diagnose this feature
 
 1. Read this document and [the applicable AGENTS.md](../AGENTS.md); trace the linked entry through session, schema, query/action and integration.
-2. Recheck changes with `git log --oneline 01201a0..HEAD -- apps/app/src/actions/places.actions.ts apps/app/src/actions/place-qr.actions.ts apps/app/src/lib/qr-download.ts apps/app/src/components/gen-code-download-buttons.tsx apps/app/src/components/place-qr-display.tsx 'apps/app/src/app/(public)/profile/[id]/places/[placeId]/page.tsx' apps/app/src/queries/places.ts apps/app/src/schemas/place.schema.ts apps/app/src/lib/geo-quota.ts apps/app/src/consts/place-categories.ts`. Reverify affected claims and carry relevant uncommitted changes into the log.
+2. Recheck changes with `git log --oneline 58d4145..HEAD -- apps/app/src/actions/places.actions.ts apps/app/src/actions/place-qr.actions.ts apps/app/src/lib/qr-download.ts apps/app/src/lib/place-qr.ts apps/app/src/components/gen-code-download-buttons.tsx apps/app/src/components/place-qr-display.tsx apps/app/src/components/places-client.tsx 'apps/app/src/app/(public)/profile/[id]/places' apps/app/src/queries/places.ts apps/app/src/schemas/place.schema.ts apps/app/src/lib/geo-quota.ts apps/app/src/consts/place-categories.ts`. Reverify affected claims and carry relevant uncommitted changes into the log.
 3. Run `pnpm test` and `node scripts/check-docs.mjs`. For schema/i18n changes run the additional commands in [TESTING](../../../docs/TESTING.md). Run generation/typecheck/lint/build sequentially to avoid generated-client races.
 4. Start the smallest local stack using [the local runbook](../../../docs/LOCAL-DEVELOPMENT.md), then perform the named happy and boundary scenario; verify persistence and record exact expected/observed results. Missing integration fixtures stay n/a.
 5. Update contract/rules/runbook and append a Verification log row in the same change. New gaps get a permanent `PLACES-G<n>` ID; a fixed gap retains its original evidence and gains resolution/test/commit.
 
 For a missing download button, check the **viewer's** effective Subscription code and the AppSale status/end date, then the scoped place's `qrGenerated` flag. For a downloaded QR opening the wrong origin, inspect `APP_URL` using [CONFIGURATION](../../../docs/CONFIGURATION.md) without printing credentials. Existing profile ownership or a displayed QR alone does not prove Premium export entitlement.
+
+For a tomb QR opening a location, decode the actual printed image first. Check the scoped place's stored categories and `qrGenerated`, then compare the root destination from `getPlaceQrPath` with the bare-link redirect and the explicit `?view=details` navigation. Do not redirect every life-place URL or remove the location editing/export flow. Already printed images cannot be changed by generating a new PNG; their original route must continue to resolve.
 
 ### Recover an interrupted QA session
 
@@ -133,7 +143,14 @@ For a missing download button, check the **viewer's** effective Subscription cod
 
 ## Gaps and fixes
 
-None known from this source/test audit. This is not a claim of complete product/integration coverage.
+### PLACES-G1: Tomb GenCodes opened location details instead of the deceased's profile
+
+- **Status:** fixed
+- **Found:** 2026-10-14, user report with a screenshot of the location page and a readable GenCode.
+- **Evidence:** The supplied image decodes to `/profile/<id>/places/<placeId>`. Both `PlaceQrDisplay` and `downloadPlaceQrCode` previously encoded that detail route for every category.
+- **Impact:** Scanning a memorial/tomb plaque showed the location and its QR instead of introducing the deceased.
+- **Root cause:** Location navigation and printed-QR destinations shared the same URL without a memorial category rule or an explicit details-navigation path.
+- **Resolution:** 2026-10-14, `58d4145` + this change: one shared destination for `memorial_site`/`resting_place`, compatibility redirects for printed links and `?view=details` for the location list. Regression: 36 focused action/entry/client tests; existing privacy, preview and Premium guards retained. Verification evidence is appended below.
 ## Verification log
 
 | Date | Commit / working changes | Verified by | Scope and evidence | Mismatches or limits → action |
@@ -146,5 +163,7 @@ None known from this source/test audit. This is not a claim of complete product/
 | 2026-10-09 | Same SVG/PNG and pet-download changes | Static checks | APP TypeScript (`tsc --noEmit --incremental false`), focused ESLint, both i18n gates, documentation contracts and diff whitespace checks passed. | Automated specs, file decoding/saving and browser permission scenarios remain unexecuted. |
 
 ## Related
+
+The [October 14 consolidated release](../../../docs/audits/PRODUCTION-RELEASE-2026-10-14.md) completes the interrupted QR task. The combined suite passed 1,359 tests; seventeen local HTTP/normal-auth checks passed and fourteen fixture places were independently unchanged. Nine earlier decoded outputs matched their category destinations. The prior disk/resource build failure and unavailable Chrome acceptance remain separately recorded; clean production packaging is checked by the release workflow.
 
 [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md) · [Audit](../../../docs/audits/AGENT-MEMORY-2026-10-03.md) · [GEOLOCATION](GEOLOCATION.md) · [BILLING-QUOTAS](BILLING-QUOTAS.md) · [MEDIA-STORAGE](../../../docs/MEDIA-STORAGE.md)
