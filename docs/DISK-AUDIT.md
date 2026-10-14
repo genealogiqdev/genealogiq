@@ -61,8 +61,25 @@ is part of this audit utility.
 
 ## Verification
 
+The private cleanup script uses the tracked, read-only
+[QA process guard](../scripts/qa-build-process-guard.ps1). It blocks an explicit
+Genealogiq Node command in any session, an unresolved Next/QA command or unreadable
+Node command in the current session, and locked/unreadable Next `lock` or
+`dev/lock` files. Known app runtime helper entry points and unrelated projects
+do not block cleanup. Unreadable processes in other Windows sessions are reported
+without stopping them; their project cannot be established by this session, and
+they must not be described as verified idle. The private script rechecks these
+conditions before each fixed target and now performs the guard checks in preview.
+
+This correction addresses the two-user machine: the user-reported blockers that
+remained alive were in `pc`'s disconnected session 1, while Tiger was in session 2.
+The original all-Node check incorrectly treated missing cross-user metadata as a
+reason to close every development process. Neither the fix nor its tests stop
+processes or override the earlier tool-level deletion rejection.
+
 ```powershell
 python -B scripts/test-disk-audit.py
+pwsh -NoProfile -File scripts/test-qa-build-process-guard.ps1
 node scripts/check-docs.mjs
 ```
 
@@ -85,6 +102,8 @@ provider and database tests are not evidence of disk-audit correctness.
 | 2026-10-14 | Same | Disk-full boundary | Concurrent disk activity exhausted free space during a runbook save, leaving this new file empty. Once space returned, the runbook was restored from the authored text; the script, tests and private findings report remained intact. |
 | 2026-10-14 | `6828b4d` + cleanup request | Authorized QA cleanup preflight | User explicitly requested Genealogiq QA build removal. All 38 current direct `apps/{app,bms,seq}/.next-qa-*` roots were real directories, Git-ignored and contained Next output markers; no tracked files or ordinary Node/Next/QA processes were found. Default `.next`, dependencies, `.turbo` and `.local-qa` were excluded. |
 | 2026-10-14 | Same | Execution blocked | Automatic approval review rejected recursive deletion before execution, including one exact authorized QA path, with only “blocked by policy.” All 38 QA roots remain; no cleanup savings are claimed. A PowerShell 7 script with the 38 fixed targets, preview default, immediate path/process guards and receipt output was saved privately under Tiger's DiskAudit folder. Syntax validation passed; deletion and the junction-preservation fixture could not run. No processes were started/stopped; the tiny private junction test fixture remains. |
+| 2026-10-14 | `81922fe` + guard fix | User-reported false block | Eight remaining listed PIDs had unreadable metadata in session 1; `quser` identified that disconnected session as pc and Tiger's active session as 2. One reported PID had exited. The private script was updated in place to use the scoped guard; its fixed 38 cleanup targets and removal command were unchanged. |
+| 2026-10-14 | Same | Guard tests and live preview | Eleven process fixtures and three real file-lock expectations pass, including another-session unknown process, same-session unknown process, explicit cross-session Genealogiq command, runtime executing a real build, unrelated project and held/released lock with unchanged bytes. Full private-script preview passes while pc's processes remain running. No deletion was attempted; a tiny owned lock-test fixture remains in Temp. |
 
 ## Related
 
