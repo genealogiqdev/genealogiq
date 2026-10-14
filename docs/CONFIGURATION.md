@@ -1,7 +1,7 @@
 # Configuration and integration modes
 
 > **Code:** [turbo.json](../turbo.json), [local launcher](../scripts/local-qa.mjs), per-app .env.example and the readers below.
-> **Last verified against code:** 2026-10-07 at `9253152` plus the local launcher and manual-coupon environment changes; earlier provider evidence remains below.
+> **Last verified against code:** 2026-10-14 at `1535974` plus BMS partner email origin validation. The broader local launcher/manual-coupon inventory was checked at `9253152` (2026-10-07); earlier provider evidence remains below.
 
 There is no single environment-validation schema. Settings are read at import, request, provider initialization or build time by the listed owner. turbo.json globalEnv controls task environment/cache inputs; it is not a validator. Never copy real .env values into memory, commands, reports or repository files.
 
@@ -13,7 +13,7 @@ There is no single environment-validation schema. Settings are read at import, r
 | DATABASE_POOL_MAX | 5; invalid/nonpositive falls back to 5 | packages/db/src/index.ts | Per-replica PostgreSQL pool; restart |
 | AUTH_SECRET | required in ordinary app configuration | packages/auth/src/node.ts / NextAuth | Ephemeral per app in local-qa; restart invalidates cookies |
 | AUTH_URL / AUTH_TRUST_HOST | unset / NextAuth option default; launcher sets origin/true | packages/auth/src/node.ts / edge.ts | Use the launcher's canonical host; set production URL explicitly |
-| APP_URL / BMS_URL / SEQUOIA_URL | several adapters fall back to http://localhost:3000 | app adapters/actions | Launcher sets 3000/3001/3002; absent staff URLs can send wrong-origin links |
+| APP_URL / BMS_URL / SEQUOIA_URL | Per-adapter; all three required for BMS partner email, without fallback | app adapters/actions; BMS partner email validates absolute HTTP(S) origins and rejects a Sequoia origin equal to APP/BMS | Launcher sets 3000/3001/3002; invalid partner email configuration prevents sending and reports pending delivery after registration |
 | STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET | absent | packages/services/src/stripe.ts and app webhook routes | Required for actual test checkout/signature verification; destination secrets are distinct |
 | RESEND_API_KEY | absent | packages/email/src/index.ts | Lazy transport only initializes on send; use a disposable test recipient |
 | GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET | absent | packages/auth/src/node.ts googleCredentialsFromEnv | Both needed to register provider; baseline uses Credentials |
@@ -34,6 +34,12 @@ There is no single environment-validation schema. Settings are read at import, r
 | RUN_AZURITE_TESTS | false unless true | packages/services/src/media-storage.integration.test.ts | Opt-in local integration; skip is not a pass |
 | MANUAL_COUPON_TEST_DATABASE_URL | unset | packages/services/src/manual-coupon.integration.test.ts | Opt-in integration; only a loopback `genealogiq_coupon_qa_*` database is accepted; never point it at normal local data |
 | LOCAL_QA_DIST_DIR | unset; output directory defaults to `.next` | each app's next.config.ts | Local launcher uses `.next-qa-<port>` to separate output. When set, local builds omit standalone copying to avoid recursively including older QA outputs. Production leaves it unset and uses standalone; not a production runtime setting |
+
+### BMS partner email destinations
+
+Partner credentials, invitation resend and legacy activation use `SEQUOIA_URL`; the final consumer uses `APP_URL`, and back-office staff uses `BMS_URL`. These are server runtime settings. The partner email adapter requires all three to contain an HTTP(S) origin only: no embedded credentials, path, query or fragment. It trims whitespace and normalizes the root slash before comparing origins, including their ports. Sequoia must differ from both other products. Production addresses remain documented in [the domain runbook](AZURE-DEPLOYMENT.md#dns-and-managed-tls), not embedded in application code.
+
+Changing a setting requires restarting the serving process. Fix configuration before resending the partner's setup email; a previously delivered email is not rewritten. Invalid configuration leaves a new partner registered with email pending, and an explicit resend reports failure. Do not register the company again. [PARTNERS](../apps/bms/docs/PARTNERS.md) owns the recovery workflow and [the audit](audits/BMS-PARTNER-EMAIL-2026-10-14.md) separates current production settings from the unverified historical email.
 
 ## Local, test and deployed modes
 
@@ -99,6 +105,7 @@ webhooks do not change automatically with runtime environment variables.
 | 2026-10-03 | `7d267f7` + domain changes | Azure runtime/browser | All three latest revisions `--0000007` ready; shared public origins and per-app AUTH_URL checked against literal new URLs; four custom HTTPS hosts and canonical Credentials callbacks verified. [Audit](audits/AZURE-DOMAINS-2026-10-03.md) records external-provider and browser-bundle limits. |
 | 2026-10-07 | `9253152` + Gen2026 changes | Local runtime/build/browser | Provider-disabled builds passed for all three apps; normal Credentials callbacks used the configured 127.0.0.1 host after restart. Manual settlement worked without Stripe; absent Resend produced the separate invitation follow-up. [Audit](audits/GEN2026-2026-10-07.md). |
 | 2026-10-07 | `b8afb94` + consumer access | Isolated build output | LOCAL_QA_DIST_DIR disables standalone copying after the observed recursive-copy/ENOSPC incident. Production keeps standalone with the variable unset. Final local builds, BMS restart/browser and clean production container evidence are separated in the [consumer audit](audits/CONSUMER-ACCESS-2026-10-07.md). |
+| 2026-10-14 | `1535974` + partner email validation | Origin contract, actual templates and local HTTP | BMS partner messages require valid, distinct environment origins; normalized local SEQ links, usable credentials and resend recovery verified. Read-only Azure BMS settings already pointed to the correct production Sequoia origin. [Audit](audits/BMS-PARTNER-EMAIL-2026-10-14.md). |
 
 ## Related
 

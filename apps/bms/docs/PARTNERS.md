@@ -3,7 +3,7 @@
 > **Code:** [src/actions/customer.actions.ts](../src/actions/customer.actions.ts) · [src/queries/customers.ts](../src/queries/customers.ts) · [src/schemas/customer.schema.ts](../src/schemas/customer.schema.ts)
 > **Entry points:** `/customers` · `/customers/new` · `/customers/[id]` · `/api/entity-name`
 > **Depends on:** [AUTHENTICATION](../../../docs/AUTHENTICATION.md) · [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-07 at `2632307` for the immediate partner onboarding change. Source, tests, local runtime/UI and deployment evidence are separated in the onboarding audit linked below; earlier verification history is preserved.
+> **Last verified against code:** 2026-10-14 at `1535974` plus partner email destination validation. The [email destination audit](../../../docs/audits/BMS-PARTNER-EMAIL-2026-10-14.md) separates source, tests, local runtime, UI prerequisites and read-only production configuration. Earlier verification history is preserved.
 
 The BMS application supplies partner registry and invitations. Customer forms describe a partner tenant and its contact/address fields; creation/invitation establishes SEQ staff access. Mutations check privileged BMS roles; taxId/email uniqueness is enforced by the Prisma schema and translated to form errors.
 
@@ -44,6 +44,8 @@ The five partner segments retain their company/individual inputs, OWNER access, 
 ### Immediate access and initial GenCodes
 
 New registration creates an active OWNER with a cryptographically generated password, persisted only as a bcrypt hash. The administrator email defaults to the partner contact email in the wizard and remains editable. After the transaction commits, `sendPartnerCredentialsEmail` sends that OWNER's email, initial password and SEQ sign-in URL. Access is independent of purchasing and also works with zero credits. Existing inactive accounts are not changed retroactively.
+
+Both credential and setup emails resolve their destination from `SEQUOIA_URL` in [the BMS email adapter](../src/lib/email.ts). All three product settings (`SEQUOIA_URL`, `APP_URL`, `BMS_URL`) must be absolute HTTP(S) origins, without a path, query, fragment or embedded credentials. Whitespace and the trailing root slash are normalized; Sequoia must differ from both other origins. Invalid configuration prevents sending rather than producing a relative link or falling back to another product. Registration remains committed with `emailPending`; resend returns the existing email-failure result. Domains remain environment settings, with no hard-coded production fallback. Consumer registration continues to use `APP_URL`.
 
 The administrator step accepts `initialGenCodes`, an integer from 0 to 10,000, default 0. `grantInitialGenCodes` in [partner-onboarding.ts](../../../packages/services/src/partner-onboarding.ts) writes a standalone TOPUP grant, one immutable GRANT transaction with the operator and registration reason, and exactly that many AVAILABLE codes. The credits expire after 12 calendar months and do not roll over. No order, coupon, subscription, charge or premium B2C trial is created. The tenant, OWNER, balance, ledger and codes share one transaction; zero skips all credit/code writes. Existing tenant taxId and OWNER email uniqueness prevent duplicate registrations. Credit history blocks deletion; use deactivation to preserve it.
 
@@ -128,6 +130,12 @@ Current onboarding acceptance: create a partner with three initial GenCodes and 
 
 ## Runbooks
 
+### Partner email opens the wrong product
+
+Inspect the actual link's origin without copying its setup token. Check the serving BMS revision's `SEQUOIA_URL`, `APP_URL` and `BMS_URL`; an email already delivered retains its original address. The partner credential link must end in `/sign-in` on the Sequoia origin, and resend/legacy activation must use `/reset-password` on that same origin. A final-consumer email belongs to the separate APP registration contract.
+
+Correct the environment setting and restart the serving process before using Customers → Reenviar e-mail. Do not repeat registration or grant credits again. A configuration failure has the same committed-account/pending-email behavior as a provider rejection. The [adapter tests](../src/lib/email.test.ts) exercise actual templates with only the mail provider mocked, including a Sequoia setting equal to the APP/BMS origin and invalid/missing settings.
+
 ### Change or diagnose this feature
 
 1. Read this document and [the applicable AGENTS.md](../AGENTS.md); trace the linked entry through session, schema, query/action and integration.
@@ -143,6 +151,15 @@ Current onboarding acceptance: create a partner with three initial GenCodes and 
 3. Restart the launcher and sign in separately for each app. Ephemeral secrets make old cookies invalid after a restart. Restore temporary fixture edits and append the new result, rather than rewriting the dated audit.
 
 ## Gaps and fixes
+
+### PARTNERS-G3: Partner emails accepted an incorrect product origin
+
+- **Status:** fixed
+- **Found:** 2026-10-14, report that a newly registered business partner's email opened APP.
+- **Evidence:** The existing adapter already selected `SEQUOIA_URL`, but accepted empty or arbitrary values. Setting it to `APP_URL` reproduced an APP link in the actual credential/setup templates. Current read-only production configuration was correct; the original email was unavailable, so its historical cause is not established.
+- **Impact:** A misconfigured partner invitation can send a staff account to consumer sign-in or produce an unusable relative URL.
+- **Root cause:** The product origin was passed directly to the template without configuration validation or adapter-level routing coverage.
+- **Resolution:** 2026-10-14, commit `fix(bms): validate Sequoia partner email destinations`: require valid product origins and reject Sequoia collisions before transport. [Regression tests](../src/lib/email.test.ts) pin both partner routes and preserve APP/BMS destinations. Local registration, captured credentials, resend, password setup/login, duplicate registration and provider rejection are recorded in the [audit](../../../docs/audits/BMS-PARTNER-EMAIL-2026-10-14.md); browser UI and historical inbox evidence remain separate limits.
 
 ### PARTNERS-G2: New customer wizard omitted the B2C segment
 
@@ -176,6 +193,7 @@ Current onboarding acceptance: create a partner with three initial GenCodes and 
 | 2026-10-14 | Same | Automated checks | `pnpm test`: 131 files / 1,218 tests passed, six integration files / 40 tests skipped. Locale parity, locale references, documentation and whitespace checks passed. | Locale references retain 88 dynamic calls and one unmapped columns file; integration skips are not passes. |
 | 2026-10-14 | Same | Local runtime | Guarded BMS launcher started on localhost:3001; readiness returned `ready` and `/sign-in` returned HTTP 200 with its login form. Anonymous `/customers` returned HTTP 200 without the protected sidebar label. | HTTP alone does not verify the rendered label or browser redirect. |
 | 2026-10-14 | Same | UI prerequisite and cleanup | Chrome creation and tab inspection were blocked by the integration's unavailable Codex authentication token. | UI n/a: reconnect Chrome, then run the label/navigation/reload/locale and sign-out scenarios above. Stopped the owned BMS launcher and removed its generated tsconfig additions; the pre-existing PostgreSQL service was retained. |
+| 2026-10-14 | `1535974` + partner email destination validation | Source, deterministic tests and local HTTP/PostgreSQL/mail fixture | Both partner messages use validated Sequoia origins; captured credentials and setup link enable normal SEQ login, with duplicate/provider/token boundaries. [Audit](../../../docs/audits/BMS-PARTNER-EMAIL-2026-10-14.md). | Chrome UI n/a: integration authentication unavailable. No production email or deployment performed; current production settings do not explain the unavailable historical message. |
 
 ## Related
 

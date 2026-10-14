@@ -15,8 +15,28 @@ import {
 } from "@genealogiq/email"
 
 const BMS = () => process.env.BMS_URL ?? ""
-const SEQUOIA = () => process.env.SEQUOIA_URL ?? ""
 const APP = () => process.env.APP_URL ?? ""
+
+function emailOrigin(name: 'SEQUOIA_URL' | 'APP_URL' | 'BMS_URL'): string {
+  try {
+    const url = new URL(process.env[name]?.trim() ?? '')
+    if (['http:', 'https:'].includes(url.protocol) && url.pathname === '/' &&
+        !url.username && !url.password && !url.search && !url.hash) return url.origin
+  } catch {
+    // Do not include the configured value in errors or fall back to another app.
+  }
+  throw new Error(`${name} must be a valid HTTP(S) origin`)
+}
+
+const SEQUOIA = () => {
+  const origin = emailOrigin('SEQUOIA_URL')
+  // Partner credentials belong to SEQ staff, not to APP consumer or BMS accounts.
+  const otherOrigins = [emailOrigin('APP_URL'), emailOrigin('BMS_URL')]
+  if (otherOrigins.includes(origin)) {
+    throw new Error('SEQUOIA_URL must differ from APP_URL and BMS_URL')
+  }
+  return origin
+}
 
 // Site-owner inbox for the footer's "Report a bug" / "Send feedback" dialogs —
 // never client-controllable (not part of the submitted form/schema).
