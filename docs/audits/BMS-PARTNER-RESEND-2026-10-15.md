@@ -4,7 +4,7 @@
 
 The user confirmed that the email destination defect was already fixed and requested a BMS option to resend access to existing business partners, plus production deployment. Browser automated tests were explicitly waived. No real client email was requested as part of verification.
 
-Started on `main` at `3e4573a` with a clean working tree. Rechecked the partner source since the feature's previous `1535974` verification: `bb60aa7` introduced destination validation and no later commit changed the partner action, query or UI before this work.
+Started on `main` at `3e4573a` with a clean working tree. Implementation and initial evidence were committed as **`57b5621` — `feat(bms): expose partner access email resend`** on that same branch. Rechecked the partner source since the feature's previous `1535974` verification: `bb60aa7` introduced destination validation and no later commit changed the partner action, query or UI before this work.
 
 The existing action already accepted active OWNER accounts with a password and generated a 72-hour setup link using validated `SEQUOIA_URL`. Its generic list-menu entry was the only resend entry point. This change adds the **Acesso ao SEQUOIA** card above the partner edit form, links partner names to that form, and names the existing menu option **Reenviar acesso ao SEQUOIA**.
 

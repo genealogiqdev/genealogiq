@@ -3,7 +3,7 @@
 > **Code:** [src/actions/customer.actions.ts](../src/actions/customer.actions.ts) · [src/queries/customers.ts](../src/queries/customers.ts) · [src/schemas/customer.schema.ts](../src/schemas/customer.schema.ts)
 > **Entry points:** `/customers` · `/customers/new` · `/customers/[id]` · `/api/entity-name`
 > **Depends on:** [AUTHENTICATION](../../../docs/AUTHENTICATION.md) · [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-15 at `3e4573a` plus the visible partner access resend. The [resend audit](../../../docs/audits/BMS-PARTNER-RESEND-2026-10-15.md) separates source, tests, local runtime, the browser waiver and production deployment prerequisites. The earlier [email destination audit](../../../docs/audits/BMS-PARTNER-EMAIL-2026-10-14.md) and verification history are preserved.
+> **Last verified against code:** 2026-10-15 at `57b5621`, the visible partner access resend. The [resend audit](../../../docs/audits/BMS-PARTNER-RESEND-2026-10-15.md) separates source, tests, local runtime, the browser waiver and production deployment prerequisites. The earlier [email destination audit](../../../docs/audits/BMS-PARTNER-EMAIL-2026-10-14.md) and verification history are preserved.
 
 The BMS application supplies partner registry and invitations. Customer forms describe a partner tenant and its contact/address fields; creation/invitation establishes SEQ staff access. Mutations check privileged BMS roles; taxId/email uniqueness is enforced by the Prisma schema and translated to form errors.
 
@@ -168,7 +168,7 @@ Correct the environment setting and restart the serving process before using **C
 - **Evidence:** `resendCustomerEmail` and a generic list-menu action already existed, but `/customers/[id]` exposed only the edit form and the list name was not a link.
 - **Impact:** The operator could not find a clear recovery action or see its actual administrator recipient in the partner record.
 - **Root cause:** Existing email recovery was confined to a generic row menu.
-- **Resolution:** The visible access card and linked partner name expose **Reenviar acesso ao SEQUOIA**, show the OWNER recipient and handle pending, success, failure and unavailable access. [Component tests](../src/components/customers/customer-access-card.test.ts), [recipient permission tests](../src/queries/redaction.test.ts) and [resend action tests](../src/actions/customer.actions.test.ts) cover the independent expectations. The [audit](../../../docs/audits/BMS-PARTNER-RESEND-2026-10-15.md) records source, runtime and deployment evidence separately.
+- **Resolution:** 2026-10-15, commit `57b5621`: the visible access card and linked partner name expose **Reenviar acesso ao SEQUOIA**, show the OWNER recipient and handle pending, success, failure and unavailable access. [Component tests](../src/components/customers/customer-access-card.test.ts), [recipient permission tests](../src/queries/redaction.test.ts) and [resend action tests](../src/actions/customer.actions.test.ts) cover the independent expectations. The [audit](../../../docs/audits/BMS-PARTNER-RESEND-2026-10-15.md) records source, runtime and deployment evidence separately.
 
 ### PARTNERS-G3: Partner emails accepted an incorrect product origin
 
