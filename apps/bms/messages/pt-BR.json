@@ -361,13 +361,23 @@
     "linkText": "Clique aqui"
   },
   "Customers": {
+    "access": {
+      "title": "Acesso ao SEQUOIA",
+      "description": "Reenvie ao administrador um link para definir a senha de acesso ao SEQUOIA. O link vale por 72 horas e substitui os anteriores. A senha atual continua válida até o cliente definir outra.",
+      "recipient": "Administrador: {email}",
+      "noOwner": "Este cliente ainda não possui um administrador cadastrado.",
+      "inactive": "O acesso do administrador está inativo. Ative-o antes de reenviar o e-mail.",
+      "sending": "Enviando e-mail…",
+      "sent": "E-mail de acesso ao SEQUOIA reenviado para {email}.",
+      "error": "Não foi possível reenviar o e-mail. Tente novamente."
+    },
     "actions": {
       "deactivate": "Desativar",
       "delete": "Excluir",
       "edit": "Editar",
       "openMenu": "Abrir menu",
       "reactivate": "Reativar",
-      "resendEmail": "Reenviar e-mail"
+      "resendEmail": "Reenviar acesso ao SEQUOIA"
     },
     "active": "Ativo?",
     "businessSegment": {

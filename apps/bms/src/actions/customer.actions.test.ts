@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
+import { createHash } from 'node:crypto'
 
 const { prismaMock, PrismaKnownError } = vi.hoisted(() => {
   class PrismaKnownError extends Error {
@@ -35,7 +36,6 @@ vi.mock("@/lib/email", () => ({ sendSequoiaWelcomeEmail: vi.fn(), sendPartnerCre
 vi.mock('@genealogiq/services/partner-onboarding', () => ({ grantInitialGenCodes: vi.fn() }))
 vi.mock("@genealogiq/core", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@genealogiq/core")>()),
-  hashToken: vi.fn((t: string) => `hashed:${t}`),
   done: (message?: string) => ({ ok: true, message }),
   fail: (message: string) => ({ ok: false, message }),
 }))
@@ -188,11 +188,46 @@ describe('immediate partner onboarding', () => {
 
   it('recovers an active owner through a setup link without overwriting their password or granting codes', async () => {
     prismaMock.user.findFirst.mockResolvedValue({ id: 'owner-new', email: input.owner.email, isActive: true })
+    const before = Date.now()
     expect((await resendCustomerEmail('tenant-new')).ok).toBe(true)
     expect(sendSequoiaWelcomeEmail).toHaveBeenCalledWith(input.owner.email, expect.any(String))
+    const token = vi.mocked(sendSequoiaWelcomeEmail).mock.calls[0][1]
+    expect(token).toMatch(/^[a-f0-9]{64}$/)
+    expect(prismaMock.passwordResetToken.deleteMany).toHaveBeenCalledExactlyOnceWith({ where: { userId: 'owner-new' } })
+    const stored = prismaMock.passwordResetToken.create.mock.calls[0][0].data
+    expect(stored.userId).toBe('owner-new')
+    expect(stored.token).toBe(createHash('sha256').update(token).digest('hex'))
+    expect(stored.token).not.toBe(token)
+    expect(stored.expiresAt.getTime()).toBeGreaterThanOrEqual(before + 72 * 60 * 60 * 1000)
+    expect(stored.expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 72 * 60 * 60 * 1000)
     expect(prismaMock.user.create).not.toHaveBeenCalled()
     expect(grantInitialGenCodes).not.toHaveBeenCalled()
     expect(prismaMock.passwordResetToken.create).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects resend without administrator permission before reading or writing the recipient', async () => {
+    vi.mocked(verifyAdmin).mockRejectedValue(new Error('Forbidden'))
+    await expect(resendCustomerEmail('tenant-new')).rejects.toThrow('Forbidden')
+    expect(prismaMock.user.findFirst).not.toHaveBeenCalled()
+    expect(prismaMock.passwordResetToken.create).not.toHaveBeenCalled()
+    expect(sendSequoiaWelcomeEmail).not.toHaveBeenCalled()
+  })
+
+  it('rejects a partner without an owner without creating a token or sending mail', async () => {
+    prismaMock.user.findFirst.mockResolvedValue(null)
+    expect(await resendCustomerEmail('missing')).toEqual({ ok: false, message: 'customer.noOwner' })
+    expect(prismaMock.passwordResetToken.deleteMany).not.toHaveBeenCalled()
+    expect(prismaMock.passwordResetToken.create).not.toHaveBeenCalled()
+    expect(sendSequoiaWelcomeEmail).not.toHaveBeenCalled()
+  })
+
+  it('reports resend delivery failure without registering again or granting credits', async () => {
+    prismaMock.user.findFirst.mockResolvedValue({ id: 'owner-new', email: input.owner.email, isActive: true })
+    vi.mocked(sendSequoiaWelcomeEmail).mockRejectedValue(new Error('Provider rejected'))
+    expect(await resendCustomerEmail('tenant-new')).toEqual({ ok: false, message: 'customer.emailFailed' })
+    expect(prismaMock.tenant.create).not.toHaveBeenCalled()
+    expect(prismaMock.user.create).not.toHaveBeenCalled()
+    expect(grantInitialGenCodes).not.toHaveBeenCalled()
   })
 
   it('keeps inactive legacy owners blocked during resend', async () => {

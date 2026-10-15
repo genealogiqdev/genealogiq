@@ -1,6 +1,7 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
+import Link from 'next/link'
 import { Badge } from '@genealogiq/ui/badge'
 import { DataTableColumnHeader } from '@genealogiq/ui/data-table-column-header'
 import { RowActions } from '@genealogiq/ui/row-actions'
@@ -31,6 +32,7 @@ export type CustomerRow = {
 function ActionsCell({ row, currentUserRole, t }: { row: { original: CustomerRow }; currentUserRole: string; t: Translator }) {
   const customer = row.original
   const canManage = currentUserRole === 'SUPER_ADMIN' || currentUserRole === 'OWNER'
+  const canResendEmail = canManage || currentUserRole === 'ADMIN'
 
   return (
     <RowActions
@@ -43,12 +45,12 @@ function ActionsCell({ row, currentUserRole, t }: { row: { original: CustomerRow
           run: () => toggleCustomerActive(customer.id),
           successMessage: customer.isActive ? t('toasts.deactivated') : t('toasts.reactivated'),
         },
-        {
-          kind: 'action',
+        ...(canResendEmail ? [{
+          kind: 'action' as const,
           label: t('actions.resendEmail'),
           run: () => resendCustomerEmail(customer.id),
           successMessage: t('toasts.emailResent'),
-        },
+        }] : []),
       ]}
       remove={canManage ? {
         label: t('actions.delete'),
@@ -65,7 +67,11 @@ export function getColumns(currentUserRole: string, t: Translator, locale: strin
     {
       accessorKey: 'name',
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('table.name')} />,
-      cell: ({ row }) => row.original.name,
+      cell: ({ row }) => (
+        <Link href={`/customers/${row.original.id}`} className="font-medium hover:underline">
+          {row.original.name}
+        </Link>
+      ),
     },
     {
       accessorKey: 'entityType',

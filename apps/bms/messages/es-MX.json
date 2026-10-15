@@ -361,13 +361,23 @@
     "linkText": "Haz clic aquí"
   },
   "Customers": {
+    "access": {
+      "title": "Acceso a SEQUOIA",
+      "description": "Reenvía al administrador un enlace para definir su contraseña de SEQUOIA. El enlace vence en 72 horas y reemplaza los anteriores. La contraseña actual sigue siendo válida hasta que el cliente defina otra.",
+      "recipient": "Administrador: {email}",
+      "noOwner": "Este cliente todavía no tiene un administrador registrado.",
+      "inactive": "El acceso del administrador está inactivo. Actívalo antes de reenviar el correo.",
+      "sending": "Enviando correo…",
+      "sent": "Correo de acceso a SEQUOIA reenviado a {email}.",
+      "error": "No se pudo reenviar el correo. Inténtalo de nuevo."
+    },
     "actions": {
       "deactivate": "Desactivar",
       "delete": "Eliminar",
       "edit": "Editar",
       "openMenu": "Abrir menú",
       "reactivate": "Reactivar",
-      "resendEmail": "Reenviar correo"
+      "resendEmail": "Reenviar acceso a SEQUOIA"
     },
     "active": "¿Activo?",
     "businessSegment": {

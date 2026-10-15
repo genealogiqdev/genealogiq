@@ -80,3 +80,13 @@ export async function getActiveCustomers() {
     orderBy: { name: 'asc' },
   })
 }
+
+export async function getCustomerAccess(tenantId: string) {
+  if (!await canViewSensitive()) return null
+
+  const owner = await prisma.user.findFirst({
+    where: { tenantId, role: 'OWNER' },
+    select: { email: true, isActive: true },
+  })
+  return { owner }
+}

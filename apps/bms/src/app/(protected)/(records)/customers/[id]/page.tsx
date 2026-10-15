@@ -1,15 +1,18 @@
 import { notFound } from 'next/navigation'
-import { getCustomer } from '@/queries/customers'
+import { getCustomer, getCustomerAccess } from '@/queries/customers'
 import { CustomerForm } from '@/components/customers/customer-form'
+import { CustomerAccessCard } from '@/components/customers/customer-access-card'
 import { FormShell } from '@genealogiq/ui/form-shell'
 
 export default async function EditCustomerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const customer = await getCustomer(id)
   if (!customer) notFound()
+  const access = await getCustomerAccess(id)
 
   return (
-    <FormShell>
+    <FormShell className="flex flex-col gap-6">
+      {access && <CustomerAccessCard id={id} owner={access.owner} />}
       <CustomerForm
       id={id}
       defaultValues={{

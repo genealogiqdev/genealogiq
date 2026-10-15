@@ -3,7 +3,7 @@
 > **Code:** [src/actions/customer.actions.ts](../src/actions/customer.actions.ts) · [src/queries/customers.ts](../src/queries/customers.ts) · [src/schemas/customer.schema.ts](../src/schemas/customer.schema.ts)
 > **Entry points:** `/customers` · `/customers/new` · `/customers/[id]` · `/api/entity-name`
 > **Depends on:** [AUTHENTICATION](../../../docs/AUTHENTICATION.md) · [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-14 at `1535974` plus partner email destination validation. The [email destination audit](../../../docs/audits/BMS-PARTNER-EMAIL-2026-10-14.md) separates source, tests, local runtime, UI prerequisites and read-only production configuration. Earlier verification history is preserved.
+> **Last verified against code:** 2026-10-15 at `3e4573a` plus the visible partner access resend. The [resend audit](../../../docs/audits/BMS-PARTNER-RESEND-2026-10-15.md) separates source, tests, local runtime, the browser waiver and production deployment prerequisites. The earlier [email destination audit](../../../docs/audits/BMS-PARTNER-EMAIL-2026-10-14.md) and verification history are preserved.
 
 The BMS application supplies partner registry and invitations. Customer forms describe a partner tenant and its contact/address fields; creation/invitation establishes SEQ staff access. Mutations check privileged BMS roles; taxId/email uniqueness is enforced by the Prisma schema and translated to form errors.
 
@@ -26,6 +26,7 @@ No LLM/model stage exists in this implementation.
 | [src/actions/customer.actions.ts](../src/actions/customer.actions.ts) | `createCustomer`, `updateCustomer`, `deleteCustomer`, `resendCustomerEmail`, `toggleCustomerActive` | Authenticated mutation orchestration |
 | [src/queries/customers.ts](../src/queries/customers.ts) | See exports/component in file | Scoped data reads and output shaping |
 | [src/schemas/customer.schema.ts](../src/schemas/customer.schema.ts) | See exports/component in file | Input validation and defaults |
+| [src/components/customers/customer-access-card.tsx](../src/components/customers/customer-access-card.tsx) | `CustomerAccessCard` | Visible access recipient, resend control and delivery feedback for an existing partner |
 
 ## Rules and why
 
@@ -49,7 +50,15 @@ Both credential and setup emails resolve their destination from `SEQUOIA_URL` in
 
 The administrator step accepts `initialGenCodes`, an integer from 0 to 10,000, default 0. `grantInitialGenCodes` in [partner-onboarding.ts](../../../packages/services/src/partner-onboarding.ts) writes a standalone TOPUP grant, one immutable GRANT transaction with the operator and registration reason, and exactly that many AVAILABLE codes. The credits expire after 12 calendar months and do not roll over. No order, coupon, subscription, charge or premium B2C trial is created. The tenant, OWNER, balance, ledger and codes share one transaction; zero skips all credit/code writes. Existing tenant taxId and OWNER email uniqueness prevent duplicate registrations. Credit history blocks deletion; use deactivation to preserve it.
 
-Mail is outside the database transaction. A provider rejection leaves a successful registration with an explicit email-pending warning. Do not register again. Customers → Reenviar e-mail sends an expiring password-setup link to an active OWNER, including one whose initial password already exists; it does not overwrite the current hash, mint credits or repeat the registration. The original generated password is never retrievable from the database. The shared transport now rejects Resend's returned `error` as well as thrown errors.
+Mail is outside the database transaction. A provider rejection leaves a successful registration with an explicit email-pending warning. Do not register again. **Clientes B2B → client name → Reenviar acesso ao SEQUOIA** sends an expiring password-setup link to an active OWNER, including one whose initial password already exists; it does not overwrite the current hash, mint credits or repeat the registration. The original generated password is never retrievable from the database. The shared transport now rejects Resend's returned `error` as well as thrown errors.
+
+### Resend access for an existing partner
+
+The client name in `/customers` links to `/customers/[id]`. An **Acesso ao SEQUOIA** card above the edit form shows the saved OWNER email, which can differ from the company's contact email. `getCustomerAccess` reads only that owner's email and active status for privileged BMS roles (`SUPER_ADMIN`, `OWNER`, `ADMIN`); other viewers do not receive the recipient/card. The list's resend menu item follows the same role visibility. `resendCustomerEmail` independently enforces the existing `verifyAdmin` boundary on every send.
+
+The card calls the existing resend action without submitting edits. It disables repeat clicks while sending, shows success only after provider acceptance, and displays delivery/connection failures with a retry option. A missing or inactive OWNER is explained and disables the button; the server also refuses those cases. It neither provisions inactive legacy access nor registers another partner.
+
+Resend replaces prior staff setup tokens with one hashed token valid for 72 hours and emails the OWNER a `/reset-password` link using validated `SEQUOIA_URL`. The current password remains usable until the owner completes password setup. An old email cannot be corrected in place; the new link is the recovery path. Real inbox delivery remains distinct from provider acceptance.
 
 ### Historical payment-gated registration (superseded)
 
@@ -134,7 +143,7 @@ Current onboarding acceptance: create a partner with three initial GenCodes and 
 
 Inspect the actual link's origin without copying its setup token. Check the serving BMS revision's `SEQUOIA_URL`, `APP_URL` and `BMS_URL`; an email already delivered retains its original address. The partner credential link must end in `/sign-in` on the Sequoia origin, and resend/legacy activation must use `/reset-password` on that same origin. A final-consumer email belongs to the separate APP registration contract.
 
-Correct the environment setting and restart the serving process before using Customers → Reenviar e-mail. Do not repeat registration or grant credits again. A configuration failure has the same committed-account/pending-email behavior as a provider rejection. The [adapter tests](../src/lib/email.test.ts) exercise actual templates with only the mail provider mocked, including a Sequoia setting equal to the APP/BMS origin and invalid/missing settings.
+Correct the environment setting and restart the serving process before using **Clientes B2B → client name → Reenviar acesso ao SEQUOIA**. Check the administrator email shown in the access card, then send. The same option remains in the client's list menu. On failure, correct the reported cause and retry for that client; do not repeat registration or grant credits again. A configuration failure has the same committed-account/pending-email behavior as a provider rejection. The [adapter tests](../src/lib/email.test.ts) exercise actual templates with only the mail provider mocked, including a Sequoia setting equal to the APP/BMS origin and invalid/missing settings.
 
 ### Change or diagnose this feature
 
@@ -151,6 +160,15 @@ Correct the environment setting and restart the serving process before using Cus
 3. Restart the launcher and sign in separately for each app. Ephemeral secrets make old cookies invalid after a restart. Restore temporary fixture edits and append the new result, rather than rewriting the dated audit.
 
 ## Gaps and fixes
+
+### PARTNERS-G4: Partner details did not expose access email recovery
+
+- **Status:** fixed
+- **Found:** 2026-10-15, request to resend access to partners whose earlier email had the old product link.
+- **Evidence:** `resendCustomerEmail` and a generic list-menu action already existed, but `/customers/[id]` exposed only the edit form and the list name was not a link.
+- **Impact:** The operator could not find a clear recovery action or see its actual administrator recipient in the partner record.
+- **Root cause:** Existing email recovery was confined to a generic row menu.
+- **Resolution:** The visible access card and linked partner name expose **Reenviar acesso ao SEQUOIA**, show the OWNER recipient and handle pending, success, failure and unavailable access. [Component tests](../src/components/customers/customer-access-card.test.ts), [recipient permission tests](../src/queries/redaction.test.ts) and [resend action tests](../src/actions/customer.actions.test.ts) cover the independent expectations. The [audit](../../../docs/audits/BMS-PARTNER-RESEND-2026-10-15.md) records source, runtime and deployment evidence separately.
 
 ### PARTNERS-G3: Partner emails accepted an incorrect product origin
 
@@ -194,6 +212,8 @@ Correct the environment setting and restart the serving process before using Cus
 | 2026-10-14 | Same | Local runtime | Guarded BMS launcher started on localhost:3001; readiness returned `ready` and `/sign-in` returned HTTP 200 with its login form. Anonymous `/customers` returned HTTP 200 without the protected sidebar label. | HTTP alone does not verify the rendered label or browser redirect. |
 | 2026-10-14 | Same | UI prerequisite and cleanup | Chrome creation and tab inspection were blocked by the integration's unavailable Codex authentication token. | UI n/a: reconnect Chrome, then run the label/navigation/reload/locale and sign-out scenarios above. Stopped the owned BMS launcher and removed its generated tsconfig additions; the pre-existing PostgreSQL service was retained. |
 | 2026-10-14 | `1535974` + partner email destination validation | Source, deterministic tests and local HTTP/PostgreSQL/mail fixture | Both partner messages use validated Sequoia origins; captured credentials and setup link enable normal SEQ login, with duplicate/provider/token boundaries. [Audit](../../../docs/audits/BMS-PARTNER-EMAIL-2026-10-14.md). | Chrome UI n/a: integration authentication unavailable. No production email or deployment performed; current production settings do not explain the unavailable historical message. |
+| 2026-10-15 | `3e4573a` + visible partner resend | Source, component/action/query tests and local HTTP/PostgreSQL | Linked partner names and visible administrator access card; 63 focused tests and 1,373 full-suite tests passed. Existing-owner resend, repeated token replacement, provider failure/retry, inactive owner and anonymous boundaries passed locally. [Audit](../../../docs/audits/BMS-PARTNER-RESEND-2026-10-15.md). | Browser automation waived by the user. Real inbox delivery remains separate; production preflight reported a suspended Azure environment. |
+| 2026-10-15 | Same | Build, guards, cleanup and production preflight | BMS production build passed; typecheck, lint and schema/migration/locale/docs guards passed. Owned BMS, mail, PostgreSQL and Azurite processes stopped; generated-type additions removed. | Final 18:35 UTC live state remained Warned with ManagedClusterSuspended. Deployment/push withheld pending subscription reactivation; no production migration or email performed. |
 
 ## Related
 

@@ -361,13 +361,23 @@
     "linkText": "Click here"
   },
   "Customers": {
+    "access": {
+      "title": "SEQUOIA access",
+      "description": "Resend a link to the administrator to set their SEQUOIA password. The link expires in 72 hours and replaces previous links. The current password stays valid until the customer sets a new one.",
+      "recipient": "Administrator: {email}",
+      "noOwner": "This customer does not have an administrator yet.",
+      "inactive": "The administrator's access is inactive. Activate it before resending the email.",
+      "sending": "Sending email…",
+      "sent": "SEQUOIA access email resent to {email}.",
+      "error": "Unable to resend the email. Please try again."
+    },
     "actions": {
       "deactivate": "Deactivate",
       "delete": "Delete",
       "edit": "Edit",
       "openMenu": "Open menu",
       "reactivate": "Reactivate",
-      "resendEmail": "Resend email"
+      "resendEmail": "Resend SEQUOIA access"
     },
     "active": "Active?",
     "businessSegment": {
