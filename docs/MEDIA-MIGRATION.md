@@ -1,5 +1,7 @@
 # Resumable legacy-media migration
 
+> **Migration direction note (2026-10-19):** The historical media:migrate tool targets Azure. The new migrate:media:vercel service command handles the reverse direction; use the separate command below. See [VERCEL-MIGRATION](VERCEL-MIGRATION.md).
+
 > **Code:** [packages/services/src/media-migration.ts](../packages/services/src/media-migration.ts) · [packages/services/src/media-migration-helpers.ts](../packages/services/src/media-migration-helpers.ts)
 > **Entry points:** `pnpm media:migrate -- --copy|--verify|--rewrite|--all|--rollback|--manifest=<path>`
 > **Depends on:** [MEDIA-STORAGE](MEDIA-STORAGE.md) · [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) · [DATABASE](DATABASE.md) · [CONFIGURATION](CONFIGURATION.md) · [TESTING](TESTING.md) · [OBSERVABILITY](OBSERVABILITY.md) · [RUNBOOKS](RUNBOOKS.md)
@@ -23,6 +25,20 @@ No LLM/model stage exists in this implementation.
 | [packages/services/src/media-migration-helpers.ts](../packages/services/src/media-migration-helpers.ts) | `legacyDestinationName`, `replaceMediaArray`, `isReferencedObjectReadyForRewrite` | Shared policy or integration implementation |
 
 ## Rules and why
+
+### Azure/legacy Vercel to Vercel release job
+
+Use [vercel-media-migration.ts](../packages/services/src/vercel-media-migration.ts). Supply DATABASE_URL explicitly for the restored Neon database and set MEDIA_MIGRATION_DATABASE_HOST to that exact hostname. Only Neon or loopback rehearsal targets are accepted. The command does not load application .env files. Keep the durable manifest outside Git on backed-up storage; run one release worker with application writes paused.
+
+Run each stage separately from the repo root:
+
+1. `pnpm --filter @genealogiq/services migrate:media:vercel --manifest=<absolute-path>` inventories references without changing database rows.
+2. Repeat with `--copy`. Documents go to private storage; other media goes public. Shared source URLs have independent per-reference targets so a gallery cannot expose a private document destination.
+3. Repeat with `--verify` to compare source and target byte count/SHA-256 and independently check anonymous public read/private denial.
+4. Back up the manifest, then repeat with `--rewrite`. All entries must be verified. Scalar and array writes compare current values; concurrent edits stop that reference. Replays accept already-applied values.
+5. `--rollback` restores only recorded target references, preserving replacement uploads. It does not roll back subsequent application writes.
+
+The manifest uses atomic local replacement and an exclusive worker lock. It retains completed entries after partial rewrites. Interrupted copies reuse existing destinations only after comparing their bytes and SHA-256. Source objects are never deleted. Before removing a stale lock, confirm its release process stopped. A full provider/data rehearsal remains required; [migration tests](../packages/services/src/vercel-media-migration.test.ts) prove their named deterministic contracts only.
 
 a165f45 introduced Azure cutover. Integrity and compare-before-write rules prevent rewriting changed data or exposing incomplete copies. The helper tests pin array replacement and readiness. Historical incident figures remain in docs/history rather than being replaced with current run output.
 
@@ -137,6 +153,7 @@ Follow [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for exact setup/start/readiness
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
+| 2026-10-19 | 268d3f2 + reverse migration | Source and ten deterministic migration tests | Explicit target/manifest, hashes, guarded rewrite, replay and rollback implemented; three additional adapter retry checks pass. [Audit](audits/VERCEL-MIGRATION-2026-10-19.md). | Full provider copy/rewrite/rollback and current source recovery remain pending (G1). |
 
 ## Related
 

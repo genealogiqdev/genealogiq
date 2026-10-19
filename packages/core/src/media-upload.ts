@@ -9,16 +9,21 @@ export interface UploadedMedia {
   url: string
 }
 
-interface AuthorizedUploadResponse {
+interface AzureAuthorizedUploadResponse {
+  provider?: 'azure'
   url: string
   uploadUrl: string
   headers: Record<string, string>
 }
 
-/**
- * Browser-direct Azure upload with a short-lived, single-blob SAS issued by
- * the application's existing upload route.
- */
+type AuthorizedUploadResponse = AzureAuthorizedUploadResponse | {
+  provider: 'vercel'
+  pathname: string
+  clientToken: string
+  access: 'private'
+}
+
+/** Browser-direct upload with server-issued scope and verified completion. */
 export async function uploadMedia(
   pathname: string,
   body: Blob,
@@ -32,18 +37,29 @@ export async function uploadMedia(
     clientPayload: options.clientPayload ?? null,
   })
 
-  const response = await fetch(authorize.uploadUrl, {
-    method: 'PUT',
-    headers: authorize.headers,
-    body,
-  })
-  if (!response.ok) {
-    throw new Error(`Upload failed (${response.status})`)
+  let uploadedUrl: string
+  if (authorize.provider === 'vercel') {
+    const { put } = await import('@vercel/blob/client')
+    const uploaded = await put(authorize.pathname, body, {
+      token: authorize.clientToken, access: 'private', contentType,
+      multipart: body.size > 8 * 1024 * 1024,
+    })
+    uploadedUrl = uploaded.url
+  } else {
+    const response = await fetch(authorize.uploadUrl, {
+      method: 'PUT',
+      headers: authorize.headers,
+      body,
+    })
+    if (!response.ok) {
+      throw new Error(`Upload failed (${response.status})`)
+    }
+    uploadedUrl = authorize.url
   }
 
   const completed = await postJson<UploadedMedia>(options.handleUploadUrl, {
     type: 'media.upload.complete',
-    url: authorize.url,
+    url: uploadedUrl,
     clientPayload: options.clientPayload ?? null,
   })
   return { url: completed.url }

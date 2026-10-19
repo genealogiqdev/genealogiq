@@ -3,6 +3,12 @@
 Genealogiq runs in the `Azure subscription 1` subscription, resource group
 `rg-genealogiq-prod`, in Brazil South.
 
+> **Migration status (2026-10-19):** Vercel project shells and domain
+> attachments are prepared. Azure is still authoritative; its current
+> subscription is disabled and production health checks timed out. Follow the
+> [Vercel migration runbook](VERCEL-MIGRATION.md). Do not change Hostinger DNS
+> or retire these Azure resources until the migration gates pass.
+
 Agents operating this environment must follow
 [`AZURE-AGENT-RUNBOOK.md`](AZURE-AGENT-RUNBOOK.md).
 

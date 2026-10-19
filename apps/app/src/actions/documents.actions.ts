@@ -45,7 +45,7 @@ export async function saveDocument(
       !isAuthorizedMediaReference(
         flat.fileUrl,
         [`profiles/${profileId}/documents`],
-        { allowLegacy: false },
+        { allowLegacy: false, allowPrivate: true },
       )
     ) {
       return fail(t("common.invalidData"))
@@ -59,7 +59,7 @@ export async function saveDocument(
     if (!isAuthorizedMediaReference(
       flat.fileUrl,
       [`profiles/${profileId}/documents`],
-      { allowLegacy: false },
+      { allowLegacy: false, allowPrivate: true },
     )) {
       return fail(t("common.invalidData"))
     }

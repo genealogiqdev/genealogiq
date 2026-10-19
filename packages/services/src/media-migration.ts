@@ -24,7 +24,7 @@ type ModelName =
   | 'Document'
   | 'Geolocation'
 
-interface MediaReference {
+export interface MediaReference {
   model: ModelName
   id: string
   field: string
@@ -68,14 +68,15 @@ const manifestPath = resolve(
   manifestArg?.slice('--manifest='.length) || '.azure/media-migration-manifest.json',
 )
 
-loadEnv({ path: resolve(repoRoot, 'packages/db/.env') })
-loadEnv({ path: resolve(repoRoot, 'apps/app/.env.local') })
-loadEnv({ path: resolve(repoRoot, 'apps/app/.env') })
-loadEnv({ path: resolve(repoRoot, '.env') })
-const remoteManifestName =
+const remoteManifestName = () =>
   process.env.MEDIA_MIGRATION_MANIFEST_BLOB || 'manifests/current.json'
 
 async function main() {
+  loadEnv({ path: resolve(repoRoot, 'packages/db/.env') })
+  loadEnv({ path: resolve(repoRoot, 'apps/app/.env.local') })
+  loadEnv({ path: resolve(repoRoot, 'apps/app/.env') })
+  loadEnv({ path: resolve(repoRoot, '.env') })
+
   if (shouldRewrite && shouldRollback) {
     throw new Error('Choose either --rewrite or --rollback, not both')
   }
@@ -215,8 +216,9 @@ function assertConfiguration() {
   }
 }
 
-async function collectReferences(
+export async function collectReferences(
   prisma: typeof import('@genealogiq/db')['prisma'],
+  accepts: (value: string) => boolean = isVercelUrl,
 ): Promise<MediaReference[]> {
   const references: MediaReference[] = []
   const push = (
@@ -227,7 +229,7 @@ async function collectReferences(
     sourceUrl: string | null | undefined,
     arrayIndex?: number,
   ) => {
-    if (!sourceUrl || !isVercelUrl(sourceUrl)) return
+    if (!sourceUrl || !accepts(sourceUrl)) return
     references.push({ model, id, field, ownerId, sourceUrl, arrayIndex })
   }
 
@@ -398,7 +400,7 @@ async function readManifest(): Promise<MigrationManifest | null> {
     return JSON.parse(await readFile(manifestPath, 'utf8')) as MigrationManifest
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      const remote = await readPrivateMediaText(remoteManifestName)
+      const remote = await readPrivateMediaText(remoteManifestName())
       return remote ? JSON.parse(remote) as MigrationManifest : null
     }
     throw error
@@ -409,16 +411,18 @@ async function saveManifest(manifest: MigrationManifest) {
   const serialized = `${JSON.stringify(manifest, null, 2)}\n`
   await mkdir(dirname(manifestPath), { recursive: true })
   await writeFile(manifestPath, serialized, 'utf8')
-  await writePrivateMediaText(remoteManifestName, serialized)
+  await writePrivateMediaText(remoteManifestName(), serialized)
 }
 
-if (argumentsSet.has('--help')) {
-  console.log(
-    'Usage: migrate:media [--copy] [--verify] [--rewrite|--rollback] [--all] [--manifest=<path>]',
-  )
-} else {
-  main().catch((error) => {
-    console.error(error)
-    process.exitCode = 1
-  })
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  if (argumentsSet.has('--help')) {
+    console.log(
+      'Usage: migrate:media [--copy] [--verify] [--rewrite|--rollback] [--all] [--manifest=<path>]',
+    )
+  } else {
+    main().catch((error) => {
+      console.error(error)
+      process.exitCode = 1
+    })
+  }
 }

@@ -59,7 +59,7 @@ node scripts/local-qa.mjs --app=bms
 node scripts/local-qa.mjs --app=seq
 ```
 
-The ordinary pnpm dev/per-app dev scripts still use ordinary environment files. Use this launcher for the documented local baseline. It sets DB/origins/Azurite, generates an ephemeral secret separately for each app, and disables Stripe, Resend, Google, Sentry, VAPID, Turnstile and WikiTree search. External postal lookup/map tiles are not intercepted. A network/provider fixture is required to claim those integrations work.
+The ordinary pnpm dev/per-app dev scripts still use ordinary environment files. Use this launcher for the documented local baseline. It sets DB/origins/Azurite, forces MEDIA_STORAGE_PROVIDER=azure, clears Blob credentials/OIDC, generates an ephemeral secret separately for each app, and disables Stripe, Resend, Google, Sentry, VAPID, Turnstile and WikiTree search. External postal lookup/map tiles are not intercepted. A network/provider fixture is required to claim those integrations work.
 
 ## Check dependencies and readiness
 
@@ -98,7 +98,7 @@ When the standard ports belong to another task, use `node scripts/local-qa.mjs -
 
 After normal local setup and the manual-coupon migration, `pnpm exec tsx scripts/seed-coupon-qa.ts --run=20261007` adds a stock tenant (five codes/credits), new B2B tenant, inactive first-access OWNER, non-admin BMS viewer, B2C account and three priced catalog items. It prints only fixture IDs/emails; it copies the normal seed's public test password hash internally. It refuses a non-loopback URL or database other than `genealogiq`. Rerunning preserves previous grants and redemptions. See [DISCOUNT-COUPONS](../apps/bms/docs/DISCOUNT-COUPONS.md) for the exact 5 + 2 = 7, 20-credit and finite B2C scenarios.
 
-The app configs accept `LOCAL_QA_DIST_DIR` for isolated local build output; Git and ESLint ignore `.next-qa*`. When it is set, builds compile and prerender normally but omit the standalone file-copy stage. Old standalone outputs can be traced through workspace package links and copied recursively, exhausting the workstation disk. Production builds leave this variable unset; the clean Docker context excludes all `.next-qa*` outputs and verifies the actual standalone package and Linux liveness in CI.
+The app configs accept `LOCAL_QA_DIST_DIR` for isolated local build output; Git, ESLint and Docker ignore `.next-qa*` and `.next-vercel-qa`. Keep custom output excluded from Tailwind source discovery; cache bytes can otherwise generate invalid CSS. When the variable is set, builds compile and prerender normally but omit the standalone file-copy stage. Old standalone outputs can be traced through workspace package links and copied recursively, exhausting the workstation disk. Production builds leave this variable unset; the clean Docker context excludes the QA outputs and verifies the actual standalone package and Linux liveness in CI.
 
 Next may add that session's generated-type include paths to tsconfig.json. Remove only those generated session additions after stopping the owned apps; preserve another task's edits. For a build while another task owns ordinary `.next`, use a separate output directory and call each app's Next build directly in sequence with the same provider-disabled local environment. Do not reuse another task's server or compile output.
 
@@ -195,6 +195,7 @@ Do not stop unrelated Docker services or delete volumes merely to finish QA. A d
 | 2026-10-07 | `9253152` + Gen2026 changes | Launcher, three apps and persistence | Offset 1000 with canonical 127.0.0.1: all three readiness endpoints returned 200; normal Credentials callbacks stayed on 4000/4001/4002. BMS history, APP finite Gen2026 plan and SEQ OWNER's 20 funded codes persisted across restart. Local fixture and separate PostgreSQL tests are in the [audit](audits/GEN2026-2026-10-07.md). |
 | 2026-10-07 | `b8afb94` + consumer access | Local product and build recovery | Offset 2000: all three readiness endpoints passed; BMS/APP consumer happy, duplicate, mail failure/retry, existing-period and permission cases exercised. Recursive local standalone copying exhausted free disk; owned output removal restored space and local QA output now omits the copy stage. [Consumer audit](audits/CONSUMER-ACCESS-2026-10-07.md) records final build and cleanup evidence. |
 | 2026-10-09 | `08b2b1c` + memorial follow-up | Seed source and failed local prerequisite | Premium fixture limits aligned to 5/5; no seed or database change was executed. The guarded SEQ launcher refused a missing loopback PostgreSQL; Docker access and Chrome authentication were unavailable. [Audit](audits/SEQ-MEMORIALS-2026-10-09.md) records separate passing builds/tests and retained temporary outputs. |
+| 2026-10-19 | 268d3f2 + Vercel migration | Provider isolation and separate local outputs | Azure/Azurite forced, Blob keys cleared; custom build output ignored after Tailwind cache scanning caused a CSS error. Fresh local build and normal credentials passed. [Layered audit](audits/VERCEL-MIGRATION-2026-10-19.md) records product cases and limits. |
 
 ## Related
 

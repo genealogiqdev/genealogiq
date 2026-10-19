@@ -6,6 +6,7 @@ github_token
 # next.js / build
 .next/
 .next-qa*/
+.next-vercel-qa/
 out/
 dist/
 .turbo/

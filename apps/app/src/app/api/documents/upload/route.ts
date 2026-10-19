@@ -37,6 +37,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       maximumSizeInBytes: 10 * 1024 * 1024,
       prefix: `profiles/${profileId}/documents`,
       container: "staging",
+      access: "private",
     })
     return NextResponse.json(json)
   } catch (error) {

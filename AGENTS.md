@@ -29,7 +29,7 @@ The pnpm/Turbo monorepo has three Next.js apps and shared workspace packages. Th
 | packages/db | Canonical schema, generated Prisma client, PostgreSQL adapter |
 | packages/auth | NextAuth identity, per-app cookies, session/DAL guards, tenant scope, lockout |
 | packages/core | ActionResult, currency/token/media client and pure contracts |
-| packages/services | Stripe lifecycle, credit ledger, Azure media and migration |
+| packages/services | Stripe lifecycle, credit ledger, Azure/Vercel media and migration |
 | packages/email | Transactional Resend transport/templates |
 | packages/i18n, packages/ui | Locale rules and shared UI components |
 
@@ -39,7 +39,7 @@ The pnpm/Turbo monorepo has three Next.js apps and shared workspace packages. Th
 | --- | --- | --- | --- |
 | [AUTHENTICATION](docs/AUTHENTICATION.md) | Shared authentication, sessions and tenant authorization | `packages/auth/src/node.ts` | `pnpm test` |
 | [PARTNER-CREDITS](docs/PARTNER-CREDITS.md) | Partner credit ledger, cycles and reconciliation | `packages/services/src/credits.ts` | `pnpm test` |
-| [MEDIA-STORAGE](docs/MEDIA-STORAGE.md) | Azure media authorization and promotion | `packages/services/src/media-storage.ts` | `pnpm test` |
+| [MEDIA-STORAGE](docs/MEDIA-STORAGE.md) | Azure/Vercel media authorization and promotion | `packages/services/src/media-storage.ts` | `pnpm test` |
 | [MEDIA-MIGRATION](docs/MEDIA-MIGRATION.md) | Resumable legacy-media migration | `packages/services/src/media-migration.ts` | `pnpm test` |
 | [EMAIL-DELIVERY](docs/EMAIL-DELIVERY.md) | Transactional email delivery | `packages/email/src/index.ts` | `pnpm test` |
 
@@ -79,6 +79,11 @@ The app indexes contain 18 APP, ten BMS and seven SEQ feature documents; the fiv
 | [Dated audit](docs/audits/AGENT-MEMORY-2026-10-03.md) | This bootstrap's expected/observed evidence and limits |
 | [Azure operational guide](docs/AZURE-AGENT-RUNBOOK.md) | Existing deployment/database/media operational constraints |
 | [Domain cutover](docs/AZURE-DEPLOYMENT.md#dns-and-managed-tls) | Hostinger DNS, Azure managed TLS, canonical origins and media CORS |
+| [Vercel migration](docs/VERCEL-MIGRATION.md) | Target Vercel projects, Neon/Blob migration gates, Hostinger and provider manual steps |
+
+Azure remains the production authority until the Vercel migration runbook's
+database, media, authentication, billing and health acceptance gates pass.
+Never cut over Hostinger DNS based only on a successful Vercel build.
 
 ## Self-learning memory
 

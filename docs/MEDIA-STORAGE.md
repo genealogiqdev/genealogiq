@@ -1,18 +1,20 @@
-# Azure media authorization and promotion
+# Media authorization and promotion
+
+> **Migration note (2026-10-19):** Azure remains the default and production authority. The Vercel adapter is implemented behind MEDIA_STORAGE_PROVIDER=vercel; its cloud data and access acceptance gates remain pending in [VERCEL-MIGRATION](VERCEL-MIGRATION.md).
 
 > **Code:** [packages/services/src/media-storage.ts](../packages/services/src/media-storage.ts) · [packages/core/src/media-upload.ts](../packages/core/src/media-upload.ts) · [packages/core/src/blob.ts](../packages/core/src/blob.ts)
 > **Entry points:** `POST /api/<bio|gallery|tribute|places|geolocation|documents|career|profile>/upload`
 > **Depends on:** [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) · [DATABASE](DATABASE.md) · [CONFIGURATION](CONFIGURATION.md) · [TESTING](TESTING.md) · [OBSERVABILITY](OBSERVABILITY.md) · [RUNBOOKS](RUNBOOKS.md)
 > **Last verified against code:** 2026-10-03 at `6e06634`, including this task’s uncommitted documentation, launcher and test changes. Source verification is separate from runtime/UI below.
 
-This shared module supplies azure media authorization and promotion. The upload body has authorize/complete stages. Server policy controls path prefix, allowed content type and size; authorize yields a create-only SAS lasting ten minutes for a private staging blob. Completion checks actual bytes/signature, promotes to media and removes staging. Stored-reference authorization permits an unchanged legacy URL but new URLs must match the owner/profile prefix.
+This shared module supplies Azure and Vercel media authorization and promotion. The upload body has authorize/complete stages. Server policy controls path prefix, allowed content type and size; authorize yields a ten-minute create-only SAS or scoped Blob client token for private staging. Completion checks actual bytes/signature, promotes to the destination and removes staging. Stored-reference authorization permits an unchanged legacy URL but new URLs must match the owner/profile prefix.
 
 ## How it works
 
 | # | Step | Kind | Code / symbol | Produces |
 | --- | --- | --- | --- | --- |
 | 1 | Authorize server policy and generate a scoped SAS | deterministic | [packages/services/src/media-storage.ts](../packages/services/src/media-storage.ts) `createAuthorizedUpload` | Create-only staging authorization |
-| 2 | PUT bytes directly to Azure/Azurite | external call | [packages/core/src/media-upload.ts](../packages/core/src/media-upload.ts) `uploadMedia` | Staged object |
+| 2 | Upload bytes directly to Azure/Azurite or Vercel Blob | external call | [packages/core/src/media-upload.ts](../packages/core/src/media-upload.ts) `uploadMedia` | Staged object |
 | 3 | Read signature/size, promote and remove staging | external call | [packages/services/src/media-storage.ts](../packages/services/src/media-storage.ts) `completeMediaUpload` | Verified public reference |
 
 No LLM/model stage exists in this implementation.
@@ -24,6 +26,14 @@ No LLM/model stage exists in this implementation.
 | [packages/core/src/blob.ts](../packages/core/src/blob.ts) | See exports/component in file | Shared policy or integration implementation |
 
 ## Rules and why
+
+### Vercel provider, 2026-10-19
+
+MEDIA_STORAGE_PROVIDER=vercel selects [vercel-media-storage.ts](../packages/services/src/vercel-media-storage.ts). Set BLOB_PUBLIC_READ_WRITE_TOKEN and BLOB_PRIVATE_READ_WRITE_TOKEN for separate stores. All browser bytes go directly to private staging with an exact server-generated pathname, create-only authorization, exact MIME/size limits, and a ten-minute token. Existing upload routes recheck their profile/staff policy on completion. Completion verifies actual size/type/signature, then streams to public media or the private documents prefix. Only completed destinations can be saved. Whole-store credentials never reach the browser.
+
+Publication failure retains staging for retry; invalid signatures are deleted. Cleanup and storage sampling recognize configured stores; foreign legacy public Vercel objects are retained. Azure remains the default for local QA and rollback. APP documents request private access on Vercel; historical Azure object visibility remains a cutover gate.
+
+[Provider regressions](../packages/services/src/vercel-media-storage.test.ts) cover quarantine, publication, invalid signatures, failure cleanup, store/profile boundaries and checksums. [media-validation.ts](../packages/services/src/media-validation.ts) preserves the shared validation rules used by both adapters.
 
 a165f45 moved portraits/media to Azure. Overwrite protection, content signatures and prefix authorization are pinned by media tests. The live Azurite test used a hand-written PNG header, confirmed overwrite rejection, read-after-promote success, and 404 after deletion on 2026-10-03. Never delete an object still referenced by another row.
 
@@ -131,6 +141,8 @@ Follow [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for exact setup/start/readiness
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | pass for the SDK/storage runtime fixture: scoped SAS upload, overwrite rejection, promotion, public 200 and deleted-object 404 in Azurite. Browser upload forms and production managed identity remain n/a. | Only the named exercised behavior is verified. |
 | 2026-10-03 | `7d267f7` + domain configuration changes | Azure CLI and HTTP preflight | `genealogiq-domain-media-cors` succeeded; four new origins returned 200 with matching Allow-Origin for PUT; unrelated origin returned 403 | No production upload/write was exercised; SAS and form validation remain separate scenarios |
+| 2026-10-19 | Vercel project preparation | Vercel MCP + source review | Three project shells and four domain attachments are present; no Vercel Blob store, adapter, Git connection or deployment exists. Azure remains the active media provider. | Manual repo authorization, Pro confirmation, Blob provisioning, adapter/migration implementation and acceptance remain open; see [VERCEL-MIGRATION](VERCEL-MIGRATION.md) |
+| 2026-10-19 | 268d3f2 + Vercel migration | Source, unit tests and local Azurite | Provider adapter, private quarantine and scoped tokens implemented; 17 adapter tests and real Azurite upload/read/delete pass. See [audit](audits/VERCEL-MIGRATION-2026-10-19.md). | Real Vercel bytes/access checks remain pending; Azure remains default. |
 
 ## Related
 

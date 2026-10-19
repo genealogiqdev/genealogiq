@@ -18,6 +18,7 @@
 | [CONSUMERS-G3](../apps/bms/docs/CONSUMERS.md) | Fixed 2026-10-08: a legacy 2099 test allowance was treated as paid time and extended to 2100. | Exact-origin replacement and a guarded historical repair; source/tests/UI/production evidence in the expiry audit |
 | [ACCOUNTS-G1](../apps/app/docs/ACCOUNTS.md) | OAuth-only password=null users cannot use password-gated account management. | Read evidence/resolution in the permanent entry; policy fixes are not made by this documentation task |
 | [MEMORIALS-GUARDIANS-G1](../apps/app/docs/MEMORIALS-GUARDIANS.md) | Guard helper allows unexpected non-PENDING/non-REJECTED status strings. | Read evidence/resolution in the permanent entry; policy fixes are not made by this documentation task |
+| [VERCEL-MIGRATION](VERCEL-MIGRATION.md) | Azure subscription is disabled and the accessible dump predates production. Project shells, Blob connections and adapter are prepared; Neon and production migration remain pending. | Recover current data; complete account/database setup, provider rehearsal and acceptance gates in the runbook |
 
 The subsequent 0353683 marketing source check also records [MARKETING-FEEDBACK-G2](../apps/app/docs/MARKETING-FEEDBACK.md): the affiliate calculator/photo changes need their own deterministic/browser evidence.
 

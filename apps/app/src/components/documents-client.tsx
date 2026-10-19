@@ -144,12 +144,12 @@ export function DocumentsClient({
                 {active.fileUrl ? (
                   <>
                     <Button asChild size="sm" className="gap-1.5">
-                      <a href={active.fileUrl} target="_blank" rel="noopener noreferrer">
+                      <a href={`/api/documents/${encodeURIComponent(active.id)}/file`} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-4 w-4" />{t("viewPdf")}
                       </a>
                     </Button>
                     <Button asChild variant="outline" size="sm" className="gap-1.5">
-                      <a href={active.fileUrl} download={active.fileName ?? active.title} rel="noopener noreferrer">
+                      <a href={`/api/documents/${encodeURIComponent(active.id)}/file`} download={active.fileName ?? active.title} rel="noopener noreferrer">
                         <Download className="h-4 w-4" />{t("downloadPdf")}
                       </a>
                     </Button>

@@ -1,9 +1,23 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { uploadMedia } from "./media-upload"
 
-afterEach(() => vi.unstubAllGlobals())
+const put = vi.hoisted(() => vi.fn())
+vi.mock('@vercel/blob/client', () => ({ put }))
+afterEach(() => { vi.unstubAllGlobals(); vi.resetAllMocks() })
 
 describe("uploadMedia", () => {
+  it("uses the scoped Blob client then confirms the staged URL with the authenticated route", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ provider: 'vercel', pathname: 'staging/profiles/p/avatar/id.png', clientToken: 'scoped', access: 'private' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ url: 'https://public.example/published.png' })))
+    vi.stubGlobal('fetch', fetchMock)
+    put.mockResolvedValue({ url: 'https://private.example/staging/id.png' })
+    const file = new Blob(['png'], { type: 'image/png' })
+    await expect(uploadMedia('arbitrary.png', file, { handleUploadUrl: '/api/bio/upload', clientPayload: '{"profileId":"p"}' })).resolves.toEqual({ url: 'https://public.example/published.png' })
+    expect(put).toHaveBeenCalledWith('staging/profiles/p/avatar/id.png', file, { token: 'scoped', access: 'private', contentType: 'image/png', multipart: false })
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ type: 'media.upload.complete', url: 'https://private.example/staging/id.png', clientPayload: '{"profileId":"p"}' })
+  })
+
   it("authorizes, uploads directly, and confirms the Azure blob", async () => {
     const fetchMock = vi
       .fn()

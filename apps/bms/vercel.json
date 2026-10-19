@@ -1,6 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["gru1"],
   "crons": [
     { "path": "/api/cron/daily", "schedule": "0 6 * * *" }
-  ]
+  ],
+  "functions": {
+    "src/app/api/cron/daily/route.ts": { "maxDuration": 300 }
+  }
 }

@@ -131,6 +131,7 @@ describe('media upload storage', () => {
       },
     )
 
+    if (result.provider === 'vercel') throw new Error('Expected Azure authorization')
     expect(result.url).toMatch(
       /^http:\/\/127\.0\.0\.1:10000\/devstoreaccount1\/media\/profiles\/p1\/avatar\//,
     )

@@ -5,7 +5,14 @@ import { DOCUMENT_CATEGORIES } from "@/consts/document-categories"
 
 // Document files are uploaded to Vercel Blob (see /api/documents/upload), so stored
 // URLs must point at that host — never an arbitrary external origin.
-const blobUrl = z.string().refine(isAllowedMediaUrl, "Invalid media URL")
+const blobUrl = z.string().refine((value) => {
+  if (isAllowedMediaUrl(value)) return true
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' && /^[a-z0-9]+\.private\.blob\.vercel-storage\.com$/i.test(url.hostname)
+      && url.pathname.startsWith('/documents/') && !url.search && !url.hash && !url.username && !url.password
+  } catch { return false }
+}, "Invalid media URL")
 
 export function getDocumentSchema(t: Translator) {
   return z.object({

@@ -32,6 +32,8 @@ suite('Azure media storage (Azurite)', () => {
       { name: 'pixel.png', type: 'image/png', size: png.length },
       policy,
     )
+    if (authorized.provider === 'vercel') throw new Error('Expected Azure authorization')
+
 
     const upload = await fetch(authorized.uploadUrl, {
       method: 'PUT',

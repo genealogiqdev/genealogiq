@@ -5,7 +5,7 @@
 > **Depends on:** [BILLING-QUOTAS](BILLING-QUOTAS.md) · [MEDIA-STORAGE](../../../docs/MEDIA-STORAGE.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
 > **Last verified against code:** 2026-10-03 at `6e06634`, including this task’s uncommitted documentation, launcher and test changes. Source verification is separate from runtime/UI below.
 
-The APP application supplies profile documents. getDocumentSchema validates the title, PDF URL and visibility; saveDocument checks canManageProfile, effective document quota and the profile-bound upload prefix. Document.isPublic controls the query result; schema defaults and mappings live in packages/db/prisma/schema.prisma.
+The APP application supplies profile documents. getDocumentSchema validates the title, PDF URL and visibility; saveDocument checks canManageProfile, effective document quota and the profile-bound upload prefix. Document.isPublic controls the query result and authenticated file route; schema defaults and mappings live in packages/db/prisma/schema.prisma. The Vercel provider keeps all PDFs in private Blob storage. Switching hosting alone does not change historical public Azure object URLs. See [VERCEL-MIGRATION](../../../docs/VERCEL-MIGRATION.md).
 
 ## How it works
 
@@ -25,6 +25,12 @@ No LLM/model stage exists in this implementation.
 | [src/app/api/documents/upload/route.ts](../src/app/api/documents/upload/route.ts) | See exports/component in file | HTTP entry and response handling |
 
 ## Rules and why
+
+### Private Vercel delivery, 2026-10-19
+
+All new Vercel PDFs are private objects regardless of Document.isPublic. The visibility toggle governs the authenticated delivery route, so making a document private does not require recopying it. The route denies anonymous requests (401), denies private documents to unrelated users (404), and permits the owner or a currently accepted guardian. Other signed-in viewers may read public documents, matching the collection page. Successful streams use private, no-store and nosniff headers; provider failures return an empty 502.
+
+The collection links to [the file route](../src/app/api/documents/[id]/file/route.ts). [Route regressions](../src/app/api/documents/[id]/file/route.test.ts) cover owner/guardian/public/private/live-visibility and provider failure. Legacy public Azure/Vercel references redirect after authorization; previously distributed source URLs remain accessible until source access is restricted at cutover. DOCUMENTS-G1 therefore stays open for migration/provider acceptance.
 
 Document saves need a guardian/owner and the shared media completion flow. URL reuse is allowed for an already stored reference; a new URL must match the authorized prefix (documents.actions.test.ts and media-storage.ts). Origin of public-container design not recorded.
 
@@ -98,6 +104,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | Date / revision | Startup / identity | Expected versus observed | Result and limits | Evidence |
 | --- | --- | --- | --- | --- |
 | 2026-10-03, `6e06634` + working changes | `node scripts/local-qa.mjs`; normal separate Credentials sessions; scoped local roles | Expected scenario above; no complete feature-specific browser/runtime observation recorded in this audit. | n/a: Requires an upload fixture | [Dated audit](../../../docs/audits/AGENT-MEMORY-2026-10-03.md) |
+| 2026-10-19 | Source review + Vercel MCP project preparation | The `isPublic=false` file is still a public Azure object. Vercel projects/domains are attached but no storage adapter or deployment is configured. | No document upload/download/runtime behavior was exercised. Keep DOCUMENTS-G1 open and require private Blob plus authenticated delivery before cutover. | [Vercel migration runbook](../../../docs/VERCEL-MIGRATION.md) |
 
 ## Runbooks
 
@@ -142,6 +149,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 - **Impact:** A person with the URL can read a document marked private.
 - **Root cause:** The present implementation/contract is described in the evidence; original decision not recorded.
 - **Resolution:** Not fixed in this task. Decide private-blob delivery and authorized download semantics, then add anonymous access tests.
+- **2026-10-19 partial resolution:** Vercel uploads now retain all PDFs privately and the authenticated file route enforces live visibility, owner and accepted-guardian access. Seven route tests cover access and provider failure; 17 adapter tests cover staging, integrity, publication and migration retry safety. Keep this gap open until real-provider anonymous denial passes and historical public source access is restricted after migration. [Migration audit](../../../docs/audits/VERCEL-MIGRATION-2026-10-19.md) records the remaining boundary.
 
 ### DOCUMENTS-G2: Accented text was already damaged in stored content
 
@@ -161,6 +169,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-10-07 | `218d5aa` + text repair/tests/docs; concurrent unrelated work excluded from this change | Source, deterministic tests, read-only production query and local PostgreSQL/browser | The card/list/form use the same stored title; 24 document tests and 12 repair tests pass. Local title/description accents persist; blank-title validation and transaction/rollback boundaries pass. [Dated evidence](../../../docs/audits/APP-TEXT-ENCODING-2026-10-07.md) separates the layers. | Production data remains unchanged pending review/application; no upload/download or private-blob delivery claim. |
 | 2026-10-07 | `9253152`, reapplied source review at `074d7bd`; approved production data operation | Private apply job, independent read-only query and anonymous production browser | All three damaged document values match the approved text; both rows retain private visibility and remain hidden anonymously. The total repair updated 67 fields, with zero mismatches across 72 independently checked fields. | Production owner UI is n/a without an authenticated session; earlier local UI checks remain the save/reload evidence. DATABASE-G2 retains the seven uncertain fields outside documents. |
+| 2026-10-19 | 268d3f2 + private Vercel delivery | Source, seven route tests, HTTP/Azurite and Chrome | Live visibility/guardian guard and private streaming implemented; local HTTP upload/read/delete, anonymous 401 and blank-form validation passed. [Audit](../../../docs/audits/VERCEL-MIGRATION-2026-10-19.md). | Browser file upload requires extension permission; real private Blob and old-source restriction remain pending (G1). |
 
 ## Related
 

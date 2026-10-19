@@ -28,7 +28,8 @@
   },
   "scripts": {
     "migrate:media": "node --conditions=react-server --import tsx src/media-migration.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "migrate:media:vercel": "node --conditions=react-server --import tsx src/vercel-media-migration.ts"
   },
   "dependencies": {
     "@azure/identity": "^4.13.3",
@@ -36,6 +37,7 @@
     "@genealogiq/core": "workspace:*",
     "@genealogiq/db": "workspace:*",
     "@genealogiq/email": "workspace:*",
+    "@vercel/blob": "^2.8.2",
     "server-only": "^0.0.1",
     "stripe": "^22.5.0"
   },

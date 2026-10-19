@@ -1,6 +1,8 @@
 import 'server-only'
 
 import { createHash, randomUUID } from 'node:crypto'
+import { validateFile, sanitizePrefix, sanitizeBlobName, extensionFor, hasExpectedSignature } from './media-validation'
+import * as vercelMedia from './vercel-media-storage'
 import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identity'
 import {
   BlobSASPermissions,
@@ -42,10 +44,14 @@ export interface MediaUploadPolicy {
   maximumSizeInBytes: number
   prefix: string
   container?: 'media' | 'staging'
+  access?: 'public' | 'private'
   verifyFileSignature?: boolean
 }
 
-export interface AuthorizedMediaUpload {
+export type AuthorizedMediaUpload = AzureAuthorizedMediaUpload | vercelMedia.VercelAuthorizedMediaUpload
+
+export interface AzureAuthorizedMediaUpload {
+  provider?: 'azure'
   url: string
   uploadUrl: string
   headers: Record<string, string>
@@ -111,6 +117,7 @@ export async function createAuthorizedUpload(
   policy: MediaUploadPolicy,
 ): Promise<AuthorizedMediaUpload> {
   validateFile(file, policy)
+  if (vercelMedia.usesVercelMedia()) return vercelMedia.authorizeVercelUpload(file, policy)
 
   const config = getStorageConfig()
   const client = getServiceClient(config)
@@ -150,6 +157,7 @@ export async function completeMediaUpload(
   url: string,
   policy: MediaUploadPolicy,
 ): Promise<{ url: string; size: number; contentType: string }> {
+  if (vercelMedia.usesVercelMedia()) return vercelMedia.completeVercelUpload(url, policy)
   const parsed = parseAzureMediaUrl(url, policy.container)
   if (!parsed.blobName.startsWith(`${sanitizePrefix(policy.prefix)}/`)) {
     throw new Error('Upload does not belong to the authorized profile')
@@ -216,7 +224,9 @@ export async function deleteMediaUrls(
       const parsed = new URL(url)
       // Legacy Vercel objects are intentionally left in place. They require no
       // SDK/token to read and are replaced by the referenced-only migration.
-      if (!LEGACY_VERCEL_HOST.test(parsed.hostname)) azure.push(url)
+      if (vercelMedia.isConfiguredVercelUrl(url)) {
+        await vercelMedia.deleteVercelMedia(url).catch(() => console.error('[media] Vercel cleanup failed'))
+      } else if (!LEGACY_VERCEL_HOST.test(parsed.hostname)) azure.push(url)
     } catch {
       // Ignore malformed legacy values during best-effort cleanup.
     }
@@ -278,6 +288,7 @@ export async function deleteUnreferencedMediaUrls(
 }
 
 export async function getMediaObjectSize(url: string): Promise<number> {
+  if (vercelMedia.isConfiguredVercelUrl(url)) return vercelMedia.getVercelMediaSize(url)
   if (LEGACY_VERCEL_HOST.test(new URL(url).hostname)) {
     const response = await fetch(url, { method: 'HEAD' })
     if (!response.ok) throw new Error(`Unable to inspect legacy media (${response.status})`)
@@ -295,6 +306,7 @@ export async function getMediaObjectSize(url: string): Promise<number> {
 export async function getMediaObjectIntegrity(
   url: string,
 ): Promise<{ size: number; sha256: string }> {
+  if (vercelMedia.isConfiguredVercelUrl(url)) return vercelMedia.getVercelMediaIntegrity(url)
   let bytes: Buffer
   if (LEGACY_VERCEL_HOST.test(new URL(url).hostname)) {
     const response = await fetch(url)
@@ -391,9 +403,12 @@ export function isAzureMediaUrlInPrefix(url: string, prefix: string): boolean {
 export function isAuthorizedMediaReference(
   url: string | null | undefined,
   prefixes: readonly string[],
-  options: { allowLegacy?: boolean } = {},
+  options: { allowLegacy?: boolean; allowPrivate?: boolean } = {},
 ): boolean {
   if (!url) return true
+  if (vercelMedia.isConfiguredVercelUrl(url)) {
+    return vercelMedia.isVercelMediaReference(url, prefixes, options.allowPrivate === true)
+  }
   try {
     if (LEGACY_VERCEL_HOST.test(new URL(url).hostname)) {
       return options.allowLegacy !== false
@@ -405,85 +420,13 @@ export function isAuthorizedMediaReference(
 }
 
 export function getMediaPublicBaseUrl(): string {
-  return getStorageConfig().publicBaseUrl
+  return vercelMedia.usesVercelMedia() ? vercelMedia.getVercelPublicBaseUrl() : getStorageConfig().publicBaseUrl
 }
 
 export function resetMediaStorageForTests(): void {
   serviceClient = undefined
   cachedConfig = undefined
   developmentSetup = undefined
-}
-
-function validateFile(file: MediaUploadFile, policy: MediaUploadPolicy): void {
-  if (!policy.allowedContentTypes.includes(file.type)) {
-    throw new Error('File type is not allowed')
-  }
-  if (!Number.isInteger(file.size) || file.size <= 0) {
-    throw new Error('File is empty')
-  }
-  if (file.size > policy.maximumSizeInBytes) {
-    throw new Error(`File exceeds the ${policy.maximumSizeInBytes} byte limit`)
-  }
-}
-
-function sanitizePrefix(prefix: string): string {
-  const sanitized = prefix
-    .split('/')
-    .map((part) => part.replace(/[^a-zA-Z0-9_-]/g, ''))
-    .filter(Boolean)
-    .join('/')
-  if (!sanitized) throw new Error('Invalid media prefix')
-  return sanitized
-}
-
-function sanitizeBlobName(name: string): string {
-  const parts = name
-    .split('/')
-    .map((part) => part.replace(/[^a-zA-Z0-9._-]/g, '_'))
-    .filter(Boolean)
-  if (parts.length === 0) throw new Error('Invalid media object name')
-  return parts.join('/')
-}
-
-function extensionFor(contentType: string): string {
-  const extensions: Record<string, string> = {
-    'application/pdf': 'pdf',
-    'image/gif': 'gif',
-    'image/jpeg': 'jpg',
-    'image/png': 'png',
-    'image/webp': 'webp',
-    'video/mp4': 'mp4',
-    'video/quicktime': 'mov',
-    'video/webm': 'webm',
-    'video/x-m4v': 'm4v',
-  }
-  return extensions[contentType] ?? 'bin'
-}
-
-function hasExpectedSignature(contentType: string, bytes: Buffer): boolean {
-  if (contentType === 'image/jpeg') {
-    return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
-  }
-  if (contentType === 'image/png') {
-    return bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
-  }
-  if (contentType === 'image/gif') {
-    const signature = bytes.subarray(0, 6).toString('ascii')
-    return signature === 'GIF87a' || signature === 'GIF89a'
-  }
-  if (contentType === 'image/webp') {
-    return bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WEBP'
-  }
-  if (contentType === 'application/pdf') {
-    return bytes.subarray(0, 5).toString('ascii') === '%PDF-'
-  }
-  if (contentType === 'video/webm') {
-    return bytes.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]))
-  }
-  if (contentType === 'video/mp4' || contentType === 'video/quicktime' || contentType === 'video/x-m4v') {
-    return bytes.includes(Buffer.from('ftyp'))
-  }
-  return false
 }
 
 function getStorageConfig(): StorageConfig {
@@ -661,4 +604,16 @@ async function ensureDevelopmentContainers(
     await client.getContainerClient(config.migrationContainer).createIfNotExists()
   })()
   await developmentSetup
+}
+
+// Callers must authorize the stored document before requesting its bytes.
+export { readVercelDocument as readPrivateDocument, isPrivateVercelDocumentUrl } from './vercel-media-storage'
+
+export async function readAzureMediaForMigration(url: string) {
+  const parsed = parseAzureMediaUrl(url, 'media')
+  const blob = getServiceClient(parsed.config).getContainerClient(parsed.containerName).getBlobClient(parsed.blobName)
+  const properties = await blob.getProperties()
+  const bytes = await blob.downloadToBuffer()
+  if (bytes.length !== properties.contentLength) throw new Error('Azure source size changed during copy')
+  return { bytes, contentType: properties.contentType || 'application/octet-stream' }
 }

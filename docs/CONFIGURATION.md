@@ -1,6 +1,6 @@
 # Configuration and integration modes
 
-> **Code:** [turbo.json](../turbo.json), [local launcher](../scripts/local-qa.mjs), per-app .env.example and the readers below.
+> **Code:** [turbo.json](../turbo.json), [local launcher](../scripts/local-qa.mjs), per-app .env.example and the readers below. Vercel deployment target and manual cutover steps are in [VERCEL-MIGRATION](VERCEL-MIGRATION.md).
 > **Last verified against code:** 2026-10-14 at `1535974` plus BMS partner email origin validation. The broader local launcher/manual-coupon inventory was checked at `9253152` (2026-10-07); earlier provider evidence remains below.
 
 There is no single environment-validation schema. Settings are read at import, request, provider initialization or build time by the listed owner. turbo.json globalEnv controls task environment/cache inputs; it is not a validator. Never copy real .env values into memory, commands, reports or repository files.
@@ -11,6 +11,9 @@ There is no single environment-validation schema. Settings are read at import, r
 | --- | --- | --- | --- |
 | DATABASE_URL | required | packages/db/src/index.ts; packages/db/prisma.config.ts | DB import throws when absent; local-qa forces loopback |
 | DATABASE_POOL_MAX | 5; invalid/nonpositive falls back to 5 | packages/db/src/index.ts | Per-replica PostgreSQL pool; restart |
+| MEDIA_STORAGE_PROVIDER | azure | media-storage.ts / vercel-media-storage.ts | Select vercel only after both stores are configured; local launcher forces azure |
+| BLOB_PUBLIC_READ_WRITE_TOKEN / BLOB_PRIVATE_READ_WRITE_TOKEN | unset | vercel-media-storage.ts | Separate public target and private staging/documents stores; server-only; declared in Turbo and app examples |
+| MEDIA_MIGRATION_DATABASE_HOST | unset | vercel-media-migration.ts | Explicit hostname confirmation for restored Neon or loopback release-job target |
 | AUTH_SECRET | required in ordinary app configuration | packages/auth/src/node.ts / NextAuth | Ephemeral per app in local-qa; restart invalidates cookies |
 | AUTH_URL / AUTH_TRUST_HOST | unset / NextAuth option default; launcher sets origin/true | packages/auth/src/node.ts / edge.ts | Use the launcher's canonical host; set production URL explicitly |
 | APP_URL / BMS_URL / SEQUOIA_URL | Per-adapter; all three required for BMS partner email, without fallback | app adapters/actions; BMS partner email validates absolute HTTP(S) origins and rejects a Sequoia origin equal to APP/BMS | Launcher sets 3000/3001/3002; invalid partner email configuration prevents sending and reports pending delivery after registration |
@@ -33,7 +36,8 @@ There is no single environment-validation schema. Settings are read at import, r
 | NODE_ENV | development in local-qa | Next / APP register-service-worker.tsx | Production worker registration; stop dev before building |
 | RUN_AZURITE_TESTS | false unless true | packages/services/src/media-storage.integration.test.ts | Opt-in local integration; skip is not a pass |
 | MANUAL_COUPON_TEST_DATABASE_URL | unset | packages/services/src/manual-coupon.integration.test.ts | Opt-in integration; only a loopback `genealogiq_coupon_qa_*` database is accepted; never point it at normal local data |
-| LOCAL_QA_DIST_DIR | unset; output directory defaults to `.next` | each app's next.config.ts | Local launcher uses `.next-qa-<port>` to separate output. When set, local builds omit standalone copying to avoid recursively including older QA outputs. Production leaves it unset and uses standalone; not a production runtime setting |
+| VERCEL | platform-provided | each app's next.config.ts | Uses the Vercel Next.js output instead of the Azure container's standalone output. Do not set this manually outside Vercel. |
+| LOCAL_QA_DIST_DIR | unset; output directory defaults to `.next` | each app's next.config.ts | Local launcher uses `.next-qa-<port>` to separate output. When set, local builds omit standalone copying to avoid recursively including older QA outputs. Azure production keeps standalone; Vercel uses its platform output. |
 
 ### BMS partner email destinations
 
@@ -73,8 +77,9 @@ The seed supplies one Premium consumer identity and independent BMS/SEQ staff re
 
 ### Production domain cutovers
 
-[AZURE-DEPLOYMENT](AZURE-DEPLOYMENT.md#dns-and-managed-tls) owns the Hostinger
-record table and DNS-gated Azure CLI cutover. The per-app `AUTH_URL` and shared
+[AZURE-DEPLOYMENT](AZURE-DEPLOYMENT.md#dns-and-managed-tls) records the current
+Hostinger-to-Azure configuration. The [Vercel migration runbook](VERCEL-MIGRATION.md)
+owns the target project and manual DNS cutover sequence. The per-app `AUTH_URL` and shared
 `APP_URL`, `BMS_URL`, `SEQUOIA_URL` change only after managed TLS and HTTPS
 health checks succeed for every new hostname. `deploy-applications.ps1`
 preserves live origins and certificate bindings in subsequent Bicep updates.
@@ -108,6 +113,7 @@ webhooks do not change automatically with runtime environment variables.
 | 2026-10-07 | `9253152` + Gen2026 changes | Local runtime/build/browser | Provider-disabled builds passed for all three apps; normal Credentials callbacks used the configured 127.0.0.1 host after restart. Manual settlement worked without Stripe; absent Resend produced the separate invitation follow-up. [Audit](audits/GEN2026-2026-10-07.md). |
 | 2026-10-07 | `b8afb94` + consumer access | Isolated build output | LOCAL_QA_DIST_DIR disables standalone copying after the observed recursive-copy/ENOSPC incident. Production keeps standalone with the variable unset. Final local builds, BMS restart/browser and clean production container evidence are separated in the [consumer audit](audits/CONSUMER-ACCESS-2026-10-07.md). |
 | 2026-10-14 | `1535974` + partner email validation | Origin contract, actual templates and local HTTP | BMS partner messages require valid, distinct environment origins; normalized local SEQ links, usable credentials and resend recovery verified. Read-only Azure BMS settings already pointed to the correct production Sequoia origin. [Audit](audits/BMS-PARTNER-EMAIL-2026-10-14.md). |
+| 2026-10-19 | 268d3f2 + Vercel migration | Provider/configuration | Explicit provider and two Blob credentials declared; production-only sensitive tokens connected to all projects. Local launcher clears cloud credentials and forces Azure. [Audit](audits/VERCEL-MIGRATION-2026-10-19.md). |
 
 ## Related
 
