@@ -87,11 +87,14 @@ alone does not establish a completed cutover.
 
 **October 20 migration state:** The user approved recovery from the available
 September dump and updated Hostinger. Recovery/migrations and all 103 media
-copies are complete; three protected Vercel production builds are READY without
-custom-domain promotion. Neon readiness and anonymous boundaries pass, but
-provider secrets, authenticated acceptance, recovery retention and final HTTPS
-remain pending. Azure is disabled and is not a working rollback destination.
-See the [staged deployment audit](docs/audits/VERCEL-STAGED-DEPLOYMENTS-2026-10-20.md).
+copies are complete. The user's subsequent release approval authorized three
+Production rebuilds, now READY and serving all four custom HTTPS hosts. All
+three Neon readiness checks and anonymous boundaries pass. The existing Resend
+key is valid with send-only scope and is configured in all apps; APP/SEQ Stripe
+webhook secrets, authenticated acceptance and recovery retention remain open.
+Azure is disabled and is not a working rollback destination. See the
+[public release audit](docs/audits/VERCEL-RELEASE-2026-10-20.md); earlier staged
+observations remain in the [staged audit](docs/audits/VERCEL-STAGED-DEPLOYMENTS-2026-10-20.md).
 
 **October 20 recovery:** The user approved the available legacy dump after Azure recovery became unavailable. [Neon recovery](docs/audits/NEON-RECOVERY-2026-10-20.md) records the September data boundary, completed Neon restore/migrations, Pro and three production connections, guarded Premium repair and remaining launch gates. Do not repeat the restore or substitute the separate local-fixture dump.
 

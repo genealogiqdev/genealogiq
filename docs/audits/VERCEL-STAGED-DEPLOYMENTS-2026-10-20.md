@@ -1,5 +1,7 @@
 # Vercel staged deployments — 2026-10-20
 
+> **Later correction:** The Resend 401 below was `restricted_api_key` on a domain-management endpoint. The existing key is valid for sending; a recipient-free send probe confirmed authentication. The user subsequently authorized release, and the key was configured in all three projects. Preserve the original observations below as incident history; use the [release audit](VERCEL-RELEASE-2026-10-20.md) for the corrected diagnosis and current state.
+
 ## Source and authorized scope
 
 The user reported that the earlier CLI sign-in page had disappeared. Renewed the normal Chrome device login; CLI 64.5.0 completed authentication and `whoami` independently returned the expected account. The consumed device page is not the success evidence. No new token was requested in chat.
