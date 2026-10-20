@@ -115,6 +115,7 @@ webhooks do not change automatically with runtime environment variables.
 | 2026-10-14 | `1535974` + partner email validation | Origin contract, actual templates and local HTTP | BMS partner messages require valid, distinct environment origins; normalized local SEQ links, usable credentials and resend recovery verified. Read-only Azure BMS settings already pointed to the correct production Sequoia origin. [Audit](audits/BMS-PARTNER-EMAIL-2026-10-14.md). |
 | 2026-10-19 | 268d3f2 + Vercel migration | Provider/configuration | Explicit provider and two Blob credentials declared; production-only sensitive tokens connected to all projects. Local launcher clears cloud credentials and forces Azure. [Audit](audits/VERCEL-MIGRATION-2026-10-19.md). |
 | 2026-10-20 | d41ef02 + documentation | Vercel production environment API | Added/read back nine non-secret origin, provider and pool settings per app, all production-only. Existing sensitive Blob tokens remain present. Neon exists but project connections, app auth/cron secrets and provider configuration are pending; no deployed runtime is verified. [Audit](audits/VERCEL-MIGRATION-2026-10-20.md). |
+| 2026-10-20 | 2da3a06 + recovery documentation | Vercel/Neon follow-up | Pro confirmed; APP/BMS/SEQ pooled/direct Neon connections are sensitive and production-only, without per-deployment database branches. Target database restored and migrated. App auth/cron/provider settings and deployment remain pending. [Recovery audit](audits/NEON-RECOVERY-2026-10-20.md). |
 
 ## Related
 

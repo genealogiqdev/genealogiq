@@ -1,13 +1,17 @@
 # Vercel migration runbook
 
-> **Status:** application hosting can be prepared; production cutover is blocked until a current database and media source is accessible.
+> **Status:** the approved legacy dump is restored in Neon and its migrations are applied; application deployment and cutover acceptance remain pending.
 > **Scope:** APP, BMS, SEQ, PostgreSQL, media, daily BMS job, domains, external callbacks.
 
 Genealogiq can run as three independent Next.js projects on Vercel. This runbook records the target and the manual actions still required. Azure remains the production system until every cutover gate below is completed.
 
 ## Current blocker and decision
 
-The live Azure subscription was observed as `Disabled` on 2026-10-19 and again on 2026-10-20. On October 20, listing the existing `database-backups` container in `stgenohqluyie` also failed with `AccountIsDisabled`; the backup storage is not an available recovery path while the account is disabled. The October 19 production health requests timed out. The accessible `.azure/genealogiq-pre-azure.dump` is a pre-Azure snapshot from 2026-09-21 and is not a production backup. Do not use it for cutover. Restore Azure subscription access or locate a current off-Azure database backup and media export before copying data.
+The live Azure subscription was observed as `Disabled` on 2026-10-19 and again on 2026-10-20. Listing the existing `database-backups` container in `stgenohqluyie` failed with `AccountIsDisabled`. The October 19 production health requests timed out.
+
+On October 20 the user explicitly approved recovering from the latest available dump because Azure recovery was unavailable. Inventory found identical `genealogiq.dump` files in the repository root and Downloads (320,986 bytes, SHA-256 `e0b1b0cdde132fe0c60afd993afa8e683fb7d3e501c149f8ee17f33cd04be8b8`). This plain SQL dump contains 117 consumer profiles, 400 GenCodes, 19 documents and migration history; its latest recorded creation/update timestamps are September 9, and the file was copied on September 22. The separate `.azure/genealogiq-pre-azure.dump` contains mostly local fixtures and was not selected. Recovery cannot reproduce later Azure changes.
+
+The selected dump was restored in Neon after a local rehearsal and target backup; all eight pending canonical migrations succeeded. All 42 source-table row counts matched after restore and the migrated schema matches Prisma. The existing guarded Premium expiry repair corrected 44 eligible independent-consumer test allowances; three tenant-linked test allowances remain outside that repair's scope and require review before launch. Details and recovery artifacts are in the [recovery audit](audits/NEON-RECOVERY-2026-10-20.md).
 
 Neon through the Vercel Marketplace is the target PostgreSQL provider. Select São Paulo (`sa-east-1`) and a plan with at least 14 days of point-in-time recovery. Vercel Functions use São Paulo (`gru1`). Vercel does not provide a first-party PostgreSQL database; Neon remains the database provider. Payment processing, email, Google sign-in, Turnstile, push and Sentry remain external services.
 
@@ -30,8 +34,8 @@ Use Node.js 22, install with `pnpm install --frozen-lockfile`, and build the sel
 
 Required manual account actions:
 
-1. Confirm Pro is active for the `Genealogiq Brasil` team and authorize GitHub access to `genealogiqdev/genealogiq`. On 2026-10-20, after the reported upgrade, both the team's Billing page and Vercel's Git deployment context still reported Hobby. No repository is connected. Before connecting or pushing, reconcile the reviewed local release with GitHub: at `d41ef02`, local main was five commits ahead of `origin/main` (`6828b4d`), with no remote-only commits. The existing push-to-main workflow deploys Azure; do not accidentally trigger it while preparing Vercel.
-2. Connect the existing Neon resource below to the three production projects; do not provision another database. Resolve its recovery retention before cutover. Configure the pooled runtime connection as `DATABASE_URL`; use a direct connection only for reviewed Prisma migration/restore jobs.
+1. Authorize GitHub access to `genealogiqdev/genealogiq`. Pro is now confirmed for `Genealogiq Brasil` by Chrome and Vercel's Git deployment context API. The earlier Hobby observation is retained in the audit. No repository is connected. Before connecting or pushing, reconcile the reviewed local release with GitHub: at `d41ef02`, local main was five commits ahead of `origin/main` (`6828b4d`), with no remote-only commits. The existing push-to-main workflow deploys Azure; do not accidentally trigger it while preparing Vercel.
+2. The existing Neon resource is connected to all three production projects; do not provision another database or repeat its restore. Resolve recovery retention before cutover. Runtime uses the pooled `DATABASE_URL`; `DATABASE_URL_UNPOOLED` is reserved for reviewed migration/restore jobs.
 3. Exercise uploads/downloads against the connected Blob stores before enabling production traffic. The adapter is implemented behind MEDIA_STORAGE_PROVIDER=vercel. Historical Azure document URLs remain public until source access is restricted at cutover (DOCUMENTS-G1).
 4. Add all required application environment variables in each project using the per-app `.env.example` files and [CONFIGURATION](CONFIGURATION.md). Set `AUTH_URL`, `APP_URL`, `BMS_URL`, and `SEQUOIA_URL` to the final hostnames. Use distinct `AUTH_SECRET` values per app. Do not copy values into this document or Git.
 
@@ -39,15 +43,15 @@ Required manual account actions:
 
 The environment API independently verified these nine non-secret keys in each project, scoped only to production: `APP_URL`, `BMS_URL`, `SEQUOIA_URL`, `AUTH_URL`, `AUTH_TRUST_HOST`, `DATABASE_POOL_MAX`, `MEDIA_STORAGE_PROVIDER`, `MEDIA_PUBLIC_BASE_URL`, and `NEXT_PUBLIC_MEDIA_PUBLIC_BASE_URL`. Shared origins use the final domains above; `AUTH_URL` uses the corresponding app origin, trusted host is `true`, the pool limit is `5`, and the provider is `vercel`. Both public-media base values are `https://nvg2gn8zy3r46uiv.public.blob.vercel-storage.com`.
 
-These settings do not establish a working deployment. `DATABASE_URL`, all three `AUTH_SECRET` values, the BMS `CRON_SECRET`, and application provider configuration remain absent from the verified environment inventory. Complete the Stripe keys and distinct webhook secrets, Resend, Google credentials, APP Turnstile/push, and per-app observability configuration according to the enabled production features. Do not deploy the daily cron without its secret and restored database. Sensitive production values must stay in the provider's secret store; a local `env pull` is not proof that Secret values are available locally.
+These settings do not establish a working deployment. Both pooled and direct Neon URLs are now sensitive, production-only variables in every project. All three `AUTH_SECRET` values, BMS `CRON_SECRET`, and application provider configuration remain absent from the verified environment inventory. Complete the Stripe keys and distinct webhook secrets, Resend, Google credentials, APP Turnstile/push, and per-app observability configuration according to the enabled production features. Do not deploy the daily cron without its secret and restored database. Sensitive production values must stay in the provider's secret store; a local `env pull` is not proof that Secret values are available locally.
 
 ## Prepared Neon resource
 
-The existing Marketplace integration is `icfg_IJBd5OCN9p9CUJcv8ki5E6FR`. Its database `neon-copper-nest` has Vercel store ID `store_JYKKhOoGN8sq5En5`, Neon project ID `icy-credit-38971700`, and region metadata `gru1` (São Paulo). On 2026-10-20 it was available on plan `free_v3`, with zero connected Vercel projects. Chrome could read its data editor; the table selector contained nine `neon_auth` starter tables and no Genealogiq application tables. Neon Auth being enabled by the integration does not replace the application's existing NextAuth identity model.
+The existing Marketplace integration is `icfg_IJBd5OCN9p9CUJcv8ki5E6FR`. Its database `neon-copper-nest` has Vercel store ID `store_JYKKhOoGN8sq5En5`, Neon project ID `icy-credit-38971700`, and region metadata `gru1` (São Paulo). It is available on plan `free_v3`, with APP, BMS and SEQ connected. The earlier empty target now contains 50 public-schema tables after the approved recovery. The nine `neon_auth` starter tables were preserved. Neon Auth being enabled by the integration does not replace the application's existing NextAuth identity model.
 
-The production-only APP connection is prepared with sensitive credentials, the default variable names, and no automatic per-deployment database branches. Confirmation to grant this database access to APP, BMS and SEQ is pending. Verify all three project connections and production-only sensitive `DATABASE_URL` entries after submission; keep preview/development isolated from production.
+All three connections use sensitive credentials, default variable names, production only, and no automatic per-deployment database branches. Chrome and the environment API independently verified these settings after the user's confirmation. Keep preview/development isolated from production.
 
-Neon Free currently allows 1 GB per project and 100 CU-hours per month. Its restore window is up to six hours or 1 GB of changes, whichever is reached first; this does not meet the approved 14-day point-in-time recovery requirement. Preparation can continue on Free, but production cutover still requires the agreed recovery retention and an actual restore rehearsal, or an explicit revised recovery decision. Current production size is unknown while Azure is inaccessible. See [Neon plans](https://neon.com/docs/introduction/plans) and [pricing](https://neon.com/pricing); plan limits can change.
+Neon Free currently allows 1 GB per project and 100 CU-hours per month. Its restore window is up to six hours or 1 GB of changes, whichever is reached first; this does not meet the approved 14-day point-in-time recovery requirement. Preparation can continue on Free, but production cutover still requires the agreed recovery retention and an actual restore rehearsal, or an explicit revised recovery decision. The recovered target measured about 13.1 MB before media-reference updates; this does not predict future compute or storage usage. The user's approval of an older recovery source did not change the future retention requirement. See [Neon plans](https://neon.com/docs/introduction/plans) and [pricing](https://neon.com/pricing); plan limits can change.
 
 ## Prepared Blob resources
 
@@ -62,7 +66,7 @@ Both stores are connected to APP, BMS and SEQ production, verified in Chrome and
 
 ## Database migration
 
-Do this only after recovering a current source database and verifying the Neon target, retention and restore procedure.
+The October 20 restore is complete. Do not repeat it against the populated target. These steps describe future reviewed restores, using a current backup or an explicitly approved older recovery point.
 
 1. Take a fresh, transaction-consistent PostgreSQL backup and record its source, timestamp, schema revision and checksum. Keep the original backup read-only.
 2. Verify the existing São Paulo Neon database, enable at least 14-day point-in-time recovery, and connect pooled runtime and direct migration credentials as sensitive Vercel environment variables.
@@ -70,19 +74,34 @@ Do this only after recovering a current source database and verifying the Neon t
 4. Compare schema and representative table counts, run read-only integrity checks, then test login, tenant and role boundaries, and a disposable persisted update against Neon.
 5. Exercise Neon point-in-time restore in a separate test branch/database before production promotion. Record observed recovery point and restored row checks.
 
-Do not point `prisma migrate deploy` at production until the source snapshot and target restore have been reviewed. Do not use the September 21 pre-Azure dump as a replacement for current production data.
+Do not point `prisma migrate deploy` at production until the source snapshot and target restore have been reviewed. Preserve the selected source and its migration history; do not reset or rebaseline the restored database. The separate pre-Azure fixture dump is not the approved recovery source.
 
 ## Media migration and private access
 
 The adapter defaults to Azure for local development/rollback and selects Vercel explicitly. The historical migrate:media command still targets Azure. The new `pnpm --filter @genealogiq/services migrate:media:vercel` command inventories referenced Azure/old Vercel media, preserves original URLs, compares byte counts/SHA-256, rewrites references conditionally, and supports rollback from a durable manifest. See [MEDIA-MIGRATION](MEDIA-MIGRATION.md) for its separate stages.
 
-The Vercel adapter uploads into private staging, retains each route's owner/profile scope, and validates actual size/type/signature before publication. All PDFs remain private; the authenticated /api/documents/[id]/file route checks live document visibility and accepted guardianship. Existing private APP document URLs remain public on Azure. Restrict the old source and account for cached copies at cutover, then verify anonymous denial before closing DOCUMENTS-G1.
+The Vercel adapter uploads into private staging, retains each route's owner/profile scope, and validates actual size/type/signature before publication. All PDFs remain private; the authenticated /api/documents/[id]/file route checks live document visibility and accepted guardianship. Historical public Azure/old Vercel source URLs can still bypass this route. Restrict the old source and account for cached copies at cutover, then verify anonymous denial before closing DOCUMENTS-G1.
 
-Do not rewrite database media URLs or delete Azure objects until source access is restored, every referenced object passes content checks, public/private read tests pass, and rollback has been exercised. Keep Azure storage and configuration available through the rollback window.
+On October 20, all 103 objects referenced by the approved dump were available from the old public Vercel store. All were copied and verified by byte count/SHA-256; 84 targets are public and 19 document targets are private with anonymous denial and authenticated reads verified. All 103 references were rewritten, rolled back to independently checked original values, and reapplied to independently checked target values. Copy replay retained the completed manifest. The final Neon backup includes these target references. Source objects remain intact. This completes the named recovery, while deployed upload/download authorization and old-source access restriction remain launch gates.
+
+For future migrations, require accessible source bytes and verified public/private destinations before guarded reference rewrites. Preserve the source and durable manifest through the rollback window; do not delete source objects as part of copying. Azure availability is not a prerequisite for the already-completed recovery from the user's approved dump and accessible legacy Blob sources.
 
 ## Hostinger DNS and external services
 
 Attach the four domains in Vercel first, then copy the exact DNS records Vercel displays into Hostinger. The records may differ by hostname/project; do not guess them from a generic A/CNAME example. Preserve all existing MX, SPF, DKIM and DMARC records. No registrar transfer is needed.
+
+### Hostinger records prepared on October 20
+
+In hPanel, open Domains → genealogiq.com.br → DNS/Nameservers. Keep the existing Hostinger nameservers (`pixel.dns-parking.com`, `byte.dns-parking.com`). Save the current zone, then replace only the old Azure website records at cutover:
+
+| Type | Name | Value |
+| --- | --- | --- |
+| A | @ | 216.150.1.1 |
+| CNAME | www | 73eb46deb7a75d29.vercel-dns-017.com |
+| CNAME | bms | 887e50f92d2ea1fa.vercel-dns-017.com |
+| CNAME | sequoia | 8a6c8eb08070084e.vercel-dns-017.com |
+
+Vercel's domain-configuration API returned the three CNAME targets; the APP domain panel independently displayed `A @ 216.150.1.1`. Recheck the recommendations before applying them. Use a 300-second TTL if Hostinger permits it. Replace conflicting website records for these exact names; do not reset the zone or change mail/service records. After propagation, refresh Vercel's domain validation, confirm HTTPS for all four hosts, and exercise login, tenant scope and media. DNS changes are still pending successful deployment acceptance.
 
 Update provider allowlists after the Vercel project URLs exist:
 
@@ -103,7 +122,9 @@ Before DNS changes, verify:
 - Health/readiness for all three production deployments and HTTPS certificates for all four domains.
 - OAuth callback, Turnstile and outbound email on final hostnames.
 
-At cutover, pause writes to Azure, take the final database backup, apply the delta, verify the target, then update Hostinger records. Keep Azure application, database, media and backups intact until DNS has propagated and production checks pass. Rollback means restore DNS to the still-running Azure endpoints and confirm the Azure database remains authoritative; never accept writes on both databases concurrently.
+The October 20 recovery uses the user's approved older source; a fresh Azure backup or delta is unavailable and is no longer a prerequisite. Before cutover, keep application writes paused, back up the accepted Neon state and media manifest, verify the target deployments, then update Hostinger records. Preserve the existing Azure resources and old media without assuming they are usable.
+
+Azure currently cannot serve as a working rollback destination. Before launch, establish a verified Vercel deployment rollback and a tested database/media recovery procedure. Application rollback must account for schema compatibility; reference rollback does not restore later business writes. Restore DNS to Azure only if its services and authoritative data have independently recovered. Never accept writes on both databases concurrently.
 
 ## Verification log
 
@@ -112,6 +133,7 @@ At cutover, pause writes to Azure, take the final database backup, apply the del
 | 2026-10-19 | Azure CLI subscription state, production health requests, local dump inventory; Vercel MCP team/project inventory | Azure subscription disabled; health requests timed out; local dump is pre-Azure; Vercel team has no projects or domains. Production migration and DNS cutover are blocked. |
 | 2026-10-19 | Follow-up at 268d3f2 plus migration changes; Vercel MCP and Chrome | Three project shells/four domains prepared; both GRU1 Blob stores connected to all three production projects with sensitive tokens. Adapter, authenticated document delivery and guarded reverse migration implemented. Three local app builds pass. Azure remains Disabled; Neon and real-provider cutover checks remain pending. See the [layered audit](audits/VERCEL-MIGRATION-2026-10-19.md). |
 | 2026-10-20 | d41ef02; Vercel environment/integration/Git APIs, Chrome Billing/data editor, live Azure ARM and backup storage | Existing Neon Free resource verified in São Paulo; project access awaits confirmation. Nine non-secret production settings added and read back per app. Team still reports Hobby despite the reported upgrade. Azure remains Disabled and backup storage returns AccountIsDisabled. No application deployment, data copy or DNS change. See the [follow-up audit](audits/VERCEL-MIGRATION-2026-10-20.md). |
+| 2026-10-20 | 2da3a06 plus recovery documentation; explicit older-dump approval, local PostgreSQL, live Neon/Blob, Chrome and environment API | Pro and all three production Neon connections confirmed. Restored 117 profiles/400 GenCodes/19 documents; eight migrations and schema parity pass. Repaired 44 eligible test allowances; five repair test entries pass. All 103 media objects passed copy/hash/access/rewrite/rollback/replay, including 19 private documents. Secrets, app/provider acceptance, three partner terms, recovery retention and DNS remain pending. [Recovery audit](audits/NEON-RECOVERY-2026-10-20.md). |
 
 ## Related
 

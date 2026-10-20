@@ -1,5 +1,7 @@
 # Vercel and Neon configuration follow-up — 2026-10-20
 
+> This is the earlier setup observation. The subsequent [approved Neon recovery](NEON-RECOVERY-2026-10-20.md) confirms Pro, completes the three database connections and records the user's later approval to restore the available legacy dump. Preserve the earlier failures below as dated evidence.
+
 ## Scope and source
 
 Continued the approved migration on main at `d41ef02` after the user reported a Vercel upgrade and an existing Neon integration. The working tree was clean and no application source had changed since that revision. This change updates cloud configuration and its runbooks; the adapter, migrations, app code and schema are unchanged.

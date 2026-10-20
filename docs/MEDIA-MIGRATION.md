@@ -38,7 +38,7 @@ Run each stage separately from the repo root:
 4. Back up the manifest, then repeat with `--rewrite`. All entries must be verified. Scalar and array writes compare current values; concurrent edits stop that reference. Replays accept already-applied values.
 5. `--rollback` restores only recorded target references, preserving replacement uploads. It does not roll back subsequent application writes.
 
-The manifest uses atomic local replacement and an exclusive worker lock. It retains completed entries after partial rewrites. Interrupted copies reuse existing destinations only after comparing their bytes and SHA-256. Source objects are never deleted. Before removing a stale lock, confirm its release process stopped. A full provider/data rehearsal remains required; [migration tests](../packages/services/src/vercel-media-migration.test.ts) prove their named deterministic contracts only.
+The manifest uses atomic local replacement and an exclusive worker lock. It retains completed entries after partial rewrites. Interrupted copies reuse existing destinations only after comparing their bytes and SHA-256. Source objects are never deleted. Before removing a stale lock, confirm its release process stopped. October 20 recovery exercised real Vercel copy/verify/rewrite/rollback/replay for 103 references; forced interruption and concurrent application edits still need isolated provider scenarios. [Migration tests](../packages/services/src/vercel-media-migration.test.ts) prove their named deterministic contracts only.
 
 a165f45 introduced Azure cutover. Integrity and compare-before-write rules prevent rewriting changed data or exposing incomplete copies. The helper tests pin array replacement and readiness. Historical incident figures remain in docs/history rather than being replaced with current run output.
 
@@ -137,6 +137,7 @@ Follow [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for exact setup/start/readiness
 - **Impact:** Helper success does not prove real migration correctness or safe rollback.
 - **Root cause:** Missing fixture or direct coverage as described above.
 - **Resolution:** Not fixed in this task. Build an isolated legacy-URL/blob dataset and test copy/verify/rewrite/interruption/rollback with hand-authored reference expectations.
+- **2026-10-20 partial resolution:** The approved Neon recovery copied and hash-verified all 103 legacy Vercel objects, checked public/private access, and rewrote every reference. Independent database queries matched all target values, all original values after rollback, and all targets after reapplication; copy replay preserved all completed entries. Forced interruption/concurrent editing and the historical Azure destination workflow remain outside this provider evidence. Keep G1 open for those scenarios; see the [recovery audit](audits/NEON-RECOVERY-2026-10-20.md).
 
 ### MEDIA-MIGRATION-G2: Manifest override missing from declared environment contract
 
@@ -154,6 +155,7 @@ Follow [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for exact setup/start/readiness
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-10-19 | 268d3f2 + reverse migration | Source and ten deterministic migration tests | Explicit target/manifest, hashes, guarded rewrite, replay and rollback implemented; three additional adapter retry checks pass. [Audit](audits/VERCEL-MIGRATION-2026-10-19.md). | Full provider copy/rewrite/rollback and current source recovery remain pending (G1). |
+| 2026-10-20 | 2da3a06 + recovery docs; unchanged migration command | Live Neon, Vercel Blob and independent PostgreSQL comparisons | All 103 objects (199,125,437 bytes) passed copy/SHA-256/access checks, reference rewrite, full rollback, reapplication and copy replay. Final backup and durable manifest retained privately. [Audit](audits/NEON-RECOVERY-2026-10-20.md). | G1 remains open for forced interruption/concurrent editing; old public document sources remain accessible. No deployed app UI claim. |
 
 ## Related
 

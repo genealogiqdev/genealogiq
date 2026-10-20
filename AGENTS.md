@@ -85,6 +85,8 @@ Azure remains the production authority until the Vercel migration runbook's
 database, media, authentication, billing and health acceptance gates pass.
 Never cut over Hostinger DNS based only on a successful Vercel build.
 
+**October 20 recovery:** The user approved the available legacy dump after Azure recovery became unavailable. [Neon recovery](docs/audits/NEON-RECOVERY-2026-10-20.md) records the September data boundary, completed Neon restore/migrations, Pro and three production connections, guarded Premium repair and remaining launch gates. Do not repeat the restore or substitute the separate local-fixture dump.
+
 ## Self-learning memory
 
 Use `node scripts/check-docs.mjs` to validate indexes, links, feature paths/symbols and required sections. Use `rg "Status:\*\* open" docs apps/app/docs apps/bms/docs apps/seq/docs` to find permanent open entries. Never delete a fixed gap; add its resolution, regression test and commit. Historical docs are explicitly labeled and linked, not treated as current live-resource evidence.
