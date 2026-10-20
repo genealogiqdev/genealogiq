@@ -81,9 +81,17 @@ The app indexes contain 18 APP, ten BMS and seven SEQ feature documents; the fiv
 | [Domain cutover](docs/AZURE-DEPLOYMENT.md#dns-and-managed-tls) | Hostinger DNS, Azure managed TLS, canonical origins and media CORS |
 | [Vercel migration](docs/VERCEL-MIGRATION.md) | Target Vercel projects, Neon/Blob migration gates, Hostinger and provider manual steps |
 
-Azure remains the production authority until the Vercel migration runbook's
-database, media, authentication, billing and health acceptance gates pass.
-Never cut over Hostinger DNS based only on a successful Vercel build.
+The Vercel migration runbook's database, media, authentication, billing and
+health gates govern production acceptance. A successful build or DNS update
+alone does not establish a completed cutover.
+
+**October 20 migration state:** The user approved recovery from the available
+September dump and updated Hostinger. Recovery/migrations and all 103 media
+copies are complete; three protected Vercel production builds are READY without
+custom-domain promotion. Neon readiness and anonymous boundaries pass, but
+provider secrets, authenticated acceptance, recovery retention and final HTTPS
+remain pending. Azure is disabled and is not a working rollback destination.
+See the [staged deployment audit](docs/audits/VERCEL-STAGED-DEPLOYMENTS-2026-10-20.md).
 
 **October 20 recovery:** The user approved the available legacy dump after Azure recovery became unavailable. [Neon recovery](docs/audits/NEON-RECOVERY-2026-10-20.md) records the September data boundary, completed Neon restore/migrations, Pro and three production connections, guarded Premium repair and remaining launch gates. Do not repeat the restore or substitute the separate local-fixture dump.
 

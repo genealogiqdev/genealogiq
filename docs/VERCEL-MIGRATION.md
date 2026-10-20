@@ -1,9 +1,9 @@
 # Vercel migration runbook
 
-> **Status:** the approved dump and media are recovered; Hostinger now points to Vercel. No application deployment exists yet, so service restoration and acceptance remain pending.
+> **Status:** the approved dump and media are recovered. Three production builds are READY at protected Vercel URLs, with database readiness verified. Hostinger points to Vercel, but these releases are not promoted to the custom domains; service restoration and remaining acceptance gates are pending.
 > **Scope:** APP, BMS, SEQ, PostgreSQL, media, daily BMS job, domains, external callbacks.
 
-Genealogiq can run as three independent Next.js projects on Vercel. This runbook records the target and the manual actions still required. The user updated Hostinger on October 20 before deployment acceptance. DNS now targets Vercel, while the three projects still have no deployment. Do not describe the apps as live or treat the unavailable Azure service as a working rollback target.
+Genealogiq runs as three independent Next.js projects on Vercel. This runbook records the target and the actions still required. The user updated Hostinger on October 20 before deployment acceptance. The first releases were staged with `--prod --skip-domain` from committed source without a Git push. Do not describe the custom domains as restored or treat the unavailable Azure service as a working rollback target.
 
 ## Current blocker and decision
 
@@ -27,10 +27,10 @@ Three project shells have been created in the `Genealogiq Brasil` Vercel team. T
 
 The Vercel API reports these domains as verified on the projects. After the
 user's October 20 Hostinger update, all four DNS configurations are accepted;
-no deployment is attached to the projects yet. The project build settings use Node 22, the
-app root directories, the monorepo frozen install/build commands, and `gru1`.
+the first staged deployments are listed below. The project settings specify Node 22,
+app root directories, monorepo frozen install/build commands, and `gru1`.
 
-Use Node.js 22, install with `pnpm install --frozen-lockfile`, and build the selected workspace app with Turbo (for example, `pnpm exec turbo run build --filter=@genealogiq/app`). The project configuration files pin Functions to `gru1`; BMS retains the existing daily cron at 06:00 UTC and its 300-second function duration. Use a Vercel Pro team because these are commercial production applications and the cron is a production workload.
+Install with `pnpm install --frozen-lockfile` and build the selected workspace app with Turbo (for example, `pnpm exec turbo run build --filter=@genealogiq/app`). The root `engines.node` range is `>=22`; the first deployed functions report `nodejs24.x` despite the Node 22 project setting. Do not infer the effective runtime from that setting alone. The project configuration files request Functions in `gru1`; BMS retains the daily cron at 06:00 UTC and its 300-second function duration. Use a Vercel Pro team because these are commercial production applications and the cron is a production workload.
 
 Required manual account actions:
 
@@ -43,7 +43,21 @@ Required manual account actions:
 
 The environment API independently verified these nine non-secret keys in each project, scoped only to production: `APP_URL`, `BMS_URL`, `SEQUOIA_URL`, `AUTH_URL`, `AUTH_TRUST_HOST`, `DATABASE_POOL_MAX`, `MEDIA_STORAGE_PROVIDER`, `MEDIA_PUBLIC_BASE_URL`, and `NEXT_PUBLIC_MEDIA_PUBLIC_BASE_URL`. Shared origins use the final domains above; `AUTH_URL` uses the corresponding app origin, trusted host is `true`, the pool limit is `5`, and the provider is `vercel`. Both public-media base values are `https://nvg2gn8zy3r46uiv.public.blob.vercel-storage.com`.
 
-These settings do not establish a working deployment. Both pooled and direct Neon URLs are now sensitive, production-only variables in every project. All three `AUTH_SECRET` values, BMS `CRON_SECRET`, and application provider configuration remain absent from the verified environment inventory. Complete the Stripe keys and distinct webhook secrets, Resend, Google credentials, APP Turnstile/push, and per-app observability configuration according to the enabled production features. Do not deploy the daily cron without its secret and restored database. Sensitive production values must stay in the provider's secret store; a local `env pull` is not proof that Secret values are available locally.
+Both pooled and direct Neon URLs are sensitive, production-only variables in every project. The authenticated CLI added three independent `AUTH_SECRET` values, BMS `CRON_SECRET`, and the existing validated live `STRIPE_SECRET_KEY` to each app: seven new Secret variables, verified by key/type/target without exposing values. The Stripe account read identifies Genealogiq, and existing enabled webhook URLs already match the three final domains. Their distinct `STRIPE_WEBHOOK_SECRET` values remain pending.
+
+The saved Resend key returns HTTP 401; Azure Key Vault cannot supply its replacement because the subscription is disabled. A shared `RESEND_API_KEY` Secret form is prepared in Chrome for user entry, linked only to APP/BMS/SEQ Production; preparation is not a saved key or an email test. Complete it and the webhook secrets, Google credentials, APP Turnstile/push and per-app observability settings according to enabled production features. Sensitive values stay in provider secret storage; a local `env pull` is not proof that Secret values are available locally. Redeploy after environment changes before repeating affected checks.
+
+### First staged deployments, October 20
+
+These releases use exact source `56f72f4602f1d396aa6200955500852a7d7ed3d1`. The source-only archive uploaded 1,328 files (13,831,269 bytes); local credentials, dumps, QA artifacts and dependencies were excluded. All three remote builds finished READY. They use production resources but remain protected and unpromoted to custom domains.
+
+| App | Protected deployment | Deployment ID |
+| --- | --- | --- |
+| APP | [Staged APP](https://genealogiq-dpu1glxh7-genealogiq-brasil.vercel.app) | `dpl_Caw8DWffJC45sg3Cx63eKTVQd43F` |
+| BMS | [Staged BMS](https://genealogiq-jidk27k5w-genealogiq-brasil.vercel.app) | `dpl_142AhTRYqBAyBdsBeeUokkVvEzH2` |
+| SEQ | [Staged SEQ](https://genealogiq-2pcr39dwe-genealogiq-brasil.vercel.app) | `dpl_3u7FGCckB1nEY3C3MjNZoATy4Xh6` |
+
+Authenticated `vercel curl` returned readiness 200 with `status=ready` from all three real Neon connections, APP anonymous document 401 and unsigned BMS cron 401. Chrome rendered APP pricing and all three sign-in forms; blank submissions showed Invalid data. Successful sign-in, tenant boundaries, persistence, provider delivery and authorized media flows remain unverified. See the [staged deployment audit](audits/VERCEL-STAGED-DEPLOYMENTS-2026-10-20.md) for build/runtime warnings and evidence limits.
 
 ## Prepared Neon resource
 
@@ -103,7 +117,7 @@ In hPanel, open Domains → genealogiq.com.br → DNS/Nameservers. Keep the exis
 
 Vercel's domain-configuration API returned the three CNAME targets; the APP domain panel independently displayed `A @ 216.150.1.1`. The user subsequently applied these records. Hostinger's authoritative server and Cloudflare's resolver returned all four expected targets. Vercel initially retained an old apex address but now reports all four as correctly configured. Observed TTLs are 1,600 seconds for apex, 300 for www, and 14,400 for BMS/SEQ; other resolvers can retain earlier cached answers. Nameservers remain Hostinger. Mail records were not changed or independently audited in this follow-up.
 
-HTTPS succeeds for apex and www but returns Vercel 404 because there is no deployment. BMS/SEQ TLS handshakes have not passed, including requests directed at the advertised Vercel address without disabling certificate validation. Chrome shows No Deployment. Complete app configuration/deployment and validate all four HTTPS hosts before claiming service recovery; see the [DNS follow-up](audits/HOSTINGER-VERCEL-2026-10-20.md).
+After staging, HTTPS still succeeds for apex and www with Vercel 404; the releases have not been promoted to these domains. BMS/SEQ TLS handshakes have not passed, including earlier requests directed at the advertised Vercel address without disabling certificate validation. Complete the remaining configuration and acceptance, promote the reviewed releases, then validate all four HTTPS hosts before claiming service recovery. The earlier [DNS follow-up](audits/HOSTINGER-VERCEL-2026-10-20.md) and current [deployment audit](audits/VERCEL-STAGED-DEPLOYMENTS-2026-10-20.md) retain separate observations.
 
 Update provider allowlists after the Vercel project URLs exist:
 
@@ -112,11 +126,11 @@ Update provider allowlists after the Vercel project URLs exist:
 - Turnstile hostnames; verify that the existing site key accepts each production hostname.
 - Any email, push or Sentry hostname restrictions required by those providers.
 
-These provider dashboards and Hostinger DNS changes are manual. Do not change production DNS until the Vercel deployments pass the checks below.
+Hostinger's website DNS changes are already applied. No further website record change is currently required; preserve mail records. Provider configuration and release acceptance below remain outstanding before custom-domain promotion.
 
 ## Cutover gates and rollback
 
-Before DNS changes, verify:
+Before promotion to the already-pointed custom domains, verify:
 
 - Neon schema parity, representative row counts, sign-in, tenant/role boundaries, persisted update and point-in-time restore.
 - Public media upload/read, private media denial for unauthorized users, successful authorized private download, and checksums for migrated objects.
@@ -124,7 +138,7 @@ Before DNS changes, verify:
 - Health/readiness for all three production deployments and HTTPS certificates for all four domains.
 - OAuth callback, Turnstile and outbound email on final hostnames.
 
-The October 20 recovery uses the user's approved older source; a fresh Azure backup or delta is unavailable and is no longer a prerequisite. Before cutover, keep application writes paused, back up the accepted Neon state and media manifest, verify the target deployments, then update Hostinger records. Preserve the existing Azure resources and old media without assuming they are usable.
+The October 20 recovery uses the user's approved older source; a fresh Azure backup or delta is unavailable and is no longer a prerequisite. Before promotion, keep application writes paused, preserve the accepted Neon backup and media manifest, and finish target acceptance. Hostinger already has the target records. Preserve the existing Azure resources and old media without assuming they are usable.
 
 Azure currently cannot serve as a working rollback destination. Before launch, establish a verified Vercel deployment rollback and a tested database/media recovery procedure. Application rollback must account for schema compatibility; reference rollback does not restore later business writes. Restore DNS to Azure only if its services and authoritative data have independently recovered. Never accept writes on both databases concurrently.
 
@@ -137,6 +151,7 @@ Azure currently cannot serve as a working rollback destination. Before launch, e
 | 2026-10-20 | d41ef02; Vercel environment/integration/Git APIs, Chrome Billing/data editor, live Azure ARM and backup storage | Existing Neon Free resource verified in São Paulo; project access awaits confirmation. Nine non-secret production settings added and read back per app. Team still reports Hobby despite the reported upgrade. Azure remains Disabled and backup storage returns AccountIsDisabled. No application deployment, data copy or DNS change. See the [follow-up audit](audits/VERCEL-MIGRATION-2026-10-20.md). |
 | 2026-10-20 | 2da3a06 plus recovery documentation; explicit older-dump approval, local PostgreSQL, live Neon/Blob, Chrome and environment API | Pro and all three production Neon connections confirmed. Restored 117 profiles/400 GenCodes/19 documents; eight migrations and schema parity pass. Repaired 44 eligible test allowances; five repair test entries pass. All 103 media objects passed copy/hash/access/rewrite/rollback/replay, including 19 private documents. Secrets, app/provider acceptance, three partner terms, recovery retention and DNS remain pending. [Recovery audit](audits/NEON-RECOVERY-2026-10-20.md). |
 | 2026-10-20 | 773be4d plus DNS follow-up; user report, Hostinger authoritative DNS, Cloudflare resolver, Vercel APIs and Chrome | All four new DNS records match; Vercel accepts their configuration. Apex/www TLS succeeds with 404; BMS/SEQ TLS remains unverified. No deployments or Git connections exist and app auth/cron/provider settings remain incomplete. CLI sign-in is prepared for the user. [DNS audit](audits/HOSTINGER-VERCEL-2026-10-20.md). |
+| 2026-10-20 | `56f72f4`; authenticated CLI, source-only archives, Vercel builds/API/HTTP and Chrome | Three production releases READY without custom-domain promotion. Seven core Secret variables verified, all three Neon readiness checks pass, anonymous document and unsigned cron return 401, and blank sign-in forms reject input. Resend returns 401; webhook secrets and other provider/authenticated acceptance remain pending. [Staged audit](audits/VERCEL-STAGED-DEPLOYMENTS-2026-10-20.md). |
 
 ## Related
 

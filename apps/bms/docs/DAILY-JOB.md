@@ -129,6 +129,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-10-09 | `3826319` + consolidated release | Source, deterministic and local PostgreSQL checks | Updated contract above; [release audit](../../../docs/audits/PRODUCTION-RELEASE-2026-10-09.md) separates tests, runtime, deployment and cleanup. | Browser automation omitted at the user's request; production inbox delivery is not inferred. |
+| 2026-10-20 | `56f72f4` staged Vercel BMS | Secret metadata, build and authenticated platform HTTP probe | Production CRON_SECRET exists; unsigned application request returns 401. Source retains 06:00 UTC schedule and 300-second limit. [Staged audit](../../../docs/audits/VERCEL-STAGED-DEPLOYMENTS-2026-10-20.md). | Authorized cron was not invoked; lifecycle completion, scheduling and duplicate protection remain unverified. No mail sent. |
 
 ## Related
 
