@@ -1,9 +1,9 @@
 # Vercel migration runbook
 
-> **Status:** the approved legacy dump is restored in Neon and its migrations are applied; application deployment and cutover acceptance remain pending.
+> **Status:** the approved dump and media are recovered; Hostinger now points to Vercel. No application deployment exists yet, so service restoration and acceptance remain pending.
 > **Scope:** APP, BMS, SEQ, PostgreSQL, media, daily BMS job, domains, external callbacks.
 
-Genealogiq can run as three independent Next.js projects on Vercel. This runbook records the target and the manual actions still required. Azure remains the production system until every cutover gate below is completed.
+Genealogiq can run as three independent Next.js projects on Vercel. This runbook records the target and the manual actions still required. The user updated Hostinger on October 20 before deployment acceptance. DNS now targets Vercel, while the three projects still have no deployment. Do not describe the apps as live or treat the unavailable Azure service as a working rollback target.
 
 ## Current blocker and decision
 
@@ -25,9 +25,9 @@ Three project shells have been created in the `Genealogiq Brasil` Vercel team. T
 | `genealogiq-bms` | `prj_2h6dVuwvs8o8mUFFQpNIapx6CA9n` | `apps/bms` | `bms.genealogiq.com.br` |
 | `genealogiq-seq` | `prj_o6vtJmB4cEZGb88ULAtvrWCQQZpv` | `apps/seq` | `sequoia.genealogiq.com.br` |
 
-The Vercel API reports these domains as verified on the projects. This does
-not mean DNS was changed: Hostinger still points to Azure, and no deployment
-is attached to the projects yet. The project build settings use Node 22, the
+The Vercel API reports these domains as verified on the projects. After the
+user's October 20 Hostinger update, all four DNS configurations are accepted;
+no deployment is attached to the projects yet. The project build settings use Node 22, the
 app root directories, the monorepo frozen install/build commands, and `gru1`.
 
 Use Node.js 22, install with `pnpm install --frozen-lockfile`, and build the selected workspace app with Turbo (for example, `pnpm exec turbo run build --filter=@genealogiq/app`). The project configuration files pin Functions to `gru1`; BMS retains the existing daily cron at 06:00 UTC and its 300-second function duration. Use a Vercel Pro team because these are commercial production applications and the cron is a production workload.
@@ -101,7 +101,9 @@ In hPanel, open Domains → genealogiq.com.br → DNS/Nameservers. Keep the exis
 | CNAME | bms | 887e50f92d2ea1fa.vercel-dns-017.com |
 | CNAME | sequoia | 8a6c8eb08070084e.vercel-dns-017.com |
 
-Vercel's domain-configuration API returned the three CNAME targets; the APP domain panel independently displayed `A @ 216.150.1.1`. Recheck the recommendations before applying them. Use a 300-second TTL if Hostinger permits it. Replace conflicting website records for these exact names; do not reset the zone or change mail/service records. After propagation, refresh Vercel's domain validation, confirm HTTPS for all four hosts, and exercise login, tenant scope and media. DNS changes are still pending successful deployment acceptance.
+Vercel's domain-configuration API returned the three CNAME targets; the APP domain panel independently displayed `A @ 216.150.1.1`. The user subsequently applied these records. Hostinger's authoritative server and Cloudflare's resolver returned all four expected targets. Vercel initially retained an old apex address but now reports all four as correctly configured. Observed TTLs are 1,600 seconds for apex, 300 for www, and 14,400 for BMS/SEQ; other resolvers can retain earlier cached answers. Nameservers remain Hostinger. Mail records were not changed or independently audited in this follow-up.
+
+HTTPS succeeds for apex and www but returns Vercel 404 because there is no deployment. BMS/SEQ TLS handshakes have not passed, including requests directed at the advertised Vercel address without disabling certificate validation. Chrome shows No Deployment. Complete app configuration/deployment and validate all four HTTPS hosts before claiming service recovery; see the [DNS follow-up](audits/HOSTINGER-VERCEL-2026-10-20.md).
 
 Update provider allowlists after the Vercel project URLs exist:
 
@@ -134,6 +136,7 @@ Azure currently cannot serve as a working rollback destination. Before launch, e
 | 2026-10-19 | Follow-up at 268d3f2 plus migration changes; Vercel MCP and Chrome | Three project shells/four domains prepared; both GRU1 Blob stores connected to all three production projects with sensitive tokens. Adapter, authenticated document delivery and guarded reverse migration implemented. Three local app builds pass. Azure remains Disabled; Neon and real-provider cutover checks remain pending. See the [layered audit](audits/VERCEL-MIGRATION-2026-10-19.md). |
 | 2026-10-20 | d41ef02; Vercel environment/integration/Git APIs, Chrome Billing/data editor, live Azure ARM and backup storage | Existing Neon Free resource verified in São Paulo; project access awaits confirmation. Nine non-secret production settings added and read back per app. Team still reports Hobby despite the reported upgrade. Azure remains Disabled and backup storage returns AccountIsDisabled. No application deployment, data copy or DNS change. See the [follow-up audit](audits/VERCEL-MIGRATION-2026-10-20.md). |
 | 2026-10-20 | 2da3a06 plus recovery documentation; explicit older-dump approval, local PostgreSQL, live Neon/Blob, Chrome and environment API | Pro and all three production Neon connections confirmed. Restored 117 profiles/400 GenCodes/19 documents; eight migrations and schema parity pass. Repaired 44 eligible test allowances; five repair test entries pass. All 103 media objects passed copy/hash/access/rewrite/rollback/replay, including 19 private documents. Secrets, app/provider acceptance, three partner terms, recovery retention and DNS remain pending. [Recovery audit](audits/NEON-RECOVERY-2026-10-20.md). |
+| 2026-10-20 | 773be4d plus DNS follow-up; user report, Hostinger authoritative DNS, Cloudflare resolver, Vercel APIs and Chrome | All four new DNS records match; Vercel accepts their configuration. Apex/www TLS succeeds with 404; BMS/SEQ TLS remains unverified. No deployments or Git connections exist and app auth/cron/provider settings remain incomplete. CLI sign-in is prepared for the user. [DNS audit](audits/HOSTINGER-VERCEL-2026-10-20.md). |
 
 ## Related
 
