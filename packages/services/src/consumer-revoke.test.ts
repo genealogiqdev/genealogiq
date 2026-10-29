@@ -74,7 +74,6 @@ describe('revoke a named consumer Premium gift', () => {
     [null, 'grant-unavailable'],
     [{ ...gift, appUser: null }, 'recipient-unavailable'],
     [{ ...gift, appUser: { ...gift.appUser, role: 'APP_MEMO' } }, 'recipient-unavailable'],
-    [{ ...gift, appUser: { ...gift.appUser, tenantId: 'partner-1' } }, 'partner-account'],
     [{ ...gift, appSale: null }, 'grant-unavailable'],
     [{ ...gift, expiresAt: now }, 'grant-unavailable'],
   ])('rejects a missing, expired or out-of-scope gift before any write', async (row, reason) => {
@@ -94,6 +93,12 @@ describe('revoke a named consumer Premium gift', () => {
     await expect(revokeConsumerPremium('gift-1', 'admin-1')).rejects.toMatchObject({ reason: 'grant-unavailable' })
     expect(tx.appSale.updateMany).not.toHaveBeenCalled()
     expect(tx.consumerAccessGrant.update).not.toHaveBeenCalled()
+  })
+
+  it('keeps the original direct gift revocable after linking the customer to Sequoia', async () => {
+    tx.consumerAccessGrant.findUnique.mockResolvedValue({ ...gift, appUser: { ...gift.appUser, tenantId: 'partner-1' } })
+    expect(await revokeConsumerPremium('gift-1', 'admin-1')).toEqual({ alreadyRevoked: false })
+    expect(tx.appSale.updateMany.mock.calls[0][0].where).toMatchObject({ id: 'gift-sale-1', tenantId: null })
   })
 
   it('rejects a sale changed by another writer instead of recording a false cancellation', async () => {

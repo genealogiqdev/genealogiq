@@ -55,6 +55,12 @@ The enforcing files are linked above. Test names and literal assertions below re
 
 ## Contracts and data
 
+### Existing APP customers linked by BMS, 2026-10-29
+
+An APP_USER registered directly in APP may initially have no company. The BMS platform administrator can now use **Clientes finais → Vincular a uma empresa** to associate that existing account with a Sequoia company. The customer then appears in this company's scoped list/detail without re-registration. Account identity, plan, original QR data and accepted guardianships are preserved; the linked memorials keep their own original tenant scope, including null. [BMS consumers](../../bms/docs/CONSUMERS.md) owns the guarded action and conflict behavior.
+
+Open **Clientes → customer → Memoriais** to manage permitted QR downloads. This company link is not itself a GenCode purchase, plan upgrade or new guardianship. Existing tenant, plan and QR operation boundaries continue to apply. A direct BMS Premium gift retains its original sale scope and remains revocable/resendable by platform administrators in BMS; it is not converted into a Sequoia partner gift.
+
 ### Customer sale and Premium access, 2026-10-14
 
 Step 4 is **Acesso ao App** and reviews the final customer's own email. The default **Somente cadastro** creates the existing account/invitation without selling a code or granting Premium. **GenCode vendido + Premium por 12 meses** is explicit and administrator-only. An optional GenCode identifies the physical plaque; blank/whitespace selects the oldest available code in this tenant. Social fields remain optional under a disclosure. No Genealogiq administrator email is needed to unlock access.
@@ -225,6 +231,8 @@ Check whether the customer is in the session tenant and the guardian relation is
 - **2026-10-14 partial coverage:** Normal Credentials HTTP/action checks now create and reload local customers, exercise permission denial and persist invitation tokens; real PostgreSQL tests reject another tenant. External mail and the Chrome invitation/cross-tenant browser scenario remain open.
 
 ## Verification log
+
+2026-10-29: [BMS company-link acceptance](../../../docs/audits/BMS-CONSUMER-PARTNER-2026-10-29.md) verified that an independent APP registration appears in the chosen SEQ company after linking, retains its accepted tenantless memorial and original plan/QR data, and can export an existing plaque's SVG. FREE and empty-stock boundaries remained enforced. This link change does not own the concurrent QR issuance implementation.
 
 The 2026-10-09 plan/download follow-up has 77 passing focused tests in eight files, including real QR encoding/decoding, separately from mocked tenant/query tests and DOM interaction. See [the follow-up audit](../../../docs/audits/SEQ-MEMORIALS-2026-10-09.md) for the full-suite failures in unrelated concurrent work, static/build results and unavailable authenticated product QA.
 

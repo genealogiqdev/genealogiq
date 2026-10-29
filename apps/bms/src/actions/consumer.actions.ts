@@ -68,11 +68,12 @@ export async function resendConsumerAccessEmail(appUserId: string): Promise<Acti
   const t = await getTranslations('Consumers')
   if (!z.string().min(1).max(128).safeParse(appUserId).success) return fail(t('errors.invalid-data'))
   const consumer = await prisma.appUser.findFirst({
-    where: { id: appUserId, tenantId: null, role: 'APP_USER', isActive: true, email: { not: null } },
+    where: { id: appUserId, role: 'APP_USER', isActive: true, email: { not: null } },
     select: {
       id: true, firstName: true, email: true,
       consumerAccessGrants: {
-        where: { revokedAt: null, expiresAt: { gt: new Date() }, appSale: { status: { in: ['active', 'trialing'] }, currentPeriodEnd: { gt: new Date() } } },
+        // A direct gift keeps its original sale scope after a company link.
+        where: { revokedAt: null, expiresAt: { gt: new Date() }, appSale: { tenantId: null, status: { in: ['active', 'trialing'] }, currentPeriodEnd: { gt: new Date() } } },
         orderBy: { expiresAt: 'desc' }, take: 1, select: { id: true, expiresAt: true },
       },
     },

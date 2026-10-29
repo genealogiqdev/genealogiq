@@ -1227,6 +1227,29 @@
     "appliedAccessPending": "Coupon applied and benefits released. The SEQ access invitation could not be completed. Check the customer and resend the invitation in Customers; do not apply the sale again.",
     "manageAccess": "Check access in Customers"
   },
+  "ConsumerPartner": {
+    "trigger": "Link to a company",
+    "title": "Link customer to Sequoia",
+    "description": "Choose the partner company that can manage {name}'s account and QR codes in Sequoia.",
+    "search": "Search companies by name",
+    "partner": "Partner company",
+    "placeholder": "Select a company",
+    "empty": "No active company with Sequoia access found.",
+    "confirmDescription": "Link {name} to {partner}? This company's staff will have access to the customer and QR codes allowed by the plan and profile guardianships.",
+    "preserved": "The link preserves the plan, purchases and existing QR codes. In Sequoia, open Customers → customer → Memorials → Download to generate the print file.",
+    "cancel": "Cancel",
+    "confirm": "Confirm link",
+    "saving": "Linking…",
+    "linked": "Customer linked to the company.",
+    "alreadyLinked": "The customer is already linked to this company.",
+    "errors": {
+      "invalidData": "Select a valid customer and company.",
+      "consumerUnavailable": "Customer not found. Refresh the page.",
+      "partnerUnavailable": "This company is inactive or has no active Sequoia user.",
+      "alreadyAssigned": "The customer is already linked to another company. Refresh the page.",
+      "failed": "Unable to link the customer. Try again."
+    }
+  },
   "Consumers": {
     "title": "End customers",
     "description": "All active and inactive APP users, registered in the app, in BMS or by partner companies in Sequoia.",
