@@ -42,6 +42,8 @@ Since 2026-10-14, a place categorized as `resting_place` or `memorial_site` enco
 
 Previously printed memorial-place QRs contain `/profile/<id>/places/<placeId>`; when the scoped place has `qrGenerated=true`, that bare URL redirects to `/profile/<id>` for anonymous visitors and signed-in guardians alike. Old `/places?place=<placeId>` links still forward through this resolver. The places list explicitly opens `?view=details` to retain the location, its editing link and QR export controls. This parameter is navigation intent, never authorization: the profile privacy guard still runs first, and anonymous location details still require membership in the twelve-place preview. A scan for a generated memorial place outside that slice may redirect to the public profile without exposing the location. Missing/mismatched places retain the anonymous list redirect or authenticated not-found response. Neither navigation nor export changes the persisted place/QR flag or consumes credit.
 
+Since 2026-10-29, a bare legacy place URL whose scoped place is unavailable falls back to the existing `APP_MEMO` profile after the public-profile guard. This covers printed plaques whose location was removed or is absent from recovered data. It does not reconstruct location data or read a place belonging to another profile. Explicit `?view=details`, living/pet profiles and missing/private profiles keep their prior boundaries. Premium remains required for export; reading an existing public memorial from a plaque does not require the visitor to subscribe. See the [legacy plaque follow-up](../../../docs/audits/APP-MEMORIAL-SCAN-2026-10-29.md).
+
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
@@ -151,10 +153,20 @@ For a tomb QR opening a location, decode the actual printed image first. Check t
 - **Impact:** Scanning a memorial/tomb plaque showed the location and its QR instead of introducing the deceased.
 - **Root cause:** Location navigation and printed-QR destinations shared the same URL without a memorial category rule or an explicit details-navigation path.
 - **Resolution:** 2026-10-14, `58d4145` + this change: one shared destination for `memorial_site`/`resting_place`, compatibility redirects for printed links and `?view=details` for the location list. Regression: 36 focused action/entry/client tests; existing privacy, preview and Premium guards retained. Verification evidence is appended below.
+### PLACES-G2: Old plaques lose their destination when the scoped place is unavailable
+
+- **Status:** fixed
+- **Found:** 2026-10-29, QR decoded from the user's screenshot and its live anonymous redirect inspected.
+- **Evidence:** The printed detail URL currently returns the places-list redirect; the resolver cannot find a place under that profile.
+- **Impact:** The existing memorial is not the first page shown after scanning that plaque.
+- **Root cause:** The previous compatibility redirect requires a surviving generated memorial-place row.
+- **Resolution:** Bare links now fall back to the existing human memorial after the profile access guard. Explicit details and non-memorial profiles retain previous behavior. Regression: 41 focused action/entry/client tests; [follow-up audit](../../../docs/audits/APP-MEMORIAL-SCAN-2026-10-29.md) records source, runtime, UI and limitations.
+
 ## Verification log
 
 | Date | Commit / working changes | Verified by | Scope and evidence | Mismatches or limits → action |
 | --- | --- | --- | --- | --- |
+| 2026-10-29 | `f61444c` + legacy plaque fallback | Source, tests, local HTTP and Chrome | 41 focused tests, APP TypeScript and focused lint pass. Anonymous scan opens the memorial; explicit details keeps the list boundary. | [Audit](../../../docs/audits/APP-MEMORIAL-SCAN-2026-10-29.md) records concurrent full-suite failures and authenticated browser limits. |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-10-09 | `77d4bc0` + Premium place-download changes | Codex source and diff review | Source: viewer entitlement, Zod ID contract, profile/place scope, PNG generation and localized button/error paths traced. Added independent action specs. Tests: not executed. Runtime/UI: not exercised. | User explicitly waived automated tests and browser testing. No local processes started, fixtures changed, or provider calls made. |

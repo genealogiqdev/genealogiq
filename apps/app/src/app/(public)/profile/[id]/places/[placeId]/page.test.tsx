@@ -112,12 +112,41 @@ describe("previously printed place GenCodes", () => {
     expect(getPlaceById).not.toHaveBeenCalled()
   })
 
-  it("does not redirect missing or mismatched places to a memorial", async () => {
+  it.each([null, { user: { id: "guardian" } }])("opens the existing memorial when an old plaque's place is unavailable (session %j)", async (session) => {
+    vi.mocked(auth).mockResolvedValue(session as never)
+    vi.mocked(getPlaceById).mockResolvedValue(null)
+
+    await expect(visit()).rejects.toThrow("REDIRECT:/profile/memorial-1")
+    expect(getPlaceById).toHaveBeenCalledExactlyOnceWith("memorial-1", "place-1")
+    expect(getMemorialFeatures).not.toHaveBeenCalled()
+  })
+
+  it("keeps missing-place behavior when explicitly opening location details", async () => {
+    vi.mocked(getPlaceById).mockResolvedValue(null)
+
+    await expect(visit("details")).rejects.toThrow("REDIRECT:/profile/memorial-1/places")
+    vi.mocked(auth).mockResolvedValue({ user: { id: "guardian" } } as never)
+    await expect(visit("details")).rejects.toThrow("NOT_FOUND")
+  })
+
+  it.each(["APP_USER", "APP_PET"])("does not apply the missing-place memorial fallback to %s", async (role) => {
+    vi.mocked(getProfileById).mockResolvedValue({
+      id: "memorial-1", role, isPublicProfile: true, guardedBy: [],
+    } as never)
     vi.mocked(getPlaceById).mockResolvedValue(null)
 
     await expect(visit()).rejects.toThrow("REDIRECT:/profile/memorial-1/places")
     vi.mocked(auth).mockResolvedValue({ user: { id: "guardian" } } as never)
     await expect(visit()).rejects.toThrow("NOT_FOUND")
+  })
+
+  it("does not resolve a missing profile using an old place link", async () => {
+    vi.mocked(getProfileById).mockResolvedValue(null)
+
+    await expect(visit()).rejects.toThrow("REDIRECT:/sign-in?callbackUrl=%2Fprofile%2Fmemorial-1")
+    vi.mocked(auth).mockResolvedValue({ user: { id: "guardian" } } as never)
+    await expect(visit()).rejects.toThrow("NOT_FOUND")
+    expect(getPlaceById).not.toHaveBeenCalled()
   })
 
   it("does not treat repeated details parameters as an internal navigation", async () => {

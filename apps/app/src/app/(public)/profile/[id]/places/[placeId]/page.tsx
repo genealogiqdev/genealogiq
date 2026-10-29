@@ -40,6 +40,12 @@ export default async function PlaceDetailPage({ params, searchParams }: Props) {
   const isOwn = viewerId ? canManageProfile(profile, viewerId) : false
   const place = await getPlaceById(id, placeId)
   if (!place) {
+    // Old printed plaques can outlive their place row (including after data
+    // recovery). The existing public memorial is still their useful destination.
+    // Explicit details navigation keeps its normal missing-place behavior.
+    if (view !== "details" && profile.role === "APP_MEMO") {
+      redirect(`/profile/${profile.id}`)
+    }
     if (isAnon) redirect(`/profile/${id}/places`)
     notFound()
   }
