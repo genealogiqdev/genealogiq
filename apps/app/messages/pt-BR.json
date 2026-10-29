@@ -1376,6 +1376,7 @@
     "avatar": {
       "change": "Alterar imagem",
       "unsupportedFile": "Arquivo não suportado. Use {formats}.",
+      "readError": "Não foi possível ler esta imagem. Tente outra foto ou exporte o arquivo como JPG ou PNG.",
       "uploadError": "Falha ao enviar o avatar.",
       "waitUploading": "Aguarde o avatar terminar de enviar."
     },

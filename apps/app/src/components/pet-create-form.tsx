@@ -6,7 +6,7 @@ import { format } from "date-fns"
 import { CalendarIcon, ImagePlus, RotateCcw, Save, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { uploadMedia as upload } from "@genealogiq/core"
-import { compressImage } from "@/lib/image-compress"
+import { compressImage, ImageReadError } from "@/lib/image-compress"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { FieldLabel } from "@/components/ui/field"
@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { createPet } from "@/actions/pet.actions"
-import { isAllowedImage, IMAGE_FORMATS_LABEL } from "@/lib/upload-validation"
+import { isAllowedPetAvatar, PET_AVATAR_ACCEPT, PET_AVATAR_FORMATS_LABEL } from "@/lib/upload-validation"
 import { useTranslations } from "next-intl"
 
 interface OwnerOption {
@@ -117,12 +117,11 @@ export function PetCreateForm({ ownerId, ownerOptions }: { ownerId: string; owne
   const handleAvatarChange = async (files: FileList | null) => {
     const file = files?.[0]
     if (!file) return
-    if (!isAllowedImage(file)) {
-      toast.error(t("avatar.unsupportedFile", { formats: IMAGE_FORMATS_LABEL }))
+    if (!isAllowedPetAvatar(file)) {
+      toast.error(t("avatar.unsupportedFile", { formats: PET_AVATAR_FORMATS_LABEL }))
       return
     }
     setUploading(true)
-    update("avatarUrl", URL.createObjectURL(file))
     try {
       const payload = await compressImage(file, { maxDim: 512 })
       const blob = await upload(`bio/${payload.name}`, payload, {
@@ -133,8 +132,7 @@ export function PetCreateForm({ ownerId, ownerOptions }: { ownerId: string; owne
       })
       update("avatarUrl", blob.url)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("avatar.uploadError"))
-      update("avatarUrl", "")
+      toast.error(t(err instanceof ImageReadError ? "avatar.readError" : "avatar.uploadError"))
     } finally {
       setUploading(false)
     }
@@ -185,11 +183,11 @@ export function PetCreateForm({ ownerId, ownerOptions }: { ownerId: string; owne
             <ImagePlus className="h-4 w-4" />{t("avatar.change")}
           </Button>
           {form.avatarUrl && (
-            <Button variant="ghost" className="gap-2 text-muted-foreground" onClick={() => update("avatarUrl", "")}>
+            <Button variant="ghost" className="gap-2 text-muted-foreground" onClick={() => update("avatarUrl", "")} disabled={uploading}>
               <Trash2 className="h-4 w-4" />{tc("remove")}
             </Button>
           )}
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { handleAvatarChange(e.target.files); e.target.value = "" }} />
+          <input ref={fileInputRef} type="file" accept={PET_AVATAR_ACCEPT} aria-label={t("avatar.change")} className="hidden" onChange={(e) => { handleAvatarChange(e.target.files); e.target.value = "" }} />
         </div>
       </div>
 

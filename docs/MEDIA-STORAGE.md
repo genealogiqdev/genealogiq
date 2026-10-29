@@ -27,6 +27,10 @@ No LLM/model stage exists in this implementation.
 
 ## Rules and why
 
+### APP local image preparation, 2026-10-29
+
+[image-compress.ts](../apps/app/src/lib/image-compress.ts) runs before APP image uploads. It retries a failed local object-URL decode via FileReader, normalizes missing/generic MIME metadata for recognized extensions, keeps GIF bytes/animation and PNG transparency, and refuses failed canvas exports. Pet forms additionally accept SVG and always rasterize it to PNG before upload, including small vectors. Server allowed MIME types, signature validation, profile-prefix authorization and size limits remain unchanged. [PETS](../apps/app/docs/PETS.md) owns the picker, error recovery and acceptance evidence; [compressor tests](../apps/app/src/lib/image-compress.test.ts) verify preparation independently of storage.
+
 ### Vercel provider, 2026-10-19
 
 MEDIA_STORAGE_PROVIDER=vercel selects [vercel-media-storage.ts](../packages/services/src/vercel-media-storage.ts). Set BLOB_PUBLIC_READ_WRITE_TOKEN and BLOB_PRIVATE_READ_WRITE_TOKEN for separate stores. All browser bytes go directly to private staging with an exact server-generated pathname, create-only authorization, exact MIME/size limits, and a ten-minute token. Existing upload routes recheck their profile/staff policy on completion. Completion verifies actual size/type/signature, then streams to public media or the private documents prefix. Only completed destinations can be saved. Whole-store credentials never reach the browser.
@@ -144,6 +148,10 @@ Follow [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for exact setup/start/readiness
 | 2026-10-19 | Vercel project preparation | Vercel MCP + source review | Three project shells and four domain attachments are present; no Vercel Blob store, adapter, Git connection or deployment exists. Azure remains the active media provider. | Manual repo authorization, Pro confirmation, Blob provisioning, adapter/migration implementation and acceptance remain open; see [VERCEL-MIGRATION](VERCEL-MIGRATION.md) |
 | 2026-10-19 | 268d3f2 + Vercel migration | Source, unit tests and local Azurite | Provider adapter, private quarantine and scoped tokens implemented; 17 adapter tests and real Azurite upload/read/delete pass. See [audit](audits/VERCEL-MIGRATION-2026-10-19.md). | Real Vercel bytes/access checks remain pending; Azure remains default. |
 | 2026-10-20 | 2da3a06 + recovery docs; unchanged adapter | Live Vercel Blob and Neon | Recovered 84 public media objects and 19 private documents; all 103 target byte counts/SHA-256 match sources. Public reads succeed; private anonymous reads are denied and authenticated reads succeed. All three production project connections verified. [Audit](audits/NEON-RECOVERY-2026-10-20.md). | Browser upload/quota validation and deployed download authorization are n/a until app configuration/deployment; old public sources remain intact. |
+
+| Date | APP portrait preparation | Evidence and limits |
+| --- | --- | --- |
+| 2026-10-29 | `f61444c` + file-read retry and PNG conversion | 10 compressor regressions, 8 pet form DOM cases and real Azurite upload/read/delete passed. Local Chrome reached the edit form; file upload/persistence is n/a due to browser automation prerequisites. [Portrait audit](audits/APP-PET-AVATAR-2026-10-29.md). |
 
 ## Related
 

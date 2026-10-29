@@ -30,6 +30,10 @@ No LLM/model stage exists in this implementation.
 
 ## Rules and why
 
+Pet portrait selection accepts JPG, PNG, WebP, GIF and SVG on both create and edit. The browser rasterizes SVG to PNG (including small SVGs) before `/api/bio/upload`; raw SVG is never sent to storage. PNG keeps transparency and GIF keeps animation. The shared compressor normalizes missing/generic desktop MIME metadata from supported extensions and retries local object-URL decode failures using FileReader bytes. Unreadable or unsupported files cannot replace the current photo. A successful upload replaces the form value only with the returned storage URL; saving still uses the existing guardian, profile-prefix and pet action checks.
+
+The picker limits its offered formats to that contract. Decode failures show a translated explanation with JPG/PNG export guidance instead of the internal English exception. HEIC/HEIF is not decoded by this change. Users can retry the same file, and a failed second selection preserves the last successfully uploaded photo even before saving.
+
 Owner candidates must be manageable human tree members; pet-as-owner and foreign root reject (pet.actions.test.ts). detachPetFromTree removes only this tree’s links and preserves other roots sharing the pet (2b1920f).
 
 Managed pets also appear in **Perfis sob minha guarda** on home, the profile preview and the memorial/pet list. The [tree selector](MEMORIALS-GUARDIANS.md) recognizes them as already under care and opens their existing profile; it never changes `APP_PET` to `APP_MEMO`, adds a duplicate guardian or consumes another quota slot. `petsMax` and `memorialsMax` remain independent, and existing pets remain reachable after a downgrade. Pet mutations also invalidate the acting guardian's combined list and home/profile preview.
@@ -105,6 +109,8 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 
 ### Manual scenarios
 
+For **desktop portraits**, open an editable local pet, choose a known JPG/PNG and then a self-contained SVG, save and reload. Expect a visible portrait and an authorized persisted URL; the SVG upload must be PNG at no more than 512 px on either axis. Choose a corrupt PNG after a successful selection: expect a translated read error, no upload and the previous photo preserved. Retry a valid file; also check an unsupported HEIC and a forbidden profile. Restore the fixture photo afterward. For failures from a user-supplied file, retain its actual type/bytes before claiming the exact codec or cause; a screenshot alone cannot establish the format.
+
 1. **Happy path:** In local owner tree search Rex, open the sheet and expect Marina Silva and Local Admin as tutors. Open Luna and verify memorial owner Helena.
 2. **Boundary:** Try foreign-root ownership or pet-as-owner in deterministic fixtures. Expect rejection without PetOwnership writes.
 3. **Persistence/cleanup:** independently query the feature-owned rows or downstream result. Restore temporary edits; retain ledger/audit history. Only delete disposable fixtures when authorized by the task.
@@ -147,6 +153,16 @@ For a missing GenCode control, inspect the signed-in viewer's effective plan and
 - **Evidence:** iPhone screenshot reported “PNG baixado” without an apparent file. Source used a raw data-URL anchor for pets, unlike the human Blob download path, and reported success immediately after `click()`.
 - **Resolution:** shared Blob download delivery, deferred object-URL cleanup, retryable failure handling and accurate download-start/location text for pets and people.
 - **Regression:** the two download specs above cover exact binary/MIME/filename, connected anchor, delayed cleanup, permission rejection, conversion failure/retry, pending state and shared human/pet delivery. Safari on a physical iPhone remains a distinct device acceptance check; Chrome and mocked DOM results cannot establish it.
+
+### PETS-G2: Desktop portrait decode failures exposed an internal error and lost the selected photo
+
+- **Status:** fixed
+- **Found:** 2026-10-29, user screenshot of pet editing with “Could not load image”. The original file was unavailable; the user noted SVG was possible.
+- **Evidence:** `compressImage` only decoded an object URL; the forms displayed raw exceptions and replaced the current photo before decoding. `image/*` also offered unsupported formats, SVG was rejected, and empty desktop MIME metadata reached storage unchanged for small images.
+- **Impact:** A local file decode failure stopped upload, showed English feedback and reset a previously selected photo. SVG portraits had no conversion path.
+- **Root cause:** Incomplete client file preparation and error recovery. The exact original file/codec or object-URL failure remains unconfirmed.
+- **Resolution:** Shared byte-read retry and MIME normalization; pet-only SVG selection with mandatory PNG conversion; translated feedback; current photo retained until upload succeeds. `image-compress.test.ts` and `pet-avatar.test.tsx` cover independent resize/MIME/scope expectations, decode failures, rasterization failure, preservation and retry. Revision: this change on top of `f61444c`; final verification below.
+
 ## Verification log
 
 | Date | Commit / working changes | Verified by | Scope and evidence | Mismatches or limits → action |
@@ -159,7 +175,14 @@ For a missing GenCode control, inspect the signed-in viewer's effective plan and
 
 | 2026-10-29 | `f61444c` + shared QR file delivery | Source, 55 focused tests, static checks and local Chrome | Blob delivery, delayed release, failure/retry and location feedback; real pet PNG saved and independently decoded to its profile. [Audit](../../../docs/audits/APP-PET-QR-DOWNLOAD-2026-10-29.md) | SVG/human browser comparison and physical iPhone remain pending after Chrome control failed; full-suite BMS failure recorded separately. |
 
+| Date | Portrait verification | Evidence and remaining acceptance |
+| --- | --- | --- |
+| 2026-10-29 | `f61444c` + desktop portrait fix | 39 focused tests; full snapshot 1,478 passed / 52 skipped; APP types, focused lint and i18n passed; real Azurite test passed. Chrome normal login and pet edit rendered, but file selection was blocked by extension file access and native fallback stopped on URL verification. Actual upload/save/reload and original-file reproduction remain n/a. [Portrait audit](../../../docs/audits/APP-PET-AVATAR-2026-10-29.md). |
+
+
 ## Related
+
+The [2026-10-29 desktop portrait audit](../../../docs/audits/APP-PET-AVATAR-2026-10-29.md) records the preparation fix, tests and the browser upload prerequisite separately.
 
 The [2026-10-29 pet QR download audit](../../../docs/audits/APP-PET-QR-DOWNLOAD-2026-10-29.md) records the shared human/pet file delivery correction and separates tests, runtime, browser and device evidence.
 
