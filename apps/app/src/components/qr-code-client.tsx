@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { downloadBlob, downloadQrDataUrl } from "@/lib/download-file"
 
 type Preset = {
   key: string
@@ -25,17 +26,6 @@ const PRESETS: Preset[] = [
   { key: "forest",   fg: "#1F4032", bg: "#FFFFFF" },
 ]
 
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement("a")
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-}
-
 function QrCard({ preset, url }: { preset: Preset; url: string }) {
   const t = useTranslations("Qr")
   const [svg, setSvg] = useState("")
@@ -52,22 +42,28 @@ function QrCard({ preset, url }: { preset: Preset; url: string }) {
   }, [url, preset.fg, preset.bg])
 
   const handleSvg = () => {
-    const blob = new Blob([svg], { type: "image/svg+xml" })
-    downloadBlob(blob, `qr-${preset.key}.svg`)
-    toast.success(t("client.svgDownloaded"))
+    try {
+      const blob = new Blob([svg], { type: "image/svg+xml" })
+      downloadBlob(blob, `qr-${preset.key}.svg`)
+      toast.success(t("client.svgDownloaded"))
+    } catch {
+      toast.error(t("client.downloadFailed"))
+    }
   }
 
   const handlePng = async () => {
-    const dataUrl = await QRCode.toDataURL(url, {
-      errorCorrectionLevel: "H",
-      margin: 2,
-      width: 1024,
-      color: { dark: preset.fg, light: preset.bg },
-    })
-    const res = await fetch(dataUrl)
-    const blob = await res.blob()
-    downloadBlob(blob, `qr-${preset.key}.png`)
-    toast.success(t("client.pngDownloaded"))
+    try {
+      const dataUrl = await QRCode.toDataURL(url, {
+        errorCorrectionLevel: "H",
+        margin: 2,
+        width: 1024,
+        color: { dark: preset.fg, light: preset.bg },
+      })
+      await downloadQrDataUrl(dataUrl, `qr-${preset.key}.png`)
+      toast.success(t("client.pngDownloaded"))
+    } catch {
+      toast.error(t("client.downloadFailed"))
+    }
   }
 
   return (
@@ -85,7 +81,7 @@ function QrCard({ preset, url }: { preset: Preset; url: string }) {
         <Button onClick={handlePng} variant="outline" size="sm" className="flex-1 gap-1.5">
           <Download className="h-4 w-4" />PNG
         </Button>
-        <Button onClick={handleSvg} variant="outline" size="sm" className="flex-1 gap-1.5">
+        <Button onClick={handleSvg} disabled={!svg} variant="outline" size="sm" className="flex-1 gap-1.5">
           <Download className="h-4 w-4" />SVG
         </Button>
       </div>
@@ -115,6 +111,7 @@ export function QrCodeClient({ profileUrl }: Props) {
         </Button>
       </div>
 
+      <p className="mb-4 text-sm text-muted-foreground">{t("client.downloadHint")}</p>
       <div className={cn("grid gap-5", "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3")} style={{ animationDelay: "80ms" }}>
         {PRESETS.map((p) => (
           <QrCard key={p.key} preset={p} url={profileUrl} />

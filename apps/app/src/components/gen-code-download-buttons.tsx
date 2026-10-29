@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { downloadPlaceQrCode } from "@/actions/place-qr.actions"
 import { downloadPetQrCode } from "@/actions/pet-qr.actions"
 import type { QrDownloadFormat } from "@/lib/qr-download"
+import { downloadQrDataUrl } from "@/lib/download-file"
 
 type DownloadTarget =
   | { kind: "place"; profileId: string; placeId: string }
@@ -33,12 +34,7 @@ export function GenCodeDownloadButtons({ target }: { target: DownloadTarget }) {
         }
 
         const id = target.kind === "place" ? target.placeId : target.profileId
-        const link = document.createElement("a")
-        link.href = result.data.dataUrl
-        link.download = `gencode-${id}.${format}`
-        document.body.appendChild(link)
-        link.click()
-        link.remove()
+        await downloadQrDataUrl(result.data.dataUrl, `gencode-${id}.${format}`)
         toast.success(t(format === "svg" ? "client.svgDownloaded" : "client.pngDownloaded"))
       } catch {
         toast.error(t("client.downloadFailed"))
@@ -68,6 +64,7 @@ export function GenCodeDownloadButtons({ target }: { target: DownloadTarget }) {
           </Button>
         ))}
       </div>
+      <p className="text-xs text-muted-foreground">{t("client.downloadHint")}</p>
     </div>
   )
 }

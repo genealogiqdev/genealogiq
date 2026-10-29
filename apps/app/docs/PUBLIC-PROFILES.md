@@ -42,6 +42,8 @@ The enforcing files are linked above. Test names and literal assertions below re
 
 ## Contracts and data
 
+Human QR export UI (`QrCodeClient` on `/profile/[id]/qr-code`) shares [download-file.ts](../src/lib/download-file.ts) with [pets](PETS.md) and places as of 2026-10-29. Human presets, colors, formats and destinations are preserved. SVG waits for generation; file handoff errors show a retryable error. Object URLs remain valid for 60 seconds after the download click, and feedback says **download started** with browser/iPhone location guidance rather than claiming a confirmed save. See the [download audit](../../../docs/audits/APP-PET-QR-DOWNLOAD-2026-10-29.md) for regression/runtime evidence.
+
 getProfileEditSchema requires name/gender/birth date and location; memorial death details become required. PUBLIC_SELECT excludes credential/contact identifiers; EDIT_SELECT serves authorized forms. Favorite has composite primary key (userId,targetId), mapped to app_user_id/app_target_id. Public visibility was added by 20260725000000_app_user_public_profile. /api/search requires authentication, limits each viewer to 120 attempts per hour, requires q length three (one for pet mode), returns at most eight rows, and filters pet mode to accepted guardian-linked pets. The ordinary search still does not filter isPublicProfile.
 
 Inputs, defaults and output types live in the linked schema/actions/query files. APP/BMS/SEQ actions generally return [ActionResult (`done`/`ok`/`fail`)](../../../packages/core/src/result.ts); redirects/forbidden errors propagate from the DAL. Shared helpers retain their declared return types.
@@ -139,6 +141,8 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | pass: Rex favorite removed and restored through the UI; reload showed one favorite. Independent PostgreSQL COUNT(app_favorites) for the fixture viewer/target was 1. | Only the named exercised behavior is verified. |
 | 2026-10-09 | `e80c449`; unchanged recovery command from `9253152` | User-confirmed data update, independent production reads and 12 command tests | One previously excluded given name restored. All 72 original audit fields match their current approved expectations; 68 fields have approved changes, four remain untouched. [Evidence](../../../docs/audits/APP-TEXT-ENCODING-2026-10-09.md). | Local UI n/a because Docker pipe access was denied; production visual verification n/a because the browser tool could not initialize. Six unresolved fields remain under DATABASE-G2. |
+
+| 2026-10-29 | `f61444c` + shared QR file delivery | Source, 55 focused tests, static checks and local Chrome | Blob delivery, delayed release, failure/retry and location feedback; real pet PNG saved and independently decoded to its profile. [Audit](../../../docs/audits/APP-PET-QR-DOWNLOAD-2026-10-29.md) | SVG/human browser comparison and physical iPhone remain pending after Chrome control failed; full-suite BMS failure recorded separately. |
 
 ## Related
 

@@ -1579,8 +1579,9 @@
       "downloadFormat": "Download GenCode as {format}",
       "downloadGenCode": "Download GenCode",
       "linkCopied": "Profile link copied.",
-      "pngDownloaded": "PNG downloaded.",
-      "svgDownloaded": "SVG downloaded."
+      "pngDownloaded": "PNG download started.",
+      "svgDownloaded": "SVG download started.",
+      "downloadHint": "Look for the file in your browser downloads. On iPhone, open Files → Downloads."
     },
     "expired": {
       "body": "The company that issued this plaque has a subscription pending. Talk to them: if it is settled, the code starts working again. If you bought the plaque directly from them, your activation was reserved for you — contact our support and we will sort it out. Memorials already created stay online as normal.",

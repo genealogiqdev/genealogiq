@@ -48,6 +48,8 @@ The enforcing files are linked above. Test names and literal assertions below re
 
 ## Contracts and data
 
+Since 2026-10-29, the shared `GenCodeDownloadButtons` delivers server PNG/SVG data through the same Blob download helper as human and pet QR exports. It keeps the object URL alive for 60 seconds, reports **download started** and displays browser/iPhone file-location guidance. Place destination, access checks, filenames and stored QR state are unchanged. The [pet download audit](../../../docs/audits/APP-PET-QR-DOWNLOAD-2026-10-29.md) and `gen-code-download-buttons.test.tsx` record shared-control coverage, including exact place IDs/filename and failure handling.
+
 GeoPlace owns category/startDate/optional endDate/address/coordinates/images/qrGenerated. Blank endDate parses to null. Creation checks guardian-wide place units; photos share the profile image pool. 20260721000000_geo_places created rows; 20260726000000_geo_place_qr_generated added marker.
 
 Inputs, defaults and output types live in the linked schema/actions/query files. APP/BMS/SEQ actions generally return [ActionResult (`done`/`ok`/`fail`)](../../../packages/core/src/result.ts); redirects/forbidden errors propagate from the DAL. Shared helpers retain their declared return types.
@@ -175,6 +177,8 @@ For a tomb QR opening a location, decode the actual printed image first. Check t
 | 2026-10-09 | Same SVG/PNG and pet-download changes | Static checks | APP TypeScript (`tsc --noEmit --incremental false`), focused ESLint, both i18n gates, documentation contracts and diff whitespace checks passed. | Automated specs, file decoding/saving and browser permission scenarios remain unexecuted. |
 
 | 2026-10-14 | `bfa4aa7` | Source, local runtime and clean CI | Shared memorial/resting destination and compatibility routes reviewed; 36 focused QR tests, nine earlier decoded files, 17 current HTTP/auth/boundary checks and unchanged fourteen-place persistence snapshot. Full suite and three clean Linux image/liveness checks passed. | Visual QA explicitly waived after Chrome authentication failure; production evidence is in the release audit. |
+
+| 2026-10-29 | `f61444c` + shared QR file delivery | Source, 55 focused tests, static checks and local Chrome | Blob delivery, delayed release, failure/retry and location feedback; real pet PNG saved and independently decoded to its profile. [Audit](../../../docs/audits/APP-PET-QR-DOWNLOAD-2026-10-29.md) | SVG/human browser comparison and physical iPhone remain pending after Chrome control failed; full-suite BMS failure recorded separately. |
 
 ## Related
 

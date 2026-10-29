@@ -42,6 +42,12 @@ The enforcing files are linked above. Test names and literal assertions below re
 
 ## Contracts and data
 
+### Browser download delivery (2026-10-29)
+
+Pet PNG/SVG exports now use [download-file.ts](../src/lib/download-file.ts), the same Blob/object-URL delivery used by human QR exports in `QrCodeClient`. The former pet path clicked a raw server data URL and immediately claimed the file was downloaded. The shared helper converts the data URL to file bytes, preserves MIME/filename, rejects empty or unsupported data and releases the object URL after 60 seconds so Safari can consume it after the click returns. The toast says the download **started**, not that the browser saved it. The UI explains where to look in browser downloads and iPhone Files → Downloads; the configured download location remains the browser's choice. Pet URLs, live Premium checks and the read-only action contract are unchanged.
+
+Regression evidence and the remaining real-iPhone check are recorded in the [download audit](../../../docs/audits/APP-PET-QR-DOWNLOAD-2026-10-29.md). Run `pnpm exec vitest run --project app apps/app/src/lib/download-file.test.ts apps/app/src/components/gen-code-download-buttons.test.tsx apps/app/src/actions/pet-qr.actions.test.ts apps/app/src/actions/place-qr.actions.test.ts`. Verify actual downloaded file bytes as well as the toast, then repeat with anonymous access and after reload.
+
 APP_PET profiles have independent quota and multiple authorized human owners. Unique PetOwnership(ownerId,petId) replaces PET_OF FamilyRelation in 20260922000000_pet_ownerships. Pets reuse bio/gallery/documents/places modules.
 
 Inputs, defaults and output types live in the linked schema/actions/query files. APP/BMS/SEQ actions generally return [ActionResult (`done`/`ok`/`fail`)](../../../packages/core/src/result.ts); redirects/forbidden errors propagate from the DAL. Shared helpers retain their declared return types.
@@ -132,7 +138,15 @@ For a missing GenCode control, inspect the signed-in viewer's effective plan and
 
 ## Gaps and fixes
 
-None known from this source/test audit. This is not a claim of complete product/integration coverage.
+### PETS-G1: Success toast did not establish a saved QR file
+
+- **Status:** fixed (2026-10-29 working change; see the download audit).
+- **Found:** 2026-10-29, pet GenCode download screenshot and source review.
+- **Impact:** A success toast could be mistaken for a file already saved on the device.
+- **Root cause:** Data-URL delivery and immediate success feedback did not establish device file persistence.
+- **Evidence:** iPhone screenshot reported “PNG baixado” without an apparent file. Source used a raw data-URL anchor for pets, unlike the human Blob download path, and reported success immediately after `click()`.
+- **Resolution:** shared Blob download delivery, deferred object-URL cleanup, retryable failure handling and accurate download-start/location text for pets and people.
+- **Regression:** the two download specs above cover exact binary/MIME/filename, connected anchor, delayed cleanup, permission rejection, conversion failure/retry, pending state and shared human/pet delivery. Safari on a physical iPhone remains a distinct device acceptance check; Chrome and mocked DOM results cannot establish it.
 ## Verification log
 
 | Date | Commit / working changes | Verified by | Scope and evidence | Mismatches or limits → action |
@@ -143,7 +157,11 @@ None known from this source/test audit. This is not a claim of complete product/
 | 2026-10-09 | Same Premium pet-profile SVG/PNG changes | Static checks | APP TypeScript (`tsc --noEmit --incremental false`), focused ESLint, both i18n gates, documentation contracts and diff whitespace checks passed. | Static evidence only; the new automated specs and runtime/UI scenarios were not executed. |
 | 2026-10-09 | `08b2b1c` + tree profile reuse | Source, unit/DOM and static review | Existing-ID promotion, accepted scope, transactional plan/count/extras, separate pet quotas and refreshed guarded lists; 38 new regression tests passed. [Audit](../../../docs/audits/TREE-MEMORIALS-2026-10-09.md) records build and all check results. | Runtime: PostgreSQL/Docker unavailable. UI/persistence: not exercised; exact remaining scenarios are in the audit. |
 
+| 2026-10-29 | `f61444c` + shared QR file delivery | Source, 55 focused tests, static checks and local Chrome | Blob delivery, delayed release, failure/retry and location feedback; real pet PNG saved and independently decoded to its profile. [Audit](../../../docs/audits/APP-PET-QR-DOWNLOAD-2026-10-29.md) | SVG/human browser comparison and physical iPhone remain pending after Chrome control failed; full-suite BMS failure recorded separately. |
+
 ## Related
+
+The [2026-10-29 pet QR download audit](../../../docs/audits/APP-PET-QR-DOWNLOAD-2026-10-29.md) records the shared human/pet file delivery correction and separates tests, runtime, browser and device evidence.
 
 The [2026-10-09 tree memorial audit](../../../docs/audits/TREE-MEMORIALS-2026-10-09.md) records this list/shortcut source trace, pet-reuse and home-refresh regression tests, and the remaining local runtime/UI prerequisite separately from the earlier GenCode work.
 

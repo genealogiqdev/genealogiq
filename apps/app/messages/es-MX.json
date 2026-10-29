@@ -1579,8 +1579,9 @@
       "downloadFormat": "Descargar GenCode en {format}",
       "downloadGenCode": "Descargar GenCode",
       "linkCopied": "Enlace del perfil copiado.",
-      "pngDownloaded": "PNG descargado.",
-      "svgDownloaded": "SVG descargado."
+      "pngDownloaded": "Descarga del PNG iniciada.",
+      "svgDownloaded": "Descarga del SVG iniciada.",
+      "downloadHint": "Busca el archivo en las descargas del navegador. En iPhone, abre Archivos → Descargas."
     },
     "expired": {
       "body": "La empresa que emitió esta placa tiene la suscripción pendiente. Habla con ella: si se regulariza, el código vuelve a funcionar. Si compraste la placa directamente con ella, tu activación quedó reservada — contacta a nuestro soporte y lo resolvemos. Los memoriales ya creados siguen en línea con normalidad.",
