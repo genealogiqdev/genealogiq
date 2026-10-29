@@ -161,7 +161,7 @@ For a missing GenCode control, inspect the signed-in viewer's effective plan and
 - **Evidence:** `compressImage` only decoded an object URL; the forms displayed raw exceptions and replaced the current photo before decoding. `image/*` also offered unsupported formats, SVG was rejected, and empty desktop MIME metadata reached storage unchanged for small images.
 - **Impact:** A local file decode failure stopped upload, showed English feedback and reset a previously selected photo. SVG portraits had no conversion path.
 - **Root cause:** Incomplete client file preparation and error recovery. The exact original file/codec or object-URL failure remains unconfirmed.
-- **Resolution:** Shared byte-read retry and MIME normalization; pet-only SVG selection with mandatory PNG conversion; translated feedback; current photo retained until upload succeeds. `image-compress.test.ts` and `pet-avatar.test.tsx` cover independent resize/MIME/scope expectations, decode failures, rasterization failure, preservation and retry. Revision: this change on top of `f61444c`; final verification below.
+- **Resolution:** Shared byte-read retry and MIME normalization; pet-only SVG selection with mandatory PNG conversion; translated feedback; current photo retained until upload succeeds. `image-compress.test.ts` and `pet-avatar.test.tsx` cover independent resize/MIME/scope expectations, decode failures, rasterization failure, preservation and retry. Source fix: `0ed315a`; final verification below.
 
 ## Verification log
 
@@ -177,7 +177,7 @@ For a missing GenCode control, inspect the signed-in viewer's effective plan and
 
 | Date | Portrait verification | Evidence and remaining acceptance |
 | --- | --- | --- |
-| 2026-10-29 | `f61444c` + desktop portrait fix | 39 focused tests; full snapshot 1,478 passed / 52 skipped; APP types, focused lint and i18n passed; real Azurite test passed. Chrome normal login and pet edit rendered, but file selection was blocked by extension file access and native fallback stopped on URL verification. Actual upload/save/reload and original-file reproduction remain n/a. [Portrait audit](../../../docs/audits/APP-PET-AVATAR-2026-10-29.md). |
+| 2026-10-29 | `0ed315a` desktop portrait fix | 39 focused tests; full snapshot 1,478 passed / 52 skipped; APP types, focused lint, i18n, docs and full isolated production build passed; real Azurite test passed. Chrome normal login and pet edit rendered, but file selection was blocked by extension file access and native fallback stopped on URL verification. Actual upload/save/reload and original-file reproduction remain n/a. [Portrait audit](../../../docs/audits/APP-PET-AVATAR-2026-10-29.md). |
 
 
 ## Related

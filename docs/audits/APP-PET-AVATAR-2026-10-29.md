@@ -23,7 +23,7 @@ Entry `/profile/[id]/edit` → normal APP Credentials session and owner/accepted
 - Both i18n gates passed; the reference check retained 96 dynamic skips and one unmapped columns file.
 - Real Azurite integration: 1 test passed, covering scoped upload, validation, public read, overwrite rejection and cleanup. This exercises storage, not a browser codec.
 - Documentation checker passed after the concurrent BMS audit file was created: 4 guides, 40 features and 2,706 links. The earlier transient missing BMS link was not a portrait regression. Diff whitespace check passed.
-- An isolated provider-disabled APP production build (`--webpack`, `.next-qa-pet-avatar-build`) was started after stopping the owned dev server. Its result is recorded separately below.
+- Isolated provider-disabled APP production build (`--webpack`, `.next-qa-pet-avatar-build`) passed after stopping the owned dev server: compiled in 4.1 minutes, TypeScript in 5.8 minutes, all 33 static pages generated in 2.8 minutes, final traces/routes completed. This validates build output, not a deployment or the unexecuted browser upload.
 
 ## Runtime and UI evidence
 
@@ -40,3 +40,5 @@ SVG file selection was attempted with an ignored, hand-authored local image fixt
 The owned APP launcher and its child processes were stopped. Rex's original `avatarUrl` was null and no avatar upload/save occurred; no profile restoration is needed. Local tests/fixtures/logs remain ignored under `.local-qa/pet-avatar-2026-10-29`. PostgreSQL and Azurite are shared with concurrent local work and are retained. Only this run's generated tsconfig includes are removed after checks; other tasks' output/includes are preserved.
 
 GitHub repository verified as `genealogiqdev/genealogiq`; default branch and starting checkout are both `main`. A fresh fetch confirmed ten prior local commits beyond `origin/main`; there is no open PR from `main`. GitHub cannot create a PR from `main` into itself. Publication must resolve that branch conflict without silently switching the checkout or publishing the other pending release commits.
+
+Source, tests and feature documentation committed as `0ed315a` on the original `main` branch. The portrait commit excludes other chats' source/locale changes. Permission was requested for a publication-only branch containing just this correction, while retaining the local checkout on `main`; no push or PR creation is claimed here.
