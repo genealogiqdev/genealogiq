@@ -93,9 +93,8 @@ export async function addRelation(rootId: string, data: unknown): Promise<Action
   }
 
   // IDOR guard (mirrors updateRelation/removeRelation): the relation must be
-  // anchored to the caller's tree, and any endpoint outside it may only be a
-  // real APP_USER — who is then consent-gated below. A ghost/memorial or a
-  // stranger that isn't in root's reachable tree cannot be wired in by id.
+  // anchored to the caller's tree. An outside memorial requires the actor's
+  // live, accepted guardianship; an outside APP_USER remains consent-gated.
   const treeIds = await getTreeMemberIds(rootId)
   const fromInTree = treeIds.has(fromId)
   const toInTree = treeIds.has(toId)
@@ -103,7 +102,13 @@ export async function addRelation(rootId: string, data: unknown): Promise<Action
   const outsiderId = !fromInTree ? fromId : !toInTree ? toId : null
   const outsiderRole = !fromInTree ? from.role : !toInTree ? to.role : null
   if (outsiderId && outsiderRole !== "APP_USER") {
-    return fail(t("familyTree.notAuthorized"))
+    const guardianship = outsiderRole === "APP_MEMO"
+      ? await prisma.appUserGuardian.findFirst({
+          where: { appUserId: outsiderId, guardianId: session.user.id, status: "ACCEPTED" },
+          select: { id: true },
+        })
+      : null
+    if (!guardianship) return fail(t("familyTree.notAuthorized"))
   }
   // linkSpouseId forges a second (ACCEPTED) SPOUSE relation below — it must be
   // an existing member of the tree, never an arbitrary stranger by id.
@@ -112,26 +117,19 @@ export async function addRelation(rootId: string, data: unknown): Promise<Action
   // Tier limit (only enforced when the tree would grow).
   const features = await getMemorialFeatures(rootId)
   const memberCount = await countTreeMembers(rootId)
-  const relExists = await prisma.familyRelation.findFirst({
-    where: { OR: [
-      { fromId, toId: rootId }, { fromId: rootId, toId },
-      { toId,   fromId: rootId }, { toId: rootId, fromId },
-    ] },
-    select: { id: true },
-  })
-  const involvesNew = !relExists && (fromId !== rootId && toId !== rootId)
+  // Linking an existing memorial also joins its accepted relatives. Count all
+  // newly reachable people, including when the relation is anchored at root.
+  const addedIds = outsiderId ? await getTreeMemberIds(outsiderId) : new Set<string>()
+  if (outsiderId) addedIds.add(outsiderId)
+  const addedCount = [...addedIds].filter((id) => !treeIds.has(id)).length
   // Grandfathered: a tree grown under a richer plan is not frozen solid when
   // the plan lapses — it just stops growing. See lib/quota.ts.
-  if (involvesNew && exceedsQuota(memberCount + 1, features.treeMaxMembers, memberCount)) {
+  if (addedCount > 0 && exceedsQuota(memberCount + addedCount, features.treeMaxMembers, memberCount)) {
     return fail(t("familyTree.treeLimitReached", { limit: features.treeMaxMembers }))
   }
 
-  // Consent: an endpoint OUTSIDE the tree is a real APP_USER being invited (the
-  // guard above guarantees the role) and must accept before the relation is
-  // active. Gated on tree MEMBERSHIP, not on rootId — otherwise an invite
-  // anchored to a non-root tree member would be silently ACCEPTED, forging a
-  // relation against (and exposing the subtree of) a non-consenting stranger.
-  const needsConsent = !!outsiderId && outsiderId !== session.user.id
+  // Living accounts must accept; the accepted guardian acts for a memorial.
+  const needsConsent = !!outsiderId && outsiderRole === "APP_USER" && outsiderId !== session.user.id
 
   const [normFrom, normTo] = normalizePair(type, fromId, toId)
 
@@ -200,10 +198,9 @@ export async function addRelation(rootId: string, data: unknown): Promise<Action
 
   // Optional spouse link: when adding a 2nd parent and the UI says they're
   // married to the existing parent, create the SPOUSE relation in one go. Only
-  // when the new parent (fromId) is itself an in-tree member — otherwise it's an
-  // outside APP_USER pending consent, and we must not forge an ACCEPTED marriage
-  // for them; the spouse link can be added once they accept.
-  if (linkSpouseId && type === "PARENT_OF" && fromInTree) {
+  // when the new parent is in-tree or is an authorized memorial. An outside
+  // APP_USER pending consent must never receive an ACCEPTED marriage.
+  if (linkSpouseId && type === "PARENT_OF" && !needsConsent) {
     // The new parent is fromId (PARENT_OF: parent → child).
     const newParentId = fromId
     if (newParentId !== linkSpouseId && !(await hasConflictingRelationType(newParentId, linkSpouseId, "SPOUSE"))) {
@@ -234,6 +231,7 @@ export async function addRelation(rootId: string, data: unknown): Promise<Action
   }
 
   revalidatePath(`/profile/${rootId}/tree`)
+  if (outsiderId && !needsConsent) revalidatePath(`/profile/${outsiderId}/tree`)
   return done()
 }
 

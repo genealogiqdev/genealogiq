@@ -3,7 +3,7 @@
 > **Code:** [src/actions/family-tree.actions.ts](../src/actions/family-tree.actions.ts) · [src/queries/family-tree.ts](../src/queries/family-tree.ts) · [src/components/family-tree/canvas/layout/index.ts](../src/components/family-tree/canvas/layout/index.ts) · [src/components/family-tree/canvas/layout/family-units.ts](../src/components/family-tree/canvas/layout/family-units.ts) · [src/lib/wikitree.ts](../src/lib/wikitree.ts) · [src/lib/wikitree-mapper.ts](../src/lib/wikitree-mapper.ts) · [src/schemas/family-tree.schema.ts](../src/schemas/family-tree.schema.ts)
 > **Entry points:** `/profile/[id]/tree` · `/api/wikitree/search` · `/api/wikitree/profile`
 > **Depends on:** [PETS](PETS.md) · [MEMORIALS-GUARDIANS](MEMORIALS-GUARDIANS.md) · [MEDIA-STORAGE](../../../docs/MEDIA-STORAGE.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-03 at `6e06634`, including this task’s uncommitted documentation, launcher and test changes. Source verification is separate from runtime/UI below.
+> **Last verified against code:** 2026-10-29 at `f61444c` plus guarded memorial selection/link changes. Source and deterministic checks are separate from the partial runtime/UI evidence in the [guarded memorial audit](../../../docs/audits/APP-TREE-GUARDED-MEMORIALS-2026-10-29.md).
 
 The APP application supplies family tree and wikitree import. Accepted directed relations feed ordered family units and automatic canvas geometry; synthetic duplicate ancestors prevent recursion on pedigree collapse. Ghost creation writes node+relation atomically. TreeNodePosition persists in schema but manual saved canvas positions are no longer used. WikiTree prefills ordinary profile data.
 
@@ -35,6 +35,10 @@ The [memorial selector](MEMORIALS-GUARDIANS.md) can now reuse a managed `APP_GHO
 
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
+**Add an existing memorial:** The add-relative dialog includes **Perfis sob minha guarda** beside the Genealogiq search. This lists the signed-in actor's accepted human memorials without requiring a name, with name filtering for additional results. It reuses the memorial's existing ID and content; it does not create another profile, guardianship or memorial quota charge. Pets keep their separate attachment flow.
+
+`addRelation` rechecks the actor's live `ACCEPTED` guardianship before joining an out-of-tree `APP_MEMO`. Managing the tree root alone does not grant this permission. Pending, rejected, revoked or absent guardianship cannot authorize the link; out-of-tree ghosts remain excluded. An authorized memorial relation is immediately `ACCEPTED`, including an optional marriage to an existing parent. Living accounts still require their own consent. Existing duplicate, conflicting-type, ancestry-cycle and in-tree spouse checks apply. Growth counts every newly reachable accepted relative, including links anchored at the root; a plan downgrade does not block relations between existing members.
+
 ## Contracts and data
 
 Accepted directed relations feed ordered family units and automatic canvas geometry; synthetic duplicate ancestors prevent recursion on pedigree collapse. Ghost creation writes node+relation atomically. TreeNodePosition persists in schema but manual saved canvas positions are no longer used. WikiTree prefills ordinary profile data.
@@ -56,6 +60,7 @@ Column mappings, keys, enums, deletes and nullability are authoritative in [sche
 | GET | `/profile/[id]/tree` | [src/app/(public)/profile/[id]/tree/page.tsx](../src/app/(public)/profile/[id]/tree/page.tsx) |
 | GET | `/api/wikitree/search` | [src/app/api/wikitree/search/route.ts](../src/app/api/wikitree/search/route.ts) |
 | GET | `/api/wikitree/profile` | [src/app/api/wikitree/profile/route.ts](../src/app/api/wikitree/profile/route.ts) |
+| GET | `/api/search?mode=guarded-relative&q=...` | [src/app/api/search/route.ts](../src/app/api/search/route.ts); authenticated, rate limited, actor's accepted `APP_MEMO` profiles only; at most eight name-ordered results, empty/short query allowed |
 
 | Setting | Default | Validation / owner | Consequence |
 | --- | --- | --- | --- |
@@ -93,6 +98,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 1. **Happy path:** Open /profile for the local owner, follow its tree; expect seven people and two pets. Zoom/fit, search Rex and inspect tutors Marina Silva and Local Admin; reload preserves graph.
 2. **Boundary:** Sign out and visit private owner tree; expect access wall. Local WikiTree-disabled mode must report unavailable; actual import requires upstream network.
 3. **Persistence/cleanup:** independently query the feature-owned rows or downstream result. Restore temporary edits; retain ledger/audit history. Only delete disposable fixtures when authorized by the task.
+4. **Existing guarded memorial:** In the owner tree, add a parent/child/spouse/sibling through **Perfis sob minha guarda**. Select a human memorial outside the tree and confirm; expect the same profile ID in the reloaded tree, an accepted relation, no new AppUser/guardian, and no family-request notification. With a disposable fixture, revoke acceptance after selecting but before confirming; expect rejection and no relation. Restore the fixture and retry. At the tree cap, including relatives already attached to the memorial, reject growth while allowing links among existing members. Empty results and failed searches keep Add disabled.
 
 ### QA evidence
 
@@ -127,6 +133,15 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 - **Root cause:** The present implementation/contract is described in the evidence; original decision not recorded.
 - **Resolution:** Not fixed in this task. Define provenance storage and record independent upstream fixtures before claiming import auditing.
 
+### FAMILY-TREE-G2: Guarded memorials could not be added to a tree
+
+- **Status:** fixed
+- **Found:** 2026-10-29, add-relative request and source trace from `f61444c`.
+- **Evidence:** The global search returned `APP_MEMO` profiles, but `addRelation` rejected every out-of-tree endpoint except `APP_USER`, including the actor's own accepted memorials.
+- **Impact:** A memorial visible in the guarded-profile list could not be reused in the tree; manually creating another person would duplicate its identity.
+- **Root cause:** The outsider permission check did not distinguish accepted memorial guardians from other viewers. The dialog also lacked a direct guarded-profile selector.
+- **Resolution:** This change adds the scoped selector and live accepted-guardian check, preserves account consent and graph boundaries, and counts actual added graph members for quota enforcement. Regression coverage: `family-tree.actions.test.ts`, `api/search/route.test.ts`, and `add-relative-dialog.test.tsx`.
+
 ## Verification log
 
 | Date | Commit / working changes | Verified by | Scope and evidence | Mismatches or limits → action |
@@ -134,6 +149,8 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | pass: local tree displayed seven people, four generations and two pets; zoom/fit and Rex search/sheet worked. No WikiTree import or graph mutation was exercised. | Only the named exercised behavior is verified. |
 | 2026-10-09 | `08b2b1c` + tree profile reuse | Source, unit/DOM and static review | Existing-ID promotion, accepted scope, transactional plan/count/extras, separate pet quotas and refreshed guarded lists; 38 new regression tests passed. [Audit](../../../docs/audits/TREE-MEMORIALS-2026-10-09.md) records build and all check results. | Runtime: PostgreSQL/Docker unavailable. UI/persistence: not exercised; exact remaining scenarios are in the audit. |
+
+| 2026-10-29 | `f61444c` + guarded memorial links | Source, action/route/DOM tests and partial local Chrome QA | 66 focused tests; full suite 1,496 passed / 59 skipped; APP types/lint and i18n passed. New selector and expired-session boundary visible locally. [Audit](../../../docs/audits/APP-TREE-GUARDED-MEMORIALS-2026-10-29.md). | Browser connection/cookie conflicts prevented successful save/reload and revoked-guardian UI verification; these remain pending. |
 
 ## Related
 

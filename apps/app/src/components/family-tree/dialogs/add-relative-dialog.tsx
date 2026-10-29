@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useRef } from "react"
+import { useState, useTransition, useRef, useEffect } from "react"
 import { useTranslations } from "next-intl"
 import { Search, User, UserPlus, ArrowLeft, Globe, ExternalLink, PawPrint } from "lucide-react"
 import { toast } from "sonner"
@@ -111,7 +111,8 @@ export function AddRelativeDialog({
   const [results, setResults] = useState<SearchResult[]>([])
   const [selected, setSelected] = useState<SearchResult | null>(null)
   const [loading, setLoading]   = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [guardedOnly, setGuardedOnly] = useState(false)
+  const [searchError, setSearchError] = useState(false)
 
   // Ghost form
   const [firstName, setFirstName]   = useState("")
@@ -140,24 +141,41 @@ export function AddRelativeDialog({
   const [wikitreeProfileLoading, setWikitreeProfileLoading] = useState<string | null>(null)
   const wikitreeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  useEffect(() => {
+    if (!open || mode !== "search") return
+    const searchMode = kind === "pet" ? "pet" : guardedOnly ? "guarded-relative" : "relative"
+    if (!query.trim() && searchMode !== "guarded-relative") return
+    let active = true
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&mode=${searchMode}`)
+        if (!res.ok) throw new Error("Search failed")
+        const data = await res.json() as SearchResult[]
+        if (active) setResults(data)
+      } catch {
+        if (active) { setResults([]); setSearchError(true) }
+      } finally {
+        if (active) setLoading(false)
+      }
+    }, query.trim() ? 300 : 0)
+    return () => { active = false; clearTimeout(timer) }
+  }, [open, mode, query, kind, guardedOnly])
+
   const handleSearch = (value: string) => {
     setQuery(value)
     setSelected(null)
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (!value.trim()) { setResults([]); return }
-    debounceRef.current = setTimeout(async () => {
-      setLoading(true)
-      try {
-        const mode = kind === "pet" ? "pet" : "relative"
-        const res = await fetch(`/api/search?q=${encodeURIComponent(value)}&mode=${mode}`)
-        const data = await res.json() as SearchResult[]
-        setResults(data)
-      } catch {
-        setResults([])
-      } finally {
-        setLoading(false)
-      }
-    }, 300)
+    setResults([])
+    setSearchError(false)
+    setLoading(!!value.trim() || guardedOnly)
+  }
+
+  const handleSearchSource = (guarded: boolean) => {
+    setGuardedOnly(guarded)
+    setQuery("")
+    setSelected(null)
+    setResults([])
+    setSearchError(false)
+    setLoading(guarded)
   }
 
   const handleWikitreeSearch = (value: string) => {
@@ -312,6 +330,7 @@ export function AddRelativeDialog({
   const handleClose = () => {
     onClose()
     setMode("search")
+    setGuardedOnly(false); setSearchError(false); setLoading(false)
     setQuery(""); setResults([]); setSelected(null)
     setKind(initialKind)
     setSpouseSubtype("married")
@@ -329,12 +348,13 @@ export function AddRelativeDialog({
   const handleKindChange = (value: string) => {
     setKind(value as RelationKind)
     setMode("search")
+    setGuardedOnly(false); setSearchError(false); setLoading(false)
     setQuery("")
     setResults([])
     setSelected(null)
   }
 
-  const showNoResults = !loading && results.length === 0 && query.length >= 3
+  const showNoResults = !loading && !searchError && results.length === 0 && (guardedOnly || query.trim().length >= (kind === "pet" ? 1 : 3))
   const showSpouseLink = kind === "parent" && anchorParents.length > 0
   const shouldLinkSpouse = showSpouseLink && linkSpouse
   const needsEndDate = spouseSubtype === "divorced" || spouseSubtype === "widowed"
@@ -379,6 +399,16 @@ export function AddRelativeDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          {mode === "search" && kind !== "pet" && (
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant={guardedOnly ? "outline" : "secondary"} aria-pressed={!guardedOnly} onClick={() => { if (guardedOnly) handleSearchSource(false) }}>
+                Genealogiq
+              </Button>
+              <Button type="button" size="sm" variant={guardedOnly ? "secondary" : "outline"} aria-pressed={guardedOnly} onClick={() => { if (!guardedOnly) handleSearchSource(true) }}>
+                {t("addRelative.guardedProfiles")}
+              </Button>
+            </div>
+          )}
           <div className={cn("gap-2 items-end", mode === "search" ? "flex" : "grid grid-cols-2")}>
             <div className="space-y-1.5 shrink-0">
               <FieldLabel>{t("addRelative.kindLabel")}</FieldLabel>
@@ -396,7 +426,7 @@ export function AddRelativeDialog({
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   className="pl-9 w-full"
-                  placeholder={kind === "pet" ? t("addRelative.petSearchPlaceholder") : t("addRelative.searchPlaceholder")}
+                  placeholder={kind === "pet" ? t("addRelative.petSearchPlaceholder") : guardedOnly ? t("addRelative.guardedSearchPlaceholder") : t("addRelative.searchPlaceholder")}
                   value={query}
                   onChange={(e) => handleSearch(e.target.value)}
                 />
@@ -475,6 +505,7 @@ export function AddRelativeDialog({
                         <button
                           key={r.id}
                           type="button"
+                          aria-pressed={isSelected}
                           onClick={() => setSelected(r)}
                           className={cn("w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-accent/60 transition-colors", isSelected && "bg-accent")}
                         >
@@ -506,7 +537,8 @@ export function AddRelativeDialog({
                 </div>
               )}
 
-              {showNoResults && <p className="text-sm text-center text-muted-foreground py-2">{t("addRelative.noResults")}</p>}
+              {searchError && <p role="alert" className="text-sm text-center text-destructive py-2">{t("addRelative.searchFailed")}</p>}
+              {showNoResults && <p role="status" className="text-sm text-center text-muted-foreground py-2">{t(guardedOnly ? "addRelative.noGuardedProfiles" : "addRelative.noResults")}</p>}
 
               {kind === "pet" ? (
                 <>

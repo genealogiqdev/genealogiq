@@ -42,6 +42,8 @@ Tree membership is not permission to assume guardianship. The selector and mutat
 
 `getGuardedProfilesByGuardianId` supplies human memorials and managed pets to `/home`, the profile preview and the guarded-profile list. Existing pets/memorials already consume their respective quota and are labeled **Já está sob sua guarda** in the picker with **Ver perfil**. They are not recreated or charged another slot, including after a plan downgrade. The original memorial-only reader/count remain separate so pets do not consume `memorialsMax`.
 
+The inverse flow is available in [the family tree](FAMILY-TREE.md): **Adicionar membro da família → Perfis sob minha guarda** selects an existing human memorial and joins it to the managed tree. The actor must still have accepted guardianship at submission. The same memorial/profile/content IDs are preserved, with no new memorial slot or guardian row; the accepted human graph must fit the tree's plan limit. Pets continue through the separate pet selector.
+
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
@@ -170,6 +172,8 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-10-09 | `08b2b1c` + tree profile reuse | Source, unit/DOM and static review | Existing-ID promotion, accepted scope, transactional plan/count/extras, separate pet quotas and refreshed guarded lists; 38 new regression tests passed. [Audit](../../../docs/audits/TREE-MEMORIALS-2026-10-09.md) records build and all check results. | Runtime: PostgreSQL/Docker unavailable. UI/persistence: not exercised; exact remaining scenarios are in the audit. |
 | 2026-10-09 | `08b2b1c` + shared memorial QR follow-up | Source and automated checks | Free 1/Premium 5 creation boundaries, independent Premium memorial QR capacity, personal QR preservation, accepted-only scope and purchased rights are covered in the 77 focused passes. APP types/build/lint passed. | Runtime/UI n/a: local database and Chrome authentication unavailable. [SEQ memorial audit](../../../docs/audits/SEQ-MEMORIALS-2026-10-09.md) separates full-suite failures, decoding and cleanup. |
+| 2026-10-29 | `f61444c` + guarded memorial tree links | Source and deterministic review; partial local UI | Existing human memorials can be reused through the tree selector with live accepted guardianship and no new memorial charge. [Audit](../../../docs/audits/APP-TREE-GUARDED-MEMORIALS-2026-10-29.md). | Full save/reload UI acceptance remains pending due to Chrome connection/cookie failures. |
+
 
 ## Related
 

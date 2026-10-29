@@ -11,7 +11,7 @@ const { prismaMock, PrismaKnownError, isAuthorizedMediaReference } = vi.hoisted(
   const prismaMock = {
     familyRelation: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     appUser: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
-    appUserGuardian: { create: vi.fn() },
+    appUserGuardian: { create: vi.fn(), findFirst: vi.fn() },
     notification: { updateMany: vi.fn() },
     $transaction: vi.fn(),
   }
@@ -71,6 +71,7 @@ beforeEach(() => {
   // this same mock to (vi.clearAllMocks() resets call history, not
   // implementations set via mockResolvedValue).
   prismaMock.familyRelation.findUnique.mockResolvedValue(null)
+  prismaMock.appUserGuardian.findFirst.mockResolvedValue(null)
 })
 
 // cuid()-shaped ids so the .cuid() schema fields parse and we reach the guard.
@@ -275,6 +276,105 @@ describe("addRelation — IDOR guard", () => {
     expect(res).toEqual({ ok: true, message: undefined })
     // only the main (PENDING) PARENT_OF relation — the spouse auto-link is skipped
     expect(prismaMock.familyRelation.create).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("addRelation — memorials under the actor's care", () => {
+  beforeEach(() => {
+    mockUsers({
+      [ROOT]: { id: ROOT, role: "APP_USER" },
+      [MEMBER]: { id: MEMBER, role: "APP_GHOST" },
+      [FOREIGN_MEMO]: { id: FOREIGN_MEMO, role: "APP_MEMO" },
+    })
+    vi.mocked(getTreeMemberIds).mockImplementation(async (id) =>
+      new Set(id === FOREIGN_MEMO ? [FOREIGN_MEMO] : [ROOT, MEMBER]),
+    )
+    vi.mocked(countTreeMembers).mockResolvedValue(2)
+    prismaMock.familyRelation.create.mockResolvedValue({ id: "new-relation" })
+    prismaMock.appUserGuardian.findFirst.mockResolvedValue({ id: "accepted-guardian" })
+  })
+
+  it.each([
+    [FOREIGN_MEMO, ROOT, "PARENT_OF"],
+    [ROOT, FOREIGN_MEMO, "PARENT_OF"],
+    [MEMBER, FOREIGN_MEMO, "SIBLING"],
+    [ROOT, FOREIGN_MEMO, "SPOUSE"],
+  ])("links a managed memorial using existing IDs: %s to %s (%s)", async (fromId, toId, type) => {
+    expect(await addRelation(ROOT, { fromId, toId, type })).toEqual({ ok: true, message: undefined })
+    expect(prismaMock.appUserGuardian.findFirst).toHaveBeenCalledExactlyOnceWith({
+      where: { appUserId: FOREIGN_MEMO, guardianId: "mgr", status: "ACCEPTED" }, select: { id: true },
+    })
+    expect(prismaMock.familyRelation.create).toHaveBeenCalledExactlyOnceWith({
+      data: {
+        fromId: type === "PARENT_OF" ? fromId : FOREIGN_MEMO,
+        toId: type === "PARENT_OF" ? toId : fromId,
+        type, subtype: type === "SPOUSE" ? "married" : null,
+        startDate: null, endDate: null, status: "ACCEPTED", requestedById: null,
+      }, select: { id: true },
+    })
+    expect(prismaMock.appUser.create).not.toHaveBeenCalled()
+    expect(prismaMock.appUser.update).not.toHaveBeenCalled()
+    expect(prismaMock.appUserGuardian.create).not.toHaveBeenCalled()
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  it("rejects a missing/revoked accepted guardianship even after a profile was selected", async () => {
+    prismaMock.appUserGuardian.findFirst.mockResolvedValue(null)
+    expect(await addRelation(ROOT, { fromId: FOREIGN_MEMO, toId: ROOT, type: "PARENT_OF" }))
+      .toEqual({ ok: false, message: "familyTree.notAuthorized" })
+    expect(prismaMock.familyRelation.create).not.toHaveBeenCalled()
+  })
+
+  it("does not extend this exception to managed ghosts outside the tree", async () => {
+    mockUsers({ [ROOT]: { id: ROOT, role: "APP_USER" }, [FOREIGN_MEMO]: { id: FOREIGN_MEMO, role: "APP_GHOST" } })
+    expect(await addRelation(ROOT, { fromId: FOREIGN_MEMO, toId: ROOT, type: "PARENT_OF" }))
+      .toEqual({ ok: false, message: "familyTree.notAuthorized" })
+    expect(prismaMock.appUserGuardian.findFirst).not.toHaveBeenCalled()
+    expect(prismaMock.familyRelation.create).not.toHaveBeenCalled()
+  })
+
+  it("rejects growth at the limit even when the anchor is the root", async () => {
+    vi.mocked(getMemorialFeatures).mockResolvedValue({ treeMaxMembers: 2 } as never)
+    expect(await addRelation(ROOT, { fromId: FOREIGN_MEMO, toId: ROOT, type: "PARENT_OF" }))
+      .toEqual({ ok: false, message: "familyTree.treeLimitReached" })
+    expect(prismaMock.familyRelation.create).not.toHaveBeenCalled()
+  })
+
+  it("counts all existing relatives of the memorial before joining trees", async () => {
+    vi.mocked(getTreeMemberIds).mockImplementation(async (id) =>
+      new Set(id === FOREIGN_MEMO ? [FOREIGN_MEMO, STRANGER1, STRANGER2] : [ROOT, MEMBER]),
+    )
+    vi.mocked(getMemorialFeatures).mockResolvedValue({ treeMaxMembers: 4 } as never)
+    expect(await addRelation(ROOT, { fromId: FOREIGN_MEMO, toId: ROOT, type: "PARENT_OF" }))
+      .toEqual({ ok: false, message: "familyTree.treeLimitReached" })
+    expect(prismaMock.familyRelation.create).not.toHaveBeenCalled()
+  })
+
+  it("allows an existing in-tree relation without growth after a downgrade", async () => {
+    vi.mocked(getMemorialFeatures).mockResolvedValue({ treeMaxMembers: 1 } as never)
+    expect((await addRelation(ROOT, { fromId: ROOT, toId: MEMBER, type: "SIBLING" })).ok).toBe(true)
+    expect(prismaMock.familyRelation.create).toHaveBeenCalledTimes(1)
+  })
+
+  it("honors the optional spouse link for a new managed memorial parent", async () => {
+    expect((await addRelation(ROOT, { fromId: FOREIGN_MEMO, toId: ROOT, type: "PARENT_OF", linkSpouseId: MEMBER })).ok).toBe(true)
+    expect(prismaMock.familyRelation.create).toHaveBeenCalledTimes(2)
+    expect(prismaMock.familyRelation.create).toHaveBeenLastCalledWith({
+      data: { fromId: FOREIGN_MEMO, toId: MEMBER, type: "SPOUSE", subtype: "married", status: "ACCEPTED" },
+    })
+  })
+
+  it.each([
+    ["cycle", "familyTree.relationCycle"],
+    ["conflict", "familyTree.conflictingRelationType"],
+    ["duplicate", "familyTree.relationExists"],
+  ])("preserves the %s boundary for managed memorials", async (boundary, message) => {
+    if (boundary === "cycle") vi.mocked(createsAncestryCycle).mockResolvedValue(true)
+    if (boundary === "conflict") vi.mocked(hasConflictingRelationType).mockResolvedValue(true)
+    if (boundary === "duplicate") prismaMock.familyRelation.findUnique.mockResolvedValue({ id: "existing", status: "ACCEPTED" })
+    expect(await addRelation(ROOT, { fromId: FOREIGN_MEMO, toId: ROOT, type: "PARENT_OF" }))
+      .toEqual({ ok: false, message })
+    expect(prismaMock.familyRelation.create).not.toHaveBeenCalled()
   })
 })
 

@@ -21,11 +21,13 @@ export async function GET(request: Request): Promise<NextResponse> {
   const searchParams = new URL(request.url).searchParams
   const q = searchParams.get("q")?.trim() ?? ""
   const mode = searchParams.get("mode")
-  if (q.length < (mode === "pet" ? 1 : 3)) return NextResponse.json([])
+  if (mode !== "guarded-relative" && q.length < (mode === "pet" ? 1 : 3)) return NextResponse.json([])
 
   const terms = q.split(/\s+/).filter(Boolean)
   const roleFilter: Prisma.AppUserWhereInput = mode === "pet"
     ? { role: "APP_PET", guardedBy: { some: { guardianId: session.user.id, status: "ACCEPTED" } } }
+    : mode === "guarded-relative"
+      ? { role: "APP_MEMO", guardedBy: { some: { guardianId: session.user.id, status: "ACCEPTED" } } }
     : mode === "relative"
       ? { role: { in: ["APP_USER", "APP_MEMO"] } }
       : { role: { in: ["APP_USER", "APP_MEMO", "APP_PET"] } }
