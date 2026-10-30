@@ -39,6 +39,18 @@ function ActionsCell({ row, t }: { row: { original: MemorializedRow }; t: Transl
   )
 }
 
+// Keep the component identity stable when a server action refreshes the table,
+// so the QR dialog survives the inventory update after first issuance.
+function QrCodeCell({ row }: { row: { original: MemorializedRow } }) {
+  const profile = row.original
+  return <QrCodeDownloadDialog
+    name={`${profile.firstName} ${profile.lastName}`.trim()}
+    customerId={profile.customerId}
+    profileId={profile.id}
+    access={profile.qrAccess}
+  />
+}
+
 export function getColumns(t: Translator, locale: string): ColumnDef<MemorializedRow>[] {
   return [
     {
@@ -67,14 +79,7 @@ export function getColumns(t: Translator, locale: string): ColumnDef<Memorialize
       header: t('table.qrCode'),
       enableSorting: false,
       enableHiding: false,
-      cell: ({ row }) => (
-        <QrCodeDownloadDialog
-          name={`${row.original.firstName} ${row.original.lastName}`.trim()}
-          customerId={row.original.customerId}
-          profileId={row.original.id}
-          access={row.original.qrAccess}
-        />
-      ),
+      cell: QrCodeCell,
     },
     {
       id: 'actions',

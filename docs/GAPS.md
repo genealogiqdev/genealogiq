@@ -95,6 +95,8 @@ Cross-cutting gaps: [DATABASE-G1](DATABASE.md#gaps-and-fixes) (fresh migration b
 
 ## Deferred work
 
+The 2026-10-29 customer QR change resolves [CUSTOMERS-MEMORIALS-G6](../apps/seq/docs/CUSTOMERS-MEMORIALS.md): first SEQ memorial QR generation now consumes one GenCode atomically, reusing existing purchases and preventing duplicate deductions. [The audit](audits/SEQ-QR-STOCK-2026-10-29.md) records validation and remaining product prerequisites.
+
 The 2026-10-14 partner customer change resolves [CUSTOMERS-MEMORIALS-G5](../apps/seq/docs/CUSTOMERS-MEMORIALS.md), [GENCODE-OPERATIONS-G2](../apps/seq/docs/GENCODE-OPERATIONS.md), [CONSUMERS-G6](../apps/bms/docs/CONSUMERS.md) and [REPORTING-G4](../apps/bms/docs/REPORTING.md): explicit sale plus finite Premium, independent access controls, durable sold totals and the per-partner overview. [Its audit](audits/PARTNER-CUSTOMER-ACCESS-2026-10-14.md) records real transaction/runtime checks; unavailable Chrome and external email scenarios remain open prerequisites.
 
 Full provider fixtures, remaining second-consumer/two-tenant scenarios and production PWA/push/browser codec evidence are scoped by their gap entries. A missing fixture is not a current code bug or a completed product pass. The original bootstrap introduced no product feature or deployment; the subsequent Gen2026 implementation and its targeted local evidence are recorded separately.

@@ -62,6 +62,7 @@ export function QrCodeDownloadDialog({ name, customerId, profileId, access }: Pr
           <DialogTitle>{t('table.qrCode')}</DialogTitle>
           <DialogDescription>{name}</DialogDescription>
         </DialogHeader>
+        <p className="text-sm text-muted-foreground">{t('qr.inventoryNotice')}</p>
         {isPending && <p role="status" className="text-sm text-muted-foreground">{t('qr.loading')}</p>}
         {error && (
           <div className="space-y-3">
