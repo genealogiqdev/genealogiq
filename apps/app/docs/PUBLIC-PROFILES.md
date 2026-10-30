@@ -42,6 +42,17 @@ The enforcing files are linked above. Test names and literal assertions below re
 
 ## Contracts and data
 
+The human memorial cover shows a QR icon and **GenCode** link beside the guardian
+for an authenticated, accepted guardian with their own live `PREMIUM` plan.
+The server resolves `getMemorialFeatures(sessionUserId)` and passes only a
+visibility flag to `ProfileBanner`; another guardian's subscription does not
+grant this shortcut. Free, anonymous and unrelated viewers do not see it.
+The shortcut also works without resting coordinates or an activated plaque.
+It links to the existing `/profile/[id]/qr-code` page, which independently
+rechecks the session, guardianship and QR quota and can show the existing
+locked card. Viewing the link does not generate a QR or consume inventory.
+Living profiles and the pet's existing download controls retain their behavior.
+
 Human QR export UI (`QrCodeClient` on `/profile/[id]/qr-code`) shares [download-file.ts](../src/lib/download-file.ts) with [pets](PETS.md) and places as of 2026-10-29. Human presets, colors, formats and destinations are preserved. SVG waits for generation; file handoff errors show a retryable error. Object URLs remain valid for 60 seconds after the download click, and feedback says **download started** with browser/iPhone location guidance rather than claiming a confirmed save. See the [download audit](../../../docs/audits/APP-PET-QR-DOWNLOAD-2026-10-29.md) for regression/runtime evidence.
 
 getProfileEditSchema requires name/gender/birth date and location; memorial death details become required. PUBLIC_SELECT excludes credential/contact identifiers; EDIT_SELECT serves authorized forms. Favorite has composite primary key (userId,targetId), mapped to app_user_id/app_target_id. Public visibility was added by 20260725000000_app_user_public_profile. /api/search requires authentication, limits each viewer to 120 attempts per hour, requires q length three (one for pet mode), returns at most eight rows, and filters pet mode to accepted guardian-linked pets. The ordinary search still does not filter isPublicProfile.
@@ -97,6 +108,16 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 
 ### Manual scenarios
 
+For the memorial cover shortcut, sign in as a Premium accepted guardian, open
+their human memorial, follow **GenCode**, and reload both the profile and export
+page. Expect the same profile destination and the existing PNG/SVG presets (or
+the quota lock for an over-limit memorial). Sign out and revisit the memorial:
+the shortcut is absent and direct export navigation requires authentication.
+Free guardian and unrelated Premium viewer cases are also covered by the
+[page regression](../src/app/(public)/profile/[id]/page.test.tsx). The
+[2026-10-30 audit](../../../docs/audits/APP-MEMORIAL-GENCODE-2026-10-30.md)
+records the separately observed product evidence.
+
 1. **Happy path:** Open Rex from /home, remove the favorite, restore it, reload. Expect the button/count to restore and exactly one Favorite row.
 2. **Boundary:** Sign out and open /home or a private living root; expect /sign-in and no editable profile.
 3. **Persistence/cleanup:** independently query the feature-owned rows or downstream result. Restore temporary edits; retain ledger/audit history. Only delete disposable fixtures when authorized by the task.
@@ -143,6 +164,8 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | 2026-10-09 | `e80c449`; unchanged recovery command from `9253152` | User-confirmed data update, independent production reads and 12 command tests | One previously excluded given name restored. All 72 original audit fields match their current approved expectations; 68 fields have approved changes, four remain untouched. [Evidence](../../../docs/audits/APP-TEXT-ENCODING-2026-10-09.md). | Local UI n/a because Docker pipe access was denied; production visual verification n/a because the browser tool could not initialize. Six unresolved fields remain under DATABASE-G2. |
 
 | 2026-10-29 | `f61444c` + shared QR file delivery | Source, 55 focused tests, static checks and local Chrome | Blob delivery, delayed release, failure/retry and location feedback; real pet PNG saved and independently decoded to its profile. [Audit](../../../docs/audits/APP-PET-QR-DOWNLOAD-2026-10-29.md) | SVG/human browser comparison and physical iPhone remain pending after Chrome control failed; full-suite BMS failure recorded separately. |
+
+| 2026-10-30 | `011968c` + memorial cover GenCode | Source, tests and local Chrome | Premium guardian shortcut to the existing QR export, same icon/link styling as cover details; 8 new regressions, 1,505 full-suite passes, normal login/click/reload and anonymous boundary. [Audit](../../../docs/audits/APP-MEMORIAL-GENCODE-2026-10-30.md). | Free/unrelated viewer cases tested deterministically; separate interactive sessions and mobile layout not exercised. |
 
 ## Related
 

@@ -110,7 +110,9 @@ export default async function ProfileByIdPage({ params }: Props) {
     // viewer's RSC payload, even just as a title in the bento-card preview.
     getDocumentsByUserId(id, { includePrivate: canManageThis, take: 3 }),
     getDocumentsCount(id, canManageThis),
-    isPet && sessionUserId ? getMemorialFeatures(sessionUserId) : Promise.resolve(null),
+    (isPet || (isMemorialized && isGuardian)) && sessionUserId
+      ? getMemorialFeatures(sessionUserId)
+      : Promise.resolve(null),
   ])
 
   const hasBio = !!bio && !!(bio.text || bio.quote || bio.images.length > 0)
@@ -147,6 +149,7 @@ export default async function ProfileByIdPage({ params }: Props) {
     guardedCount: memorialCount,
     isFavoritedByMe,
     isAuthenticated: !!sessionUserId,
+    canAccessGenCode: isMemorialized && isGuardian && viewerFeatures?.code === "PREMIUM",
   }
 
   const base = `/profile/${id}`
