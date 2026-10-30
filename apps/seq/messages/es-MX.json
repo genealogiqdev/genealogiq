@@ -84,7 +84,9 @@
     "qrCode": {
       "notFound": "Perfil no encontrado.",
       "premiumRequired": "El plan Free de este cliente no incluye GenCodes para memoriales.",
-      "limitReached": "Este memorial supera el límite de GenCodes del plan del cliente."
+      "limitReached": "Este memorial supera el límite de GenCodes del plan del cliente.",
+      "stockUnavailable": "No hay GenCodes disponibles para generar este código QR. Compra más unidades e inténtalo de nuevo.",
+      "noCredit": "No hay saldo válido de GenCodes para generar este código QR. Revisa el saldo de la funeraria."
     },
     "sale": {
       "created": "Venta registrada y acceso enviado correctamente.",
@@ -646,7 +648,8 @@
       "loading": "Cargando código QR…",
       "generationFailed": "No se pudo generar el código QR. Inténtalo de nuevo.",
       "retry": "Intentar de nuevo",
-      "copyFailed": "No se pudo copiar el enlace."
+      "copyFailed": "No se pudo copiar el enlace.",
+      "inventoryNotice": "El primer QR de este memorial utiliza 1 GenCode. Volver a descargarlo no consume más unidades."
     },
     "saveChanges": "Guardar cambios",
     "sections": {

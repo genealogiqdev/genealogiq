@@ -34,6 +34,12 @@ The enforcing files are linked above. Test names and literal assertions below re
 
 ## Contracts and data
 
+### Automatic customer QR issuance, 2026-10-29
+
+Generating the first QR for an authorized customer memorial now automatically records stock consumption through [the SEQ writer](../src/lib/memorial-qr.ts), without requiring manual sale. A fresh AVAILABLE unit becomes ACTIVATED with buyer/operator/soldAt and the existing ledger's unique CONSUME; the QR and binding commit atomically. Available/sold/activated therefore change 400/0/0 to 399/1/1. An unactivated GenCode already sold to the same customer is preferred and consumes its committed reservation, preserving sale metadata and the available/sold totals. Another buyer's reserved code is never selected.
+
+The locked profile identity prevents duplicate consumption across simultaneous opens or guardians. Reprints and exports of a linked profile preserve its GenCode, URL and stock. Plain customer registration and independent Premium toggles still leave stock unchanged. Empty or unfunded stock rejects issuance; no production backfill is performed. [Customer contract](CUSTOMERS-MEMORIALS.md#automatic-qr-stock-accounting-2026-10-29) and [dated audit](../../../docs/audits/SEQ-QR-STOCK-2026-10-29.md) separate source, tests, runtime and Chrome limitations. The October 14 workflow below remains available for explicit sales; it is no longer required before first QR generation.
+
 ### Customer-linked sale, 2026-10-14
 
 [Customer onboarding](CUSTOMERS-MEMORIALS.md) now optionally sells one GenCode and grants a finite Premium year in the same transaction as the new customer. The existing-customer detail exposes the same operation for a specific physical code. [The shared writer](../../../packages/services/src/partner-consumer-access.ts) locks the scoped available code, reserves its identified credit inside the caller transaction, records SOLD/buyer/operator/time, grants audited Premium and queues the existing receipt. Missing credit/stock or a later audit failure rolls back all effects. Blank code means automatic allocation only on new registration; existing-customer sale requires an exact code and supports safe retry even after activation.
@@ -156,6 +162,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | 2026-10-07 | `2632307` | Source, deterministic tests, local PostgreSQL and browser | Generated-password login and persisted inventories with three and zero codes; 927 deterministic and four enabled onboarding integration tests passed. | [Audit](../../../docs/audits/PARTNER-ONBOARDING-2026-10-07.md); production inbox delivery remains unverified. |
 | 2026-10-09 | `3826319` + consolidated release | Source, deterministic and local PostgreSQL checks | Updated contract above; [release audit](../../../docs/audits/PRODUCTION-RELEASE-2026-10-09.md) separates tests, runtime, deployment and cleanup. | Browser automation omitted at the user's request; production inbox delivery is not inferred. |
 | 2026-10-14 | `58d4145` + partner customer access | Source, tests and local transactions | Atomic customer-linked sales, soldAt totals, retry and failure boundaries verified. | [Audit](../../../docs/audits/PARTNER-CUSTOMER-ACCESS-2026-10-14.md); inventory visual QA and real mail remain n/a. |
+| 2026-10-30 | `011968c` + automatic QR issuance | Source, focused tests, real PostgreSQL, local Credentials/Chrome and SQL | Literal 400/0/0 → 399/1/1, final-stock concurrency and rollback passed. Chrome inventory showed 0/2/2 after two distinct memorials, with repeat SVG export consuming no additional credit and a third memorial rejected. | [QR audit](../../../docs/audits/SEQ-QR-STOCK-2026-10-29.md); production deployment/reconciliation remains n/a, external providers disabled. |
 
 ## Related
 

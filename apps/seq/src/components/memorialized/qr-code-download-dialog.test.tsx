@@ -73,6 +73,17 @@ async function openDownload(deathDate: Date | null) {
 }
 
 describe('Baixar in the customer memorial table', () => {
+  it('keeps the QR dialog open when stock revalidation refreshes the customer table', async () => {
+    const dialog = await openDownload(null)
+    await renderTable(null)
+    expect(document.querySelector('[role="dialog"]')).toBe(dialog)
+    expect(dialog.querySelectorAll('svg[viewBox="0 0 21 21"]')).toHaveLength(6)
+    expect(authorize).toHaveBeenCalledTimes(1)
+    const download = Array.from(dialog.querySelectorAll('button')).find((button) => button.textContent === 'SVG')!
+    await act(async () => download.click())
+    expect(downloads).toHaveLength(1)
+  })
+
   it.each([null, new Date('2009-08-26T00:00:00Z')])('downloads an SVG in place for deathDate=%s', async (deathDate) => {
     const dialog = await openDownload(deathDate)
 

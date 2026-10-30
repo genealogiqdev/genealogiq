@@ -50,8 +50,12 @@ export async function getCustomers() {
 
 export async function getCustomer(id: string) {
   const { customerId } = await verifyTenantSession()
+  return getCustomerForTenant(id, customerId, prisma)
+}
 
-  const customer = await prisma.appUser.findUnique({
+/** Internal scoped read, also used inside the QR issuance transaction. */
+export async function getCustomerForTenant(id: string, customerId: string, db: Prisma.TransactionClient) {
+  const customer = await db.appUser.findUnique({
     where:  { id, tenantId: customerId, role: 'APP_USER' },
     select: {
       id:              true,
@@ -119,7 +123,7 @@ export async function getCustomer(id: string) {
   if (!customer) return null
 
   const { appSales, extraUnitPurchases, guardiansOf, ...details } = customer
-  const plan = appSales[0]?.subscription ?? await prisma.subscription.findUnique({
+  const plan = appSales[0]?.subscription ?? await db.subscription.findUnique({
     where: { code: 'FREE' }, select: memorialPlanSelect,
   })
   if (!plan) throw new Error('FREE subscription row not found')

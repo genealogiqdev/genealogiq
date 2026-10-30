@@ -61,6 +61,14 @@ An APP_USER registered directly in APP may initially have no company. The BMS pl
 
 Open **Clientes → customer → Memoriais** to manage permitted QR downloads. This company link is not itself a GenCode purchase, plan upgrade or new guardianship. Existing tenant, plan and QR operation boundaries continue to apply. A direct BMS Premium gift retains its original sale scope and remains revocable/resendable by platform administrators in BMS; it is not converted into a Sequoia partner gift.
 
+### Automatic QR stock accounting, 2026-10-29
+
+The user clarified that inventory must decrease when the QR is generated, without a manual sale step. Opening **Baixar** now issues the first QR for that memorial through [memorial-qr.actions.ts](../src/actions/memorial-qr.actions.ts) and [the transactional writer](../src/lib/memorial-qr.ts). The writer locks the accepted profile, rechecks the scoped customer and live plan through `getCustomerForTenant`, and uses an unactivated GenCode already sold to the customer before allocating AVAILABLE tenant stock. It consumes the existing credit ledger, binds the profile, records ACTIVATED and sale evidence, and persists the QR together. Fresh stock changes 400 available/0 sold/0 activated to 399/1/1. A prior sale changes 399/1/0 to 399/1/1 without a second inventory deduction.
+
+Existing linked plaques (including another partner's plaque) are reused without a new debit. Existing QR URLs/print status and profile tenant ownership are preserved. A legacy QR without a linked GenCode is accounted for once when first generated through SEQ after this change; there is no bulk historical backfill. Reopening, concurrent generation, SVG/PNG variants and repeated downloads reuse the profile's one GenCode. Rendering failure can be retried using the committed QR identity. Insufficient stock/credit returns a translated error with no partial debit or QR. Consumer creation quotas and plain registration/Premium toggles keep their separate contracts; issuance does not create or extend Premium.
+
+Run the action/query/DOM tests and `src/lib/memorial-qr.test.ts`. For real transactions set `SEQ_QR_TEST_DATABASE_URL` only to a disposable migrated loopback `genealogiq_coupon_qa_*` database and run `pnpm exec vitest run --project seq src/lib/memorial-qr.integration.test.ts`. Verify first generation, re-export/reload, existing purchase, final-stock concurrency, foreign/pending guardian, FREE, unfunded stock and rollback. Keep the QR table cell's React identity stable so the inventory refresh does not unmount its open dialog. [The QR audit](../../../docs/audits/SEQ-QR-STOCK-2026-10-29.md) records focused Chrome and persistence acceptance separately from production limits. Earlier read-only download evidence below describes the previous behavior.
+
 ### Customer sale and Premium access, 2026-10-14
 
 Step 4 is **Acesso ao App** and reviews the final customer's own email. The default **Somente cadastro** creates the existing account/invitation without selling a code or granting Premium. **GenCode vendido + Premium por 12 meses** is explicit and administrator-only. An optional GenCode identifies the physical plaque; blank/whitespace selects the oldest available code in this tenant. Social fields remain optional under a disclosure. No Genealogiq administrator email is needed to unlock access.
@@ -145,7 +153,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 1. **Happy path:** Create a synthetic consumer/category in the local tenant, save/reload and compare AppUser.tenantId and category relation; edit a memorial and verify guardian linkage. Requires disposable records.
 2. **Boundary:** A different tenant must not read/update the record by URL; invalid dates must reject without a row change. Requires second tenant fixture.
 3. **Persistence/cleanup:** independently query the feature-owned rows or downstream result. Restore temporary edits; retain ledger/audit history. Only delete disposable fixtures when authorized by the task.
-4. **QR download regression:** With a tenant customer who is an accepted guardian of tenantless living and deceased profiles, open `/customers/[id]` and click Baixar. Expect a QR dialog over the same table, downloadable PNG/SVG and the configured public profile URL (or stored QR URL). Close/reopen after filtering or pagination and check the selected name. A pending guardianship must be absent from both the list and count; another tenant's customer URL must return not found. Downloads must leave profile/QR/GenCode records unchanged. This targeted product scenario remains pending in the 2026-10-09 evidence.
+4. **QR download regression:** With a tenant customer who is an accepted guardian of tenantless living and deceased profiles, open `/customers/[id]` and click Baixar. Expect a QR dialog over the same table, downloadable PNG/SVG and the configured public profile URL (or stored QR URL). Close/reopen after filtering or pagination and check the selected name. A pending guardianship must be absent from both the list and count; another tenant's customer URL must return not found. The original 2026-10-09 scenario expected no profile/QR/GenCode writes. Since 2026-10-29, first issuance must create one stock/credit binding; subsequent downloads must leave those records unchanged. The earlier browser evidence remains historical.
 
 ### QA evidence
 
@@ -160,7 +168,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 
 1. In **Clientes → Novo cliente**, enter the actual final customer's email. On **Acesso ao App**, choose registration only or the confirmed GenCode sale plus Premium. Enter the plaque code if already selected; otherwise the system allocates one available unit.
 2. After success, verify **Plano no App**, expiry and **GenCodes vendidos** in the customer list, then reload the customer and inventory. An email-pending message is a delivery retry, not a reason to register again.
-3. For an existing customer, open their detail and register the specific sold GenCode. Never backfill stock from the number of customer records alone.
+3. For an existing customer, use **Baixar** on the memorial to generate its QR and automatically account for one GenCode. If a specific physical plaque was delivered, register that exact sold code first so generation can reuse it. Never backfill stock from the number of customer records alone.
 4. Use **Ativar Premium** / **Desativar Premium** to manage access independently of the sale. Confirm the named recipient; compare stock before/after. A non-administrator must be denied even when posting the action directly.
 5. For regression checks run the customer/access/guard suites and [partner service tests](../../../packages/services/src/partner-consumer-access.test.ts). Set `PARTNER_CUSTOMER_TEST_DATABASE_URL` only to a migrated disposable loopback `genealogiq_coupon_qa_*` database and run `pnpm exec vitest run --project services packages/services/src/partner-consumer-access.integration.test.ts`. The seven PostgreSQL cases include blank-code allocation, concurrent final-stock selection, rollback and stale grants. Browser QA must also exercise both radio choices, cancel/error confirmation and reload.
 
@@ -183,6 +191,15 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 Check whether the customer is in the session tenant and the guardian relation is accepted. Do not assign the linked profile to the tenant or remove the edit authorization to make a download work. The table's Baixar control must open `QrCodeDownloadDialog`, which obtains `getCustomer`'s `profileUrl` through `getCustomerMemorialQr`; it must not navigate to `/memorialized/[id]`. Inspect the customer's live AppSale, configured human/pet quotas and purchased units when the row is locked; the number of acquired GenCodes is not plan capacity. Verify stored QR URLs and `APP_URL` separately from QR generation. Existing **Ver**/edit routes still require direct tenant ownership. Reproduce renderer failures and run the real palette/decoder regression before changing a QR style.
 
 ## Gaps and fixes
+
+### CUSTOMERS-MEMORIALS-G6: Generating a customer QR did not consume GenCode stock
+
+- **Status:** fixed
+- **Found:** 2026-10-29, user report of 400 available/0 sold despite registered customers, clarified as automatic deduction on QR creation.
+- **Evidence:** The previous `getCustomerMemorialQr` only authorized a URL; client QR rendering never wrote a GenCode or credit entry.
+- **Impact:** An issued customer memorial QR was absent from tenant stock accounting unless a separate sale had been registered.
+- **Root cause:** QR generation and inventory consumption were independent workflows.
+- **Resolution:** The commit containing this entry adds transactional automatic issuance, one profile lock, reuse of existing purchases/plaques and translated stock/credit failures. Literal unit and PostgreSQL regressions cover the boundaries described above. See the dated audit for actual runtime and UI evidence.
 
 ### CUSTOMERS-MEMORIALS-G5: Customer onboarding required a manual Premium handoff
 
@@ -246,6 +263,7 @@ The 2026-10-09 plan/download follow-up has 77 passing focused tests in eight fil
 | 2026-10-09 | `08b2b1c` + memorial plan/download follow-up | Source, scoped tests and real QR decoding | 77 focused tests passed; 36 PNG/SVG files independently decoded. APP/SEQ types and local production builds passed; SEQ lint had zero errors/20 existing warnings. | Full-suite and locale-reference failures belong to concurrent work; PostgreSQL/Chrome product acceptance remains n/a. Build-cache removal was blocked by automatic review; [audit](../../../docs/audits/SEQ-MEMORIALS-2026-10-09.md). |
 | 2026-10-09 | `3826319` + consolidated release | Source, deterministic and local PostgreSQL checks | Updated contract above; [release audit](../../../docs/audits/PRODUCTION-RELEASE-2026-10-09.md) separates tests, runtime, deployment and cleanup. | Browser automation omitted at the user's request; production inbox delivery is not inferred. |
 | 2026-10-14 | `58d4145` + partner customer access | Source, deterministic/DOM tests, PostgreSQL and local HTTP actions | Explicit onboarding, shared finite Premium, stock accounting, failure/permission/retry boundaries and APP reload verified. | [Audit](../../../docs/audits/PARTNER-CUSTOMER-ACCESS-2026-10-14.md); Chrome authentication unavailable, external mail disabled. |
+| 2026-10-30 | `011968c` + automatic QR issuance | Source, 40 focused tests, nine PostgreSQL tests, Credentials HTTP, Chrome and independent SQL | First QR consumes once; existing sale/plaque, concurrent generation, rollback, permission and no-stock cases covered. Chrome kept the dialog open after refresh, downloaded SVG twice and showed matching 0/2/2 inventory with only two debits. | [QR audit](../../../docs/audits/SEQ-QR-STOCK-2026-10-29.md) separates the earlier 1,496-test run, final static/build checks and cleanup; production acceptance remains n/a. |
 
 ## Related
 

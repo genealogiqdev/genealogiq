@@ -19,6 +19,8 @@ Resolve tenant scope with verifyTenantSession; never trust a browser tenantId. S
 
 Customer memorials are accepted APP_MEMO/APP_PET guardianships. Read human/pet capacity from the customer's live consumer plan; GenCode inventory is independent. The QR dialog rechecks customer tenant, guardianship and plan on opening and each export, including from the memorial detail screen.
 
+The first customer-memorial QR generation automatically consumes one GenCode and records its activation in the same transaction as the QR. A previously sold customer code is used first; existing linked plaques, reopening and repeated downloads never deduct another unit. Stock/credit failure must prevent a new QR issuance. The profile's existing tenant and QR destination remain unchanged.
+
 Customer registration defaults to **Somente cadastro**. A live tenant OWNER/ADMIN/SUPER_ADMIN may select one identified GenCode sale plus 12 calendar months of Premium; all database effects commit together before mail. Existing customers can have a specific physical code sold from their detail page. Premium grant/revoke uses a named audited gift and never alters inventory or purchased time. The customer list/detail and BMS read the same live AppSale. See [CUSTOMERS-MEMORIALS](docs/CUSTOMERS-MEMORIALS.md).
 
 The app uses Next.js App Router, server-side queries, server actions and Zod schema factories. Shared database/auth/services/email/core/UI/i18n contracts are indexed in [root AGENTS.md](../../AGENTS.md). Default local origin is http://localhost:3002; use the launcher's configured canonical host/port for auth redirects and cookies. See [LOCAL-DEVELOPMENT](../../docs/LOCAL-DEVELOPMENT.md) for isolated sessions.
