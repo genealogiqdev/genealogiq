@@ -1227,6 +1227,29 @@
     "appliedAccessPending": "Cupón aplicado y beneficios liberados. No se pudo completar la invitación de acceso a SEQ. Revisa al cliente y reenvía la invitación en Clientes; no vuelvas a aplicar la venta.",
     "manageAccess": "Revisar acceso en Clientes"
   },
+  "ConsumerPartner": {
+    "trigger": "Vincular a una empresa",
+    "title": "Vincular cliente a Sequoia",
+    "description": "Elija la empresa asociada que podrá administrar la cuenta y los códigos QR de {name} en Sequoia.",
+    "search": "Buscar empresa por nombre",
+    "partner": "Empresa asociada",
+    "placeholder": "Seleccione una empresa",
+    "empty": "No se encontró ninguna empresa activa con acceso a Sequoia.",
+    "confirmDescription": "¿Vincular a {name} con {partner}? El equipo de esta empresa tendrá acceso al cliente y a los códigos QR permitidos por el plan y las responsabilidades sobre los perfiles.",
+    "preserved": "El vínculo conserva el plan, las compras y los códigos QR existentes. En Sequoia, abra Clientes → cliente → Memoriales → Descargar para generar el archivo para la imprenta.",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar vínculo",
+    "saving": "Vinculando…",
+    "linked": "Cliente vinculado a la empresa.",
+    "alreadyLinked": "El cliente ya está vinculado a esta empresa.",
+    "errors": {
+      "invalidData": "Seleccione un cliente y una empresa válidos.",
+      "consumerUnavailable": "Cliente no encontrado. Actualice la página.",
+      "partnerUnavailable": "Esta empresa no está activa o no tiene un usuario activo en Sequoia.",
+      "alreadyAssigned": "El cliente ya está vinculado a otra empresa. Actualice la página.",
+      "failed": "No se pudo vincular al cliente. Inténtelo de nuevo."
+    }
+  },
   "Consumers": {
     "title": "Clientes finales",
     "description": "Todos los usuarios activos e inactivos del APP, registrados en la aplicación, en BMS o por empresas asociadas en Sequoia.",

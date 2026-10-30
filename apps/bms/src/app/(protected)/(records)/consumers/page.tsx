@@ -4,15 +4,19 @@ import { Badge } from '@genealogiq/ui/badge'
 import { Button } from '@genealogiq/ui/button'
 import { Input } from '@genealogiq/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@genealogiq/ui/table'
-import { getConsumers } from '@/queries/consumers'
+import { getConsumers, getConsumerPartners } from '@/queries/consumers'
 import { ConsumerResendButton } from '@/components/consumers/consumer-resend-button'
 import { ConsumerRevokeButton } from '@/components/consumers/consumer-revoke-button'
 import { PartnerPremiumControl } from '@/components/consumers/partner-premium-control'
+import { ConsumerPartnerDialog } from '@/components/consumers/consumer-partner-dialog'
 
 export default async function ConsumersPage({ searchParams }: { searchParams: Promise<{ q?: string; page?: string; status?: string; tenant?: string }> }) {
   const params = await searchParams
   const query = typeof params.q === 'string' ? params.q : ''
-  const data = await getConsumers(query, Number(params.page ?? 1), typeof params.status === 'string' ? params.status : 'all', typeof params.tenant === 'string' ? params.tenant : '')
+  const [data, partners] = await Promise.all([
+    getConsumers(query, Number(params.page ?? 1), typeof params.status === 'string' ? params.status : 'all', typeof params.tenant === 'string' ? params.tenant : ''),
+    getConsumerPartners(),
+  ])
   const t = await getTranslations('Consumers')
   const date = new Intl.DateTimeFormat(await getLocale(), { dateStyle: 'medium', timeZone: 'UTC' })
   const pageHref = (page: number) => `/consumers?${new URLSearchParams({ q: query, status: data.status, tenant: data.tenantId, page: String(page) })}`
@@ -52,6 +56,7 @@ export default async function ConsumersPage({ searchParams }: { searchParams: Pr
               && !!gift.appSale?.currentPeriodEnd && gift.appSale.currentPeriodEnd > now
               && ['active', 'trialing'].includes(gift.appSale.status ?? '')
             const canManageAccess = consumer.isActive && !!consumer.email && consumer.tenantId === null
+            const directGift = !!gift?.appSale && gift.appSale.tenantId === null
             return <TableRow key={consumer.id}>
               <TableCell className="max-w-64 whitespace-normal break-words">
                 <p className="font-medium">{consumer.firstName} {consumer.lastName}</p>
@@ -60,24 +65,26 @@ export default async function ConsumersPage({ searchParams }: { searchParams: Pr
               <TableCell><Badge variant={consumer.isActive ? 'default' : 'secondary'}>{t(consumer.isActive ? 'active' : 'inactive')}</Badge></TableCell>
               <TableCell className="max-w-48 whitespace-normal break-words">{consumer.tenant
                 ? <Link className="underline underline-offset-4" href={`/customers/${encodeURIComponent(consumer.tenant.id)}`}>{consumer.tenant.tradeName || consumer.tenant.name}</Link>
-                : <span className="text-muted-foreground">{t('noPartner')}</span>}</TableCell>
+                : <div><span className="text-muted-foreground">{t('noPartner')}</span>
+                  <ConsumerPartnerDialog appUserId={consumer.id} consumerName={`${consumer.firstName} ${consumer.lastName}`} partners={partners} />
+                </div>}</TableCell>
               <TableCell>{date.format(consumer.createdAt)}</TableCell>
               <TableCell className="max-w-48 whitespace-normal">{active?.currentPeriodEnd
                 ? <><span className="font-medium">{active.subscription.name}</span><p className="text-xs text-muted-foreground">{t('until', { date: date.format(active.currentPeriodEnd) })}</p></>
                 : t('free')}
-                {gift && consumer.tenantId === null && <p className="text-xs text-muted-foreground">{gift.revokedAt
+                {gift && directGift && <p className="text-xs text-muted-foreground">{gift.revokedAt
                   ? t('giftRevoked', { date: date.format(gift.revokedAt) })
                   : <>{t('delivery')}: {t(gift.emailSentAt ? 'sent' : 'pending')}</>}</p>}
               </TableCell>
               <TableCell>{consumer._count.genCodesBought}</TableCell>
-              <TableCell>{consumer.tenantId
-                ? <PartnerPremiumControl appUserId={consumer.id} consumerName={`${consumer.firstName} ${consumer.lastName}`}
-                  grantId={liveGift && gift.appSale?.tenantId === consumer.tenantId ? gift.id : null} canGrant={consumer.isActive && !!consumer.email} />
-                : liveGift
+              <TableCell>{liveGift && directGift
                 ? <div className="flex flex-wrap gap-2">
-                  {canManageAccess && <ConsumerResendButton appUserId={consumer.id} />}
+                  {consumer.isActive && !!consumer.email && <ConsumerResendButton appUserId={consumer.id} />}
                   <ConsumerRevokeButton grantId={gift.id} consumerName={`${consumer.firstName} ${consumer.lastName}`} />
                 </div>
+                : consumer.tenantId
+                ? <PartnerPremiumControl appUserId={consumer.id} consumerName={`${consumer.firstName} ${consumer.lastName}`}
+                  grantId={liveGift && gift.appSale?.tenantId === consumer.tenantId ? gift.id : null} canGrant={consumer.isActive && !!consumer.email} />
                 : canManageAccess
                   ? <Button asChild variant="outline" size="sm"><Link href={`/consumers/new?id=${encodeURIComponent(consumer.id)}`}>{t('grant')}</Link></Button>
                   : '—'}</TableCell>

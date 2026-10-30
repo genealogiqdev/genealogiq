@@ -108,15 +108,25 @@ describe.skipIf(!url)('consumer Premium revocation on PostgreSQL', () => {
     expect(await db.consumerAccessGrant.count({ where: { recipientId: first.appUserId } })).toBe(2)
   })
 
-  it('rejects an arbitrary paid sale id and a gift transferred to a partner', async () => {
+  it('rejects an arbitrary sale id and a gift whose sale was transferred to a partner', async () => {
     const gifted = await grant(input('partner'))
     const audit = await db.consumerAccessGrant.findUniqueOrThrow({ where: { id: gifted.id } })
     await expect(revoke(audit.resultId, operatorId)).rejects.toMatchObject({ reason: 'grant-unavailable' })
     const tenant = await db.tenant.findFirstOrThrow()
     await db.appUser.update({ where: { id: gifted.appUserId }, data: { tenantId: tenant.id } })
-    await expect(revoke(gifted.id, operatorId)).rejects.toMatchObject({ reason: 'partner-account' })
+    await db.appSale.update({ where: { id: audit.resultId }, data: { tenantId: tenant.id } })
+    await expect(revoke(gifted.id, operatorId)).rejects.toMatchObject({ reason: 'grant-unavailable' })
     expect(await db.consumerAccessGrant.findUnique({ where: { id: gifted.id } })).toMatchObject({ revokedAt: null, revokedById: null })
     expect(await activeSales(gifted.appUserId)).toHaveLength(1)
+  })
+
+  it('preserves the company link when revoking the original direct gift', async () => {
+    const gifted = await grant(input('linked'))
+    const tenant = await db.tenant.findFirstOrThrow()
+    await db.appUser.update({ where: { id: gifted.appUserId }, data: { tenantId: tenant.id } })
+    expect(await revoke(gifted.id, operatorId)).toEqual({ alreadyRevoked: false })
+    expect(await db.appUser.findUnique({ where: { id: gifted.appUserId } })).toMatchObject({ tenantId: tenant.id, isActive: true })
+    expect(await activeSales(gifted.appUserId)).toEqual([])
   })
 
   it('allows removal from an inactive independent account even after its email is removed', async () => {

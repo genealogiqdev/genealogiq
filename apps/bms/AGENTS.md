@@ -25,6 +25,8 @@ The app uses Next.js App Router, server-side queries, server actions and Zod sch
 
 ## Feature index
 
+The platform administrator may link an independent APP_USER to an active Sequoia company from the directory, including accounts created directly in APP. Linking preserves identity, plans, QR data and original gift scope; existing direct gifts remain manageable in BMS after linking. It cannot transfer a customer already assigned to another partner. [CONSUMERS](docs/CONSUMERS.md) owns the confirmation and concurrency contract.
+
 | Feature | Purpose | Main code | Test command from repo root |
 | --- | --- | --- | --- |
 | [ACCOUNTS-STAFF](docs/ACCOUNTS-STAFF.md) | Back-office accounts, staff and company | `src/actions/auth.ts` | `pnpm test` |

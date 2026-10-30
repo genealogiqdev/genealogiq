@@ -3,6 +3,15 @@ import 'server-only'
 import { prisma, type Prisma } from '@genealogiq/db'
 import { verifyConsumerAdmin } from '@/lib/consumer-access'
 
+export async function getConsumerPartners() {
+  await verifyConsumerAdmin()
+  return prisma.tenant.findMany({
+    where: { isActive: true, users: { some: { isActive: true } } },
+    select: { id: true, name: true, tradeName: true },
+    orderBy: [{ tradeName: 'asc' }, { name: 'asc' }, { id: 'asc' }],
+  })
+}
+
 export async function getConsumers(query = '', page = 1, status = 'all', tenantId = '') {
   await verifyConsumerAdmin()
   const search = query.trim().slice(0, 320)

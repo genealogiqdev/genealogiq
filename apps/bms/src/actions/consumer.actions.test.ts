@@ -97,15 +97,15 @@ describe('BMS consumer access actions', () => {
     expect(mail).not.toHaveBeenCalled()
   })
 
-  it('resends a hashed 72-hour recovery link only for an active independent consumer with a live gift', async () => {
+  it('resends a hashed 72-hour link for a live direct gift, including after a company link', async () => {
     const before = Date.now()
     expect(await resendConsumerAccessEmail('consumer-1')).toEqual({ ok: true, message: 'emailSent' })
-    expect(db.appUser.findFirst.mock.calls[0][0].where).toEqual({ id: 'consumer-1', tenantId: null, role: 'APP_USER', isActive: true, email: { not: null } })
+    expect(db.appUser.findFirst.mock.calls[0][0].where).toEqual({ id: 'consumer-1', role: 'APP_USER', isActive: true, email: { not: null } })
     const eligibleGift = db.appUser.findFirst.mock.calls[0][0].select.consumerAccessGrants.where
     expect(eligibleGift).toEqual({
       revokedAt: null,
       expiresAt: { gt: expect.any(Date) },
-      appSale: { status: { in: ['active', 'trialing'] }, currentPeriodEnd: { gt: expect.any(Date) } },
+      appSale: { tenantId: null, status: { in: ['active', 'trialing'] }, currentPeriodEnd: { gt: expect.any(Date) } },
     })
     expect(eligibleGift.expiresAt.gt.getTime()).toBeGreaterThanOrEqual(before)
     expect(eligibleGift.appSale.currentPeriodEnd.gt.getTime()).toBeGreaterThanOrEqual(before)

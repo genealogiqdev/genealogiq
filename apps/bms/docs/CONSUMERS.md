@@ -48,6 +48,18 @@ No model/LLM or checkout step is involved.
 
 ## Contracts and data
 
+### Link an independent APP customer to Sequoia, 2026-10-29
+
+**Vincular a uma empresa** in the directory's partner column opens [the company picker](../src/components/consumers/consumer-partner-dialog.tsx). This includes customers who registered directly in APP (`createdById=null`, `tenantId=null`) as well as customers registered by BMS. No re-registration, email match, new password or Premium gift is required. Search chooses an active company with at least one active staff account; the confirmation names both customer and company and explains the team's access.
+
+[linkConsumerPartner](../src/actions/consumer-partner.actions.ts) uses [the bounded Zod contract](../src/schemas/consumer-partner.schema.ts) and reloads platform privilege through `verifyConsumerAdmin`. In one transaction it locks the APP_USER, rechecks the selected company's availability and updates only `AppUser.tenantId` and `updatedById` (plus Prisma's automatic `updatedAt`). A retry for the same company is a read; a competing or stale request for another company is rejected. This flow does not transfer or unlink an existing partner customer. It does not assign individual staff ownership: the existing SEQ company authorization applies to its team.
+
+Identity, activation, original creator, paid time, direct gifts, guardianships, profile tenants, QR destinations, inventory and purchases are preserved by linking. An existing direct BMS gift keeps `AppSale.tenantId=null`. Its original resend/revoke controls remain available in BMS after linking; they validate the **gift sale's** original scope instead of requiring the recipient to remain independent. New direct gifts still require an independent account, and partner-origin gifts cannot be revoked or resent through the direct-gift actions. No schema migration or provider request is introduced.
+
+After saving, open **Sequoia → Clientes → customer → Memoriais → Baixar** to export a permitted QR in PNG/SVG for printing. The existing SEQ reads now find the linked customer. QR operations retain their company, accepted-guardianship, plan and inventory checks; linking alone does not upgrade FREE or allocate stock. APP-created tenantless memorials remain accessible through the accepted guardian relationship. See [SEQ contracts](../../seq/docs/CUSTOMERS-MEMORIALS.md).
+
+Run the [link action tests](../src/actions/consumer-partner.actions.test.ts), [dialog tests](../src/components/consumers/consumer-partner-dialog.test.ts), directory queries and direct-gift resend/revocation suites. Product checks must include an APP-created account without a partner, an existing BMS gift, a FREE boundary and persistence of original QR/plan rows. Actual evidence is recorded in [the link audit](../../../docs/audits/BMS-CONSUMER-PARTNER-2026-10-29.md).
+
 ### Partner Premium controls, 2026-10-14
 
 The directory now shows **GenCodes vendidos**, supports an exact `tenant` filter from [the partner GenCode overview](REPORTING.md), and offers **Ativar Premium** / **Desativar Premium** for partner customers. [Partner actions](../src/actions/partner-consumer.actions.ts) use [their own Zod contracts](../src/schemas/partner-consumer.schema.ts) and the existing live platform administrator guard. They derive the tenant from the stored APP_USER and call [the shared partner service](../../../packages/services/src/partner-consumer-access.ts); browser-supplied company/operator IDs are not accepted. Independent account registration/gift/resend actions retain the tenantless restrictions documented below.
@@ -147,6 +159,14 @@ Use the [private database access runbook](../../../docs/AZURE-DATABASE-ACCESS.md
 
 ## Gaps and fixes
 
+### CONSUMERS-G7: APP registrations without a partner could not be managed in Sequoia
+
+- **Status:** fixed
+- **Found:** 2026-10-29, user request and follow-up covering direct APP registrations.
+- **Evidence:** The directory displayed independent APP_USER accounts but offered no company association; SEQ correctly filtered customers by `tenantId`.
+- **Impact:** Company staff could not reach those customers' authorized QR operations without a separate data intervention or duplicate registration.
+- **Resolution:** The commit containing this entry adds explicit platform-admin company linking, a named confirmation, active-company validation, idempotence and stale-transfer rejection. Existing identity, plans and QR data remain intact. Direct-gift controls follow the original gift sale after linking. Action/DOM/query/PostgreSQL regression and local product evidence are recorded in [the audit](../../../docs/audits/BMS-CONSUMER-PARTNER-2026-10-29.md).
+
 ### CONSUMERS-G6: Partner customers had no simple Premium management
 
 - **Status:** fixed
@@ -202,6 +222,8 @@ Use the [private database access runbook](../../../docs/AZURE-DATABASE-ACCESS.md
 - **Resolution:** This change excludes and atomically replaces that exact test allowance, with literal unit/PostgreSQL expectations for 2027, paid-period preservation and retries. The guarded repair corrects existing sale/audit dates together. The linked expiry audit records deployment, data correction, UI evidence and limitations separately.
 
 ## Verification log
+
+2026-10-29, starting at `f61444c`: company linking and direct-gift preservation implemented; 65 focused tests, 1,463 full-suite tests and 11 PostgreSQL revocation cases passed, with BMS typecheck/lint/build and docs/i18n gates. Chrome verified direct APP/BMS/FREE customers, cancellation, persisted links, SEQ visibility, FREE/stock boundaries and an independently decoded existing-QR SVG export. [Source, runtime and cleanup evidence](../../../docs/audits/BMS-CONSUMER-PARTNER-2026-10-29.md) distinguishes this change from concurrent APP/SEQ work.
 
 | Date | Revision | Scope | Evidence / limits |
 | --- | --- | --- | --- |

@@ -208,7 +208,8 @@ export async function revokeConsumerPremium(grantId: string, revokedById: string
     // A stale button always refers to this gift, never a later replacement.
     if (gift.revokedAt) return { alreadyRevoked: true }
     if (!gift.appUser || gift.appUser.id !== gift.recipientId || gift.appUser.role !== 'APP_USER') fail('recipient-unavailable')
-    if (gift.appUser.tenantId) fail('partner-account')
+    // A later BMS company link does not transfer the original direct gift.
+    // Its sale must still be tenantless below; partner grants remain excluded.
     // Activation/email are intentionally not prerequisites for removing a gift.
     const sale = gift.appSale
     const now = new Date()
