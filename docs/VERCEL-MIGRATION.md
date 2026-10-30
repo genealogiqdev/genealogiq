@@ -148,6 +148,16 @@ Azure currently cannot serve as a working rollback destination. Before launch, e
 
 ## Verification log
 
+The [October 30 consolidated release](audits/PRODUCTION-RELEASE-2026-10-30.md)
+reviews subsequent feature chats and records all three promoted production
+builds from `694dd1f`, identical to merged main `2066c6b`. GitHub PRs #207–#209
+are merged, CI and all container builds pass, and four public HTTPS hosts plus
+three Neon readiness checks pass. The legacy Deploy Azure workflow is now
+disabled. Deployment remains an explicit source-archive/stage/probe/promote
+operation, with recorded previous Vercel rollback candidates. Existing payment,
+authenticated acceptance and recovery requirements below are not closed by this
+release.
+
 | Date | Source / target evidence | Result and limits |
 | --- | --- | --- |
 | 2026-10-19 | Azure CLI subscription state, production health requests, local dump inventory; Vercel MCP team/project inventory | Azure subscription disabled; health requests timed out; local dump is pre-Azure; Vercel team has no projects or domains. Production migration and DNS cutover are blocked. |

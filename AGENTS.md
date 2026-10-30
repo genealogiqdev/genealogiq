@@ -87,6 +87,15 @@ The Vercel migration runbook's database, media, authentication, billing and
 health gates govern production acceptance. A successful build or DNS update
 alone does not establish a completed cutover.
 
+**October 30 release:** [Consolidated release audit](docs/audits/PRODUCTION-RELEASE-2026-10-30.md)
+records recent-chat reconciliation, merged GitHub PRs #207–#209, 1,505 passing
+tests, green CI/container builds and three READY production deployments of
+`694dd1f` (identical source tree to merged `2066c6b`). All four HTTPS hosts,
+three Neon readiness checks and anonymous document/cron boundaries pass.
+The obsolete Deploy Azure workflow is disabled; Vercel releases currently use
+verified source archives and explicit promotion. APP/SEQ Stripe signing secrets,
+remaining authenticated/device acceptance and recovery rehearsal remain open.
+
 **October 20 migration state:** The user approved recovery from the available
 September dump and updated Hostinger. Recovery/migrations and all 103 media
 copies are complete. The user's subsequent release approval authorized three
