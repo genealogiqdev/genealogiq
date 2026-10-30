@@ -1484,6 +1484,7 @@
     "galleryEmptyMetric": "No media yet",
     "galleryMetric": "{count, plural, one {# memory} other {# memories}}",
     "galleryTitle": "Gallery",
+    "genCodeLink": "GenCode",
     "geoDescription": "A place to meet again, from anywhere",
     "geoEmptyMetric": "Not set",
     "geoTitle": "Geolocation",

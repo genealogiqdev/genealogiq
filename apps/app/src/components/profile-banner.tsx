@@ -4,7 +4,7 @@ import { useState, useTransition, type ReactNode } from "react"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { getCountryName } from "@genealogiq/core"
-import { Cake, Feather, Heart, Images, Flower, MapPin, SquarePen, BrickWall, User } from "lucide-react"
+import { Cake, Feather, Heart, Images, Flower, MapPin, SquarePen, BrickWall, User, QrCode } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -32,6 +32,7 @@ export interface ProfileData {
   guardedCount: number
   isFavoritedByMe?: boolean
   isAuthenticated?: boolean
+  canAccessGenCode?: boolean
 }
 
 interface Props {
@@ -51,6 +52,7 @@ export function ProfileBanner({ profile, downloadActions }: Props) {
   const canEdit = profile.isOwn || profile.isGuardian
   const geo = profile.geo && (profile.geo.lat !== 0 || profile.geo.lon !== 0) ? profile.geo : null
   const guardians = isAuthenticated && profile.guardians?.length ? profile.guardians : null
+  const showGenCode = isMemorial && profile.canAccessGenCode
   const [favorited, setFavorited] = useState(profile.isFavoritedByMe ?? false)
   const [favCount, setFavCount] = useState(profile.favoritedBy)
   const [isPending, startTransition] = useTransition()
@@ -240,7 +242,7 @@ export function ProfileBanner({ profile, downloadActions }: Props) {
                       </span>
                     </div>
                   )}
-                  {(isMemorial || isPet) && (geo || guardians) && (
+                  {(isMemorial || isPet) && (geo || guardians || showGenCode) && (
                     <div className="flex flex-wrap items-center gap-x-6 gap-y-2 justify-center lg:justify-start min-w-0">
                       {geo && (
                         <div className="flex items-center gap-2 text-muted-foreground min-w-0">
@@ -272,6 +274,15 @@ export function ProfileBanner({ profile, downloadActions }: Props) {
                             {guardians.length > 3 && ` +${guardians.length - 3}`}
                           </span>
                         </div>
+                      )}
+                      {showGenCode && (
+                        <Link
+                          href={`/profile/${profile.id}/qr-code`}
+                          className="flex items-center gap-2 text-foreground font-medium hover:underline rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+                        >
+                          <QrCode className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
+                          {t("genCodeLink")}
+                        </Link>
                       )}
                     </div>
                   )}

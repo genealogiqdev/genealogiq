@@ -1484,6 +1484,7 @@
     "galleryEmptyMetric": "Nenhuma mídia ainda",
     "galleryMetric": "{count, plural, one {# memória} other {# memórias}}",
     "galleryTitle": "Galeria",
+    "genCodeLink": "GenCode",
     "geoDescription": "Um lugar para se reencontrar, de qualquer lugar",
     "geoEmptyMetric": "Não definido",
     "geoTitle": "Geolocalização",
