@@ -51,7 +51,11 @@ async function main() {
     const applied = history.filter(row => row.finished_at && !row.rolled_back_at).map(row => row.migration_name)
     const names = (await readdir('packages/db/prisma/migrations')).filter(name => /^\d{14}_/.test(name))
     const pending = names.filter(name => !applied.includes(name))
-    if (pending.length !== 1 || pending[0] !== migration || applied.some(name => !names.includes(name))) throw new Error('Migration delta mismatch')
+    const unknown = applied.filter(name => !names.includes(name))
+    if (pending.length !== 1 || pending[0] !== migration || unknown.length) {
+      console.log('B2B_MIGRATION_PREFLIGHT ' + JSON.stringify({ expected: names.length, applied: applied.length, pending, unknown }))
+      throw new Error('Migration delta mismatch')
+    }
     const snapshot = await captureSnapshot(db)
     snapshot.migrations = await Promise.all(names.filter(name => name !== migration).map(async name => ({ name, sql: await readFile(`packages/db/prisma/migrations/${name}/migration.sql`, 'utf8') })))
     const bytes = gzipSync(Buffer.from(JSON.stringify(snapshot)))
