@@ -3,7 +3,7 @@
 > **Code:** [schema.prisma](../packages/db/prisma/schema.prisma), [Prisma configuration](../packages/db/prisma.config.ts), [client initialization](../packages/db/src/index.ts), [migration gate](../scripts/check-migrations.mjs)
 > **Last verified against code:** 2026-10-09 at `462f8a9`; the consolidated release audit records local SQL replay, production migrations and independent data-repair verification. Earlier audits remain below.
 
-All three apps consume @genealogiq/db. The schema contains 46 models and the migration tree contains 78 migration.sql files, including the additive consumer gift revocation and durable email outbox changes. Counts are recomputed from files; the single-schema gate excludes competing app schemas.
+All three apps consume @genealogiq/db. The schema contains 48 models and the migration tree contains 79 migration.sql files. This includes B2B reseller customers and lot sales. Counts are recomputed from files; the single-schema gate excludes competing app schemas.
 
 ## Model/table and creation provenance
 
@@ -41,6 +41,8 @@ All three apps consume @genealogiq/db. The schema contains 46 models and the mig
 | `PushSubscription` | `app_push_subscriptions` | [20260710000000_web_push_subscriptions](../packages/db/prisma/migrations/20260710000000_web_push_subscriptions/migration.sql) |
 | `SupplierCategory` | `supplier_categories` | [20260403000000_expand_schema_address_categories](../packages/db/prisma/migrations/20260403000000_expand_schema_address_categories/migration.sql) |
 | `Supplier` | `suppliers` | [20260331160225_add_supplier_model](../packages/db/prisma/migrations/20260331160225_add_supplier_model/migration.sql) |
+| `BusinessCustomer` | `business_customers` | [20261105010000_business_customers](../packages/db/prisma/migrations/20261105010000_business_customers/migration.sql) |
+| `BusinessGenCodeSale` | `business_gencode_sales` | [20261105010000_business_customers](../packages/db/prisma/migrations/20261105010000_business_customers/migration.sql) |
 | `Tenant` | `tenants` | Existing/introspected table; original creation SQL not recorded in this tree |
 | `AppUserCategory` | `app_user_categories` | Existing/introspected table; original creation SQL not recorded in this tree |
 | `QrCode` | `qr_codes` | [20260601000000_qr_code_table](../packages/db/prisma/migrations/20260601000000_qr_code_table/migration.sql) |
@@ -59,6 +61,15 @@ All three apps consume @genealogiq/db. The schema contains 46 models and the mig
 The table names above come from @@map. Column names come from each field's @map; do not infer snake_case from a Prisma property. For example, Favorite.userId/targetId map to app_favorites.app_user_id/app_target_id, with a composite primary key and no standalone id. APP consumer ownership uses AppUser.tenantId, while a verified SEQ session exposes the tenant as customerId.
 
 ## Current amendments and removed contracts
+
+The B2B migration adds two tables and nullable `gencodes.business_sale_id`.
+It changes no existing customer, plan, code status or sale value.
+Business CNPJ uniqueness is per tenant. Lot quantities are 1–100.
+Database checks reject negative prices and a code list with the wrong quantity.
+Foreign keys retain sale history and the operator link.
+Apply the migration before publishing APP/SEQ queries that use these fields.
+The exact SQL passed an incremental replay in a disposable local database.
+[The audit](audits/SEQ-B2B-2026-11-05.md) records the backup, production migration and separate product checks.
 
 Direct consumer gifts add an audit table with unique request and result IDs, permanent recipient/operator IDs, granted period, optional note and email acceptance time. Nullable AppUser/AppSale relations use SET NULL on deletion so a completed request cannot recreate a deleted consumer. No existing data or columns change. The [consumer feature](../apps/bms/docs/CONSUMERS.md) owns the atomic writer, period policy and deletion/replay integration tests.
 

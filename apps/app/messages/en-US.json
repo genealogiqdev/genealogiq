@@ -81,7 +81,8 @@
       "alreadyActivated": "This code has already been activated.",
       "expired": "This code can no longer be activated. Please contact the company you bought it from.",
       "notFound": "QR Code not found.",
-      "raceRetry": "This code was just activated. Please try again."
+      "raceRetry": "This code was just activated. Please try again.",
+      "resellerRecipient": "The company that sold the plaque must deliver this code to your account. Sign in with the end customer email."
     },
     "geolocation": {
       "notAuthorized": "You are not authorized to manage this profile."
@@ -1645,6 +1646,10 @@
       "permissionDeniedTitle": "Camera access denied",
       "pointCamera": "Point the camera at a Genealogiq QR Code",
       "title": "Scan a QR Code"
+    },
+    "reseller": {
+      "title": "This code is with a reseller",
+      "body": "Ask the company that sold the plaque to deliver this code to your account. If it was delivered, sign in with the end customer email."
     }
   },
   "Subscriptions": {

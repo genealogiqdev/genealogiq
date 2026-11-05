@@ -9,6 +9,22 @@ The APP application supplies gencode activation and memorial trial. Activation p
 
 ## How it works
 
+### SEQ B2B lots, 2026-11-05
+
+A QR code from a reseller lot must first be delivered to a final APP account in SEQ.
+An unassigned code shows a message that asks the buyer to contact the seller.
+A signed-in account must match `soldToAppUserId` for a B2B code.
+The activation action rechecks the buyer and current status under a code row lock.
+Another buyer or a second activation cannot create a memorial.
+Activated codes retain the existing public profile redirect.
+This guard applies to B2B lots. Existing other physical code paths keep their current contract.
+
+SEQ delivery creates or uses the final account and grants the existing finite partner Premium year.
+Its setup email keeps `/qr/<GenCode>` as the sign-in callback.
+Activation consumes the code's existing reserved credit. It does not take another stock unit.
+[The B2B contract](../../seq/docs/CUSTOMERS-MEMORIALS.md) and [audit](../../../docs/audits/SEQ-B2B-2026-11-05.md)
+record the full flow, local Chrome checks and external mail limits.
+
 | # | Step | Kind | Code / symbol | Produces |
 | --- | --- | --- | --- | --- |
 | 1 | Resolve the entry, session/tenant or public request | deterministic | [src/actions/gencode.actions.ts](../src/actions/gencode.actions.ts) `activateGenCode` | Validated request context |
@@ -122,6 +138,8 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 - **Resolution:** Not fixed in this task. Create disposable funded/unfunded/activated code fixtures and independent expected ledger/profile rows.
 
 ## Verification log
+
+2026-11-05: B2B source, local Chrome and independent PostgreSQL checks passed. See [the B2B audit](../../../docs/audits/SEQ-B2B-2026-11-05.md) for exact evidence and provider limits.
 
 | Date | Commit / working changes | Verified by | Scope and evidence | Mismatches or limits → action |
 | --- | --- | --- | --- | --- |

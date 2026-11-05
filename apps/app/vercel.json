@@ -1,4 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["gru1"]
+  "regions": ["gru1"],
+  "buildCommand": "cd ../.. && if [ \"$B2B_MIGRATE\" = \"1\" ]; then node scripts/production-b2b-migration.mjs; fi && pnpm exec turbo run build --filter=@genealogiq/app..."
 }

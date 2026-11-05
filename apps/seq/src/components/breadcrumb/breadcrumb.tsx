@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as Sentry from '@sentry/nextjs'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -13,7 +14,7 @@ import {
   BreadcrumbSeparator,
 } from '@genealogiq/ui/breadcrumb'
 
-const RESOLVABLE = ['users', 'customers', 'suppliers', 'memorialized', 'supplier-categories', 'customer-categories'] as const
+const RESOLVABLE = ['users', 'customers', 'business-customers', 'suppliers', 'memorialized', 'supplier-categories', 'customer-categories'] as const
 type ResolvableType = (typeof RESOLVABLE)[number]
 
 function formatSegment(segment: string): string {
@@ -30,6 +31,11 @@ function useResolvedNames(segments: string[]) {
     const toResolve: { type: ResolvableType; id: string }[] = []
 
     segments.forEach((segment, index) => {
+      if (segment === 'business' || segment === 'new') return
+      if (segments[index - 1] === 'business' && segments[index - 2] === 'customers') {
+        toResolve.push({ type: 'business-customers', id: segment })
+        return
+      }
       const prev = segments[index - 1] as ResolvableType | undefined
       if (prev && RESOLVABLE.includes(prev)) {
         toResolve.push({ type: prev, id: segment })
@@ -58,6 +64,8 @@ function useResolvedNames(segments: string[]) {
 }
 
 export function AppBreadcrumb() {
+  const t = useTranslations('BusinessCustomers')
+  const tc = useTranslations('Customers')
   const pathname = usePathname()
   const segments = pathname.split('/').filter(Boolean)
   const resolvedNames = useResolvedNames(segments)
@@ -68,9 +76,9 @@ export function AppBreadcrumb() {
     <Breadcrumb className="hidden md:flex">
       <BreadcrumbList>
         {segments.map((segment, index) => {
-          const href = '/' + segments.slice(0, index + 1).join('/')
+          const href = segment === 'business' && segments[index - 1] === 'customers' ? '/customers?type=business' : '/' + segments.slice(0, index + 1).join('/')
           const isLast = index === segments.length - 1
-          const label = resolvedNames[segment] ?? formatSegment(segment)
+          const label = resolvedNames[segment] ?? (segment === 'business' ? t('businessTab') : segment === 'customers' ? tc('title') : formatSegment(segment))
 
           return (
             <React.Fragment key={href}>

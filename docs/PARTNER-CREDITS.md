@@ -11,6 +11,24 @@ This shared module supplies partner credit ledger, cycles and reconciliation. Gr
 
 ## How it works
 
+### B2B reseller stock, 2026-11-05
+
+A wholesale lot reserves one unit for each physical code.
+`reserveCreditForSale` uses `reseller: true` to isolate each unit in a code-bound COMMITTED grant.
+This grant has no final buyer yet. It keeps the source grant's expiry. A lot sale does not extend its term.
+Its reason is `B2B resale inventory`. Other codes cannot spend this isolated unit.
+
+`commitResellerCredit` checks the live reservation when the final buyer receives the code.
+It locks the grant before the reservation, matching the expiry writer's lock order.
+It sets the final buyer and the configured committed term. It does not take another unit from the pool.
+The ledger records this assignment as RESERVE with quantity 0 and balance 1.
+That event records the actor without changing the balance. Ordinary balance events remain positive.
+Activation consumes the isolated unit once. An expired or consumed unit cannot be assigned again.
+
+[SEQ B2B customers](../apps/seq/docs/CUSTOMERS-MEMORIALS.md) owns the sale and final account flow.
+Its seven PostgreSQL cases cover a 50-code lot, final delivery, credit consumption, retries, concurrency and rollback.
+[The audit](audits/SEQ-B2B-2026-11-05.md) separates local product checks from production release checks.
+
 | # | Step | Kind | Code / symbol | Produces |
 | --- | --- | --- | --- | --- |
 | 1 | Resolve the entry, session/tenant or public request | deterministic | [packages/services/src/credits.ts](../packages/services/src/credits.ts) `getCreditBalance` | Validated request context |
@@ -158,6 +176,8 @@ Follow [LOCAL-DEVELOPMENT](LOCAL-DEVELOPMENT.md) for exact setup/start/readiness
 - **2026-10-14 customer coverage:** Seven real PostgreSQL cases now exercise identified reservations inside customer transactions, final-unit races, rollback and sale/access independence. Full activation/reconciliation and signed-provider replay remain open.
 
 ## Verification log
+
+2026-11-05: Seven PostgreSQL B2B tests and the local 50-code resale flow passed. See [the B2B audit](audits/SEQ-B2B-2026-11-05.md) for isolated credit and zero-debit assignment evidence.
 
 | Date | Commit / working changes | Verified by | Scope and evidence | Mismatches or limits → action |
 | --- | --- | --- | --- | --- |

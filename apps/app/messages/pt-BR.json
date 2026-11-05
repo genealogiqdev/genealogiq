@@ -81,7 +81,8 @@
       "alreadyActivated": "Este código já foi ativado.",
       "expired": "Este código não está mais válido para ativação. Fale com a empresa onde você o adquiriu.",
       "notFound": "QR Code não encontrado.",
-      "raceRetry": "Este código acabou de ser ativado. Tente novamente."
+      "raceRetry": "Este código acabou de ser ativado. Tente novamente.",
+      "resellerRecipient": "Este código precisa ser entregue à sua conta pela empresa que vendeu a placa. Entre com o e-mail do cliente final."
     },
     "geolocation": {
       "notAuthorized": "Você não tem autorização para gerenciar este perfil."
@@ -1645,6 +1646,10 @@
       "permissionDeniedTitle": "Acesso à câmera negado",
       "pointCamera": "Aponte a câmera para um QR Code da Genealogiq",
       "title": "Ler um QR Code"
+    },
+    "reseller": {
+      "title": "Este código está com uma revendedora",
+      "body": "Peça à empresa que vendeu a placa para entregar este código à sua conta. Se ele já foi entregue, entre com o e-mail do cliente final."
     }
   },
   "Subscriptions": {

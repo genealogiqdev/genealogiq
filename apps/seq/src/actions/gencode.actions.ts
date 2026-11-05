@@ -286,6 +286,7 @@ export async function undoGenCodeSale(genCode: string): Promise<ActionResult> {
       soldVia:         null,
       soldById:        null,
       soldToAppUserId: null,
+      businessSaleId:  null,
       soldToName:      null,
       soldValue:       null,
     },

@@ -26,6 +26,7 @@ export async function activateGenCode(
     where: { genCode },
     select: {
       id: true, status: true, tenantId: true,
+      businessSaleId: true, soldToAppUserId: true,
       mintedInOrder: {
         select: { activationTrialMonths: true, activationTrialPlanCode: true },
       },
@@ -47,6 +48,7 @@ export async function activateGenCode(
   // A code can be activated whether it's still in stock (AVAILABLE) or already
   // sold/written-off (SOLD) — only an already-ACTIVATED code is rejected.
   if (license.status === "ACTIVATED") return fail(t("gencode.alreadyActivated"))
+  if (license.businessSaleId && license.soldToAppUserId !== session.user.id) return fail(t("gencode.resellerRecipient"))
   // The partner must still have credit for this. This gates ACTIVATION only —
   // a memorial that already redeemed a code is never revisited, because the
   // family bought a physical plaque and it must not go dark over someone else's
@@ -67,6 +69,12 @@ export async function activateGenCode(
 
   try {
     const memorial = await prisma.$transaction(async (tx) => {
+      if (license.businessSaleId) {
+        await tx.$queryRaw`SELECT id FROM gencodes WHERE id = ${license.id} FOR UPDATE`
+        const current = await tx.genCode.findUnique({ where: { id: license.id }, select: { status: true, soldToAppUserId: true, businessSaleId: true } })
+        if (!current || !current.businessSaleId || current.soldToAppUserId !== session.user.id) throw new Error('B2B_RECIPIENT')
+        if (current.status === 'ACTIVATED') throw new Error('B2B_ACTIVATED')
+      }
       const memo = await tx.appUser.create({
         data: {
           firstName,
@@ -119,6 +127,8 @@ export async function activateGenCode(
     revalidatePath(`/profile/${session.user.id}/memorialized`)
     return ok({ id: memorial.id })
   } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'B2B_RECIPIENT') return fail(t('gencode.resellerRecipient'))
+    if (err instanceof Error && err.message === 'B2B_ACTIVATED') return fail(t('gencode.alreadyActivated'))
     // Two families racing for a partner's last unit: one wins, the other is told
     // there is no credit rather than getting a memorial nobody paid for.
     if (err instanceof InsufficientCreditsError) return fail(t("gencode.expired"))

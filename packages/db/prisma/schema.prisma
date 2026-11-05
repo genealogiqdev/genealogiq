@@ -456,6 +456,7 @@ model Address {
   appUser      AppUser?
   company      Company?
   supplier     Supplier?
+  businessCustomer BusinessCustomer?
   tenant       Tenant?
   user         User?
 
@@ -521,6 +522,7 @@ model User {
   emailTokens          EmailToken[]
   passwordResetTokens  PasswordResetToken[]
   genCodesSold         GenCode[]
+  businessGenCodeSales BusinessGenCodeSale[]
   genCodeOrdersCreated GenCodeOrder[]
   createdSupplierCats  SupplierCategory[]   @relation("supplier_categories_created_by_idTousers")
   updatedSupplierCats  SupplierCategory[]   @relation("supplier_categories_updated_by_idTousers")
@@ -910,6 +912,49 @@ model PushSubscription {
 
 // ─── Suppliers ───────────────────────────────────────────────────────────────
 
+model BusinessCustomer {
+  id               String                @id @default(cuid())
+  tenantId         String                @map("tenant_id")
+  name             String
+  tradeName        String                @map("trade_name")
+  taxId            String                @map("tax_id")
+  segment          String
+  contactName      String                @map("contact_name")
+  email            String
+  phoneCountryCode String                @default("55") @map("phone_country_code")
+  phone            String
+  notes            String?
+  isActive         Boolean               @default(true) @map("is_active")
+  addressId        String?               @unique @map("address_id")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+  tenant           Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  address          Address?              @relation(fields: [addressId], references: [id])
+  sales            BusinessGenCodeSale[]
+
+  @@unique([tenantId, taxId])
+  @@map("business_customers")
+}
+
+model BusinessGenCodeSale {
+  id            String           @id
+  tenantId      String           @map("tenant_id")
+  customerId    String           @map("customer_id")
+  quantity      Int
+  requestedCode String           @default("") @map("requested_code")
+  codes         String[]
+  unitValue     Decimal?         @map("unit_value") @db.Decimal(12, 2)
+  createdAt     DateTime         @default(now()) @map("created_at")
+  soldById      String           @map("sold_by_id")
+  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  customer      BusinessCustomer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  soldBy        User             @relation(fields: [soldById], references: [id], onDelete: Restrict)
+  genCodes      GenCode[]
+
+  @@index([tenantId, customerId])
+  @@map("business_gencode_sales")
+}
+
 model SupplierCategory {
   id          String     @id @default(cuid())
   name        String
@@ -991,6 +1036,8 @@ model Tenant {
   genCodes                  GenCode[]
   supplierCats              SupplierCategory[]    @relation("SupplierCategoryTenant")
   suppliers                 Supplier[]            @relation("SupplierTenant")
+  businessCustomers         BusinessCustomer[]
+  businessGenCodeSales      BusinessGenCodeSale[]
   address                   Address?              @relation(fields: [addressId], references: [id], map: "customers_address_id_fkey")
   tenant                    Tenant?               @relation("TenantParent", fields: [tenantId], references: [id], onDelete: Cascade, map: "customers_tenant_id_fkey")
   subTenants                Tenant[]              @relation("TenantParent")
@@ -1078,6 +1125,8 @@ model GenCode {
   soldVia             GenCodeSaleChannel? @map("sold_via")
   soldById            String?             @map("sold_by_id")
   soldToAppUserId     String?             @map("sold_to_app_user_id")
+  businessSaleId      String?              @map("business_sale_id")
+  businessSale        BusinessGenCodeSale? @relation(fields: [businessSaleId], references: [id], onDelete: Restrict)
   soldToName          String?             @map("sold_to_name")
   soldValue           Decimal?            @map("sold_value") @db.Decimal(10, 2)
   createdAt           DateTime            @default(now()) @map("created_at")
@@ -1403,7 +1452,8 @@ model CreditTransaction {
   grantId         String                @map("grant_id")
   tenantId        String                @map("tenant_id")
   type            CreditTransactionType
-  /// Always positive. The type says which direction it moves.
+  /// Positive for balance movements. B2B buyer assignment records RESERVE with
+  /// zero quantity because the unit was already reserved at the wholesale sale.
   quantity        Int
   /// The grant's remaining balance immediately after this row was written —
   /// what makes the ledger auditable without replaying it from the beginning.

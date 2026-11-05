@@ -27,6 +27,16 @@ export default async function GenCodePage({ params }: Props) {
     redirect(`/profile/${license.appUserId}`)
   }
 
+  if (license.businessSaleId && (!license.soldToAppUserId || (session?.user && license.soldToAppUserId !== session.user.id))) {
+    return <div className="min-h-screen relative overflow-x-hidden">
+      <AuroraBackdrop variant="page" intensity="bold" />
+      <main className="container relative z-10 pt-24 pb-32">
+        <h1 className="text-4xl font-extrabold tracking-tight">{t('reseller.title')}</h1>
+        <p className="text-muted-foreground mt-2 max-w-prose">{t('reseller.body')}</p>
+      </main>
+    </div>
+  }
+
   // The partner's allowance may have run out, or their subscription may be
   // frozen while they are behind on an instalment. Checked here as well as in
   // the action so the family gets a page that explains itself instead of a form

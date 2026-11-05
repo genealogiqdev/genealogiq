@@ -55,6 +55,73 @@ The enforcing files are linked above. Test names and literal assertions below re
 
 ## Contracts and data
 
+### B2B reseller customers, 2026-11-05
+
+Open **Clientes → Empresas B2B**. This list is separate from final APP customers.
+A reseller company uses `BusinessCustomer`. It belongs to the company in the verified session.
+It is not a new BMS partner or an APP account. It has no separate staff login.
+The form stores legal name, trade name, CNPJ, segment, contact, address and active status.
+The server checks the CNPJ and stores digits only. The same CNPJ can belong to different tenants.
+Duplicate CNPJ values in one tenant are rejected. Updates also check tenant ownership.
+The segments include print shops, marble shops, funeral supplies and cremation urns.
+
+[Business actions](../src/actions/business-customer.actions.ts), [schemas](../src/schemas/business-customer.schema.ts),
+[queries](../src/queries/business-customers.ts) and [the lot writer](../src/lib/business-gencode-sale.ts) own this flow.
+The page is `/customers?type=business`. Create and manage pages use `/customers/business/new` and `/customers/business/[id]`.
+The breadcrumb name API checks the same tenant. The intermediate business route returns to the B2B list.
+
+1. Open the reseller record.
+2. Enter the lot quantity, from 1 to 100 codes.
+3. Enter the optional price per code in BRL.
+4. Select **Registrar venda do lote**.
+
+For a specific physical plaque, enter its GenCode and quantity 1.
+For other lots, the server selects the oldest available codes.
+The lot, codes and credit ledger commit together. The ledger is the record of credit changes.
+Each code becomes SOLD and keeps the original tenant. The sale stores the actor, time, price and original code list.
+An inactive reseller, missing stock or missing credit stops the whole sale.
+A request UUID identifies one sale. A retry returns that sale. Changed retry data is rejected.
+Concurrent buyers cannot take the same last code.
+
+The table shows codes **Disponível para revenda**, **Entregue ao cliente final**, **Ativado** or **Prazo vencido**.
+The list shows these totals for each reseller. Use the status filter or code search to find a plaque.
+Download a code as SVG. Download the available lot list as text.
+The lot print file is HTML. Open it in Chrome and use Print. It contains only codes still available for resale.
+Each printed QR goes to the original APP `/qr/<GenCode>` route.
+
+1. Select **Entregar ao cliente final** beside an available code.
+2. Enter the final buyer's name and email.
+3. Select **Criar ou usar conta e entregar código**.
+
+[The delivery writer](../src/lib/business-gencode-recipient.ts) locks the reseller and code.
+Only a live tenant OWNER, ADMIN or SUPER_ADMIN can release this delivery and Premium access.
+A matching active APP_USER in this tenant keeps its account, password and purchased time.
+A new email creates a final APP account. An email from another tenant is rejected.
+The existing shared Premium writer grants the finite 12-month partner gift.
+The code keeps its original lot, sale date and wholesale price. It gains the final buyer link.
+The credit already reserved for this code changes to the final buyer's term. No second stock or credit unit is taken.
+Repeated delivery uses the same buyer. It cannot assign another buyer or grant another year.
+Expired, activated, returned and foreign codes cannot be delivered as new sales.
+
+The account, setup token, gift, credit update and receipt commit together.
+Mail runs after commit. A mail failure reports completed delivery with email pending.
+Use **Reenviar acesso** in the code row. A new account gets an expiring setup link with the QR callback.
+An account with a password gets a code access email. Resend changes no stock, gift or buyer link.
+The final buyer defines a password, signs in and activates the plaque through APP.
+An unassigned B2B code shows a clear message. A code assigned to another account cannot be activated by that account.
+APP rechecks the buyer and activation state under the code lock.
+
+Run the B2B action, schema/state and APP activation tests.
+For real SQL, prepare a disposable loopback database named `genealogiq_coupon_qa_*` with the new migration.
+Set `B2B_TEST_DATABASE_URL` to that database.
+Run `pnpm exec vitest run --project seq src/lib/business-gencode.integration.test.ts --no-file-parallelism`.
+For local UI checks, start APP and SEQ with the local launcher. Use an isolated tenant with 50 funded codes.
+Expect 50 available after the lot sale. Expect 49 available and 1 delivered after account delivery.
+After APP activation, expect 49 available, 0 delivered and 1 activated. Confirm one credit consumption in SQL.
+Try one more lot sale with empty stock. Expect an error and no extra sale.
+Open an unassigned QR in APP. Expect the reseller message and no new memorial.
+[The B2B audit](../../../docs/audits/SEQ-B2B-2026-11-05.md) records the actual checks and mail limits.
+
 ### Existing APP customers linked by BMS, 2026-10-29
 
 An APP_USER registered directly in APP may initially have no company. The BMS platform administrator can now use **Clientes finais → Vincular a uma empresa** to associate that existing account with a Sequoia company. The customer then appears in this company's scoped list/detail without re-registration. Account identity, plan, original QR data and accepted guardianships are preserved; the linked memorials keep their own original tenant scope, including null. [BMS consumers](../../bms/docs/CONSUMERS.md) owns the guarded action and conflict behavior.
@@ -248,6 +315,8 @@ Check whether the customer is in the session tenant and the guardian relation is
 - **2026-10-14 partial coverage:** Normal Credentials HTTP/action checks now create and reload local customers, exercise permission denial and persist invitation tokens; real PostgreSQL tests reject another tenant. External mail and the Chrome invitation/cross-tenant browser scenario remain open.
 
 ## Verification log
+
+2026-11-05: B2B source, local Chrome and independent PostgreSQL checks passed. See [the B2B audit](../../../docs/audits/SEQ-B2B-2026-11-05.md) for exact evidence and provider limits.
 
 2026-10-29: [BMS company-link acceptance](../../../docs/audits/BMS-CONSUMER-PARTNER-2026-10-29.md) verified that an independent APP registration appears in the chosen SEQ company after linking, retains its accepted tenantless memorial and original plan/QR data, and can export an existing plaque's SVG. FREE and empty-stock boundaries remained enforced. This link change does not own the concurrent QR issuance implementation.
 

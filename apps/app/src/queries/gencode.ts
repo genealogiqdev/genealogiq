@@ -13,6 +13,8 @@ export async function getLicenseByGenCode(genCode: string) {
       // The partner, not the sale. Whether this code can still be activated is
       // a question for the credit ledger now — see canActivate.
       tenantId:  true,
+      businessSaleId: true,
+      soldToAppUserId: true,
     },
   })
 }

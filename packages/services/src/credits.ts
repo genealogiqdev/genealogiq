@@ -191,6 +191,7 @@ export async function reserveCreditForSale(input: {
   tenantId:        string
   genCodeId:       string
   committed:       boolean
+  reseller?:      boolean
   buyerId?:        string | null
   committedMonths: number
   actorId?:        string | null
@@ -222,8 +223,8 @@ export async function reserveCreditForSale(input: {
     let backingGrantId = source.id
     let expiresAt      = source.expiresAt
 
-    if (input.committed) {
-      const committedUntil = addBillingMonths(new Date(), input.committedMonths)
+    if (input.committed || input.reseller) {
+      const committedUntil = input.reseller ? source.expiresAt : addBillingMonths(new Date(), input.committedMonths)
 
       const committedGrant = await tx.creditGrant.create({
         data: {
@@ -237,7 +238,7 @@ export async function reserveCreditForSale(input: {
           // A committed unit came from somewhere that had already rolled or not;
           // either way it must never roll again on its own.
           rolloverGeneration: 1,
-          reason:       'Committed on platform sale',
+          reason:       input.reseller ? 'B2B resale inventory' : 'Committed on platform sale',
         },
         select: { id: true, expiresAt: true },
       })
@@ -275,13 +276,37 @@ export async function reserveCreditForSale(input: {
   else await prisma.$transaction(reserve)
 }
 
-/**
- * Undoes a write-off.
- *
- * The unit goes back to the grant it came from ONLY if that grant is still
- * live. Undoing a sale after the cycle died must not resurrect credit — that
- * would make "undo" a way around expiry.
- */
+/** Assigns the already reserved B2B unit to its final buyer without another debit. */
+export async function commitResellerCredit(tx: Prisma.TransactionClient, input: {
+  tenantId: string; genCodeId: string; buyerId: string; actorId: string; months: number
+}) {
+  const initial = await tx.creditReservation.findUnique({ where: { genCodeId: input.genCodeId }, select: { grantId: true } })
+  if (!initial) throw new InsufficientCreditsError(input.tenantId)
+  // Match the expiry writer's grant-before-reservation lock order.
+  await tx.$queryRaw`SELECT id FROM credit_grants WHERE id = ${initial.grantId} FOR UPDATE`
+  await tx.$queryRaw`SELECT id FROM credit_reservations WHERE gen_code_id = ${input.genCodeId} FOR UPDATE`
+  const reservation = await tx.creditReservation.findUnique({ where: { genCodeId: input.genCodeId }, include: { grant: true } })
+  const now = new Date()
+  if (!reservation || reservation.tenantId !== input.tenantId || reservation.status !== 'HELD'
+    || reservation.grant.source !== 'COMMITTED' || reservation.grant.reason !== 'B2B resale inventory'
+    || reservation.grant.status !== 'ACTIVE' || reservation.grant.remainingQty !== 1
+    || (reservation.expiresAt && reservation.expiresAt <= now)
+    || (reservation.grant.expiresAt && reservation.grant.expiresAt <= now)) throw new InsufficientCreditsError(input.tenantId)
+  if (reservation.grant.buyerId) {
+    if (reservation.grant.buyerId === input.buyerId) return
+    throw new InsufficientCreditsError(input.tenantId)
+  }
+  const expiresAt = addBillingMonths(now, input.months)
+  await tx.creditGrant.update({ where: { id: reservation.grantId }, data: { buyerId: input.buyerId, expiresAt } })
+  await tx.creditReservation.update({ where: { id: reservation.id }, data: { expiresAt } })
+  await tx.creditTransaction.create({ data: { grantId: reservation.grantId, tenantId: input.tenantId,
+    genCodeId: input.genCodeId, reservationId: reservation.id, type: 'RESERVE', quantity: 0, balanceAfter: 1,
+    idempotencyKey: `reseller-buyer:${input.genCodeId}`, actorId: input.actorId,
+    reason: 'B2B unit assigned to its final buyer; no additional balance debit',
+  } })
+}
+
+/** Releases a write-off only while its source grant is live. */
 export async function releaseReservation(genCodeId: string, actorId?: string | null): Promise<void> {
   await prisma.$transaction(async (tx) => {
     const reservation = await tx.creditReservation.findUnique({
