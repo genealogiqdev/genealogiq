@@ -8,6 +8,10 @@ const require = createRequire(import.meta.url)
 const { Client } = require('pg')
 const { put, get } = createRequire(new URL('../packages/services/package.json', import.meta.url))('@vercel/blob')
 const migration = '20261105010000_business_customers'
+// Preserved by the reviewed October 20 recovery; never reset or rebaseline them.
+const historical = ['20260406130806_add_owner_relation_to_customer', '20260406172552_add_tenant_scoping',
+  '20260324165458_add_user_model', '20260325084009_add_email_verification_and_password_reset',
+  '20260325100017_add_rate_limiting_and_email_change', '20260407000000_add_customer_modules', '20260415000000_add_tax_id_unique']
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex')
 const identifier = name => '"' + name.replaceAll('"', '""') + '"'
 
@@ -49,10 +53,10 @@ async function main() {
     const history = (await db.query('SELECT migration_name, finished_at, rolled_back_at FROM _prisma_migrations')).rows
     if (history.some(row => !row.finished_at && !row.rolled_back_at)) throw new Error('Unfinished migration exists')
     const applied = history.filter(row => row.finished_at && !row.rolled_back_at).map(row => row.migration_name)
-    const names = (await readdir('packages/db/prisma/migrations')).filter(name => /^\d{14}_/.test(name))
+    const names = (await readdir('packages/db/prisma/migrations')).filter(name => name === '0_init' || /^\d{14}_/.test(name))
     const pending = names.filter(name => !applied.includes(name))
     const unknown = applied.filter(name => !names.includes(name))
-    if (pending.length !== 1 || pending[0] !== migration || unknown.length) {
+    if (pending.length !== 1 || pending[0] !== migration || unknown.length !== historical.length || unknown.some(name => !historical.includes(name))) {
       console.log('B2B_MIGRATION_PREFLIGHT ' + JSON.stringify({ expected: names.length, applied: applied.length, pending, unknown }))
       throw new Error('Migration delta mismatch')
     }
@@ -66,14 +70,14 @@ async function main() {
     const verified = Buffer.from(await new Response(restored.stream).arrayBuffer())
     if (sha256(verified) !== sha256(bytes)) throw new Error('Backup checksum mismatch')
     const counts = Object.fromEntries(snapshot.tables.map(table => [table.name, table.rows.length]))
-    console.log('B2B_BACKUP_RECEIPT ' + JSON.stringify({ host: target.hostname, capturedAt: snapshot.captured_at, pathname: blob.pathname, bytes: bytes.length, sha256: sha256(bytes), applied: applied.length, tableCounts: counts }))
+    console.log('B2B_BACKUP_RECEIPT ' + JSON.stringify({ host: target.hostname, capturedAt: snapshot.captured_at, pathname: blob.pathname, bytes: bytes.length, sha256: sha256(bytes), canonicalApplied: applied.filter(name => names.includes(name)).length, historicalApplied: unknown.length, tableCounts: counts }))
     const result = spawnSync(process.execPath, ['node_modules/prisma/build/index.js', 'migrate', 'deploy'],
       { cwd: 'packages/db', env: { ...process.env, DATABASE_URL: target.href }, encoding: 'utf8' })
     if (result.status !== 0) throw new Error('Canonical migration failed')
     const after = (await db.query(`SELECT (SELECT count(*)::int FROM business_customers) AS companies,
       (SELECT count(*)::int FROM business_gencode_sales) AS lots,
       (SELECT count(*)::int FROM gencodes WHERE business_sale_id IS NOT NULL) AS assigned_codes,
-      (SELECT count(*)::int FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL) AS applied`)).rows[0]
+      (SELECT count(*)::int FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL AND migration_name = ANY($1::text[])) AS applied`, [names])).rows[0]
     if (after.applied !== names.length || after.companies || after.lots || after.assigned_codes) throw new Error('Post-migration state mismatch')
     console.log('B2B_MIGRATION_RECEIPT ' + JSON.stringify(after))
   } finally { await db.end() }
