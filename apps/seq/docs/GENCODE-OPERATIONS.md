@@ -11,6 +11,18 @@ The SEQ application supplies gencode sales, printing and installation. Tenant in
 
 ## How it works
 
+### B2B lot sales, 2026-11-05
+
+Use **Clientes → Empresas B2B** to sell a lot to a reseller.
+The lot sets its codes to SOLD and records the wholesale buyer, date, price and actor.
+The codes keep their original tenant. The normal inventory and sold totals include them.
+Delivery to the final APP buyer keeps the wholesale date, price and lot link.
+It adds the final APP account and uses the same isolated credit.
+Activation remains one physical code and one consumed credit.
+Undo of an unactivated sale clears its current lot link. The original lot code list stays in the sale record.
+The existing credit-release rules still apply. No new refund or reseller login flow is added.
+[Customers](CUSTOMERS-MEMORIALS.md) owns the form, code table, print files and delivery checks.
+
 | # | Step | Kind | Code / symbol | Produces |
 | --- | --- | --- | --- | --- |
 | 1 | Resolve the entry, session/tenant or public request | deterministic | [src/actions/gencode.actions.ts](../src/actions/gencode.actions.ts) `markGenCodePrinted` | Validated request context |
@@ -154,6 +166,8 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 - **Resolution:** Not fixed in this task. Seed isolated codes and balances for two tenants; test sale, undo and double-submit through inventory UI.
 
 ## Verification log
+
+2026-11-05: B2B source, local Chrome and independent PostgreSQL checks passed. See [the B2B audit](../../../docs/audits/SEQ-B2B-2026-11-05.md) for exact evidence and provider limits.
 
 | Date | Commit / working changes | Verified by | Scope and evidence | Mismatches or limits → action |
 | --- | --- | --- | --- | --- |

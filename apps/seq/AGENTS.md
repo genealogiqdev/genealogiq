@@ -27,10 +27,12 @@ The app uses Next.js App Router, server-side queries, server actions and Zod sch
 
 ## Feature index
 
+**Clientes → Empresas B2B** stores reseller companies inside the current tenant. A lot sale reserves its physical codes and credits together. The code table shows available, delivered, activated and expired units. Live tenant administrators can create or reuse a final APP account from a lot code. This step keeps the wholesale sale, converts its reserved unit and grants the existing finite Premium year. The reseller has no separate staff login. See [CUSTOMERS-MEMORIALS](docs/CUSTOMERS-MEMORIALS.md).
+
 | Feature | Purpose | Main code | Test command from repo root |
 | --- | --- | --- | --- |
 | [ACCOUNTS-STAFF](docs/ACCOUNTS-STAFF.md) | Tenant accounts, staff and company | `src/actions/auth.ts` | `pnpm test` |
-| [CUSTOMERS-MEMORIALS](docs/CUSTOMERS-MEMORIALS.md) | Tenant consumers, Premium access, categories and memorial records | `src/actions/customer.actions.ts` | `pnpm test` |
+| [CUSTOMERS-MEMORIALS](docs/CUSTOMERS-MEMORIALS.md) | Tenant consumers, B2B resellers, Premium access, categories and memorial records | `src/actions/customer.actions.ts` | `pnpm test` |
 | [SUPPLIERS-CATEGORIES](docs/SUPPLIERS-CATEGORIES.md) | Tenant suppliers and categories | `src/actions/supplier.actions.ts` | `pnpm test` |
 | [GENCODE-OPERATIONS](docs/GENCODE-OPERATIONS.md) | GenCode sales, printing and installation | `src/actions/gencode.actions.ts` | `pnpm test` |
 | [PARTNER-PURCHASING](docs/PARTNER-PURCHASING.md) | Annual plans and standalone GenCode packages | `src/actions/partner-plan.actions.ts` | `pnpm test` |

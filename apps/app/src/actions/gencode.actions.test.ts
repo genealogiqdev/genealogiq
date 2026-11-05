@@ -8,7 +8,8 @@ const { prismaMock, txMock, safeParseMock } = vi.hoisted(() => ({
   txMock: {
     appUser: { create: vi.fn() },
     appUserGuardian: { create: vi.fn() },
-    genCode: { update: vi.fn() },
+    genCode: { update: vi.fn(), findUnique: vi.fn() },
+    $queryRaw: vi.fn(),
   },
   safeParseMock: vi.fn(),
 }))
@@ -62,6 +63,29 @@ beforeEach(() => {
 const OPEN_SALE = { paidAt: new Date(), reversedAt: null, status: null, accessEndsAt: null }
 
 describe("activateGenCode", () => {
+  it('rejects an unassigned reseller code and a code assigned to another buyer', async () => {
+    for (const soldToAppUserId of [null, 'other-buyer']) {
+      prismaMock.genCode.findUnique.mockResolvedValue({ id: 'lic-1', status: 'SOLD', businessSaleId: 'b2b-sale', soldToAppUserId })
+      expect(await activateGenCode('GENCODE', MEMORIAL)).toEqual({ ok: false, message: 'gencode.resellerRecipient' })
+    }
+    expect(prismaMock.$transaction).not.toHaveBeenCalled()
+  })
+  it('rechecks reseller recipient and activation after taking the row lock', async () => {
+    prismaMock.genCode.findUnique.mockResolvedValue({ id: 'lic-1', status: 'SOLD', businessSaleId: 'b2b-sale', soldToAppUserId: 'guardian-1' })
+    txMock.genCode.findUnique.mockResolvedValue({ status: 'ACTIVATED', businessSaleId: 'b2b-sale', soldToAppUserId: 'guardian-1' })
+    expect(await activateGenCode('GENCODE', MEMORIAL)).toEqual({ ok: false, message: 'gencode.alreadyActivated' })
+    expect(txMock.appUser.create).not.toHaveBeenCalled()
+    txMock.genCode.findUnique.mockResolvedValue({ status: 'SOLD', businessSaleId: 'b2b-sale', soldToAppUserId: 'other' })
+    expect(await activateGenCode('GENCODE', MEMORIAL)).toEqual({ ok: false, message: 'gencode.resellerRecipient' })
+    expect(txMock.appUser.create).not.toHaveBeenCalled()
+  })
+  it('lets the named reseller buyer activate with the existing reserved credit', async () => {
+    prismaMock.genCode.findUnique.mockResolvedValue({ id: 'lic-1', tenantId: 'tenant-1', status: 'SOLD', businessSaleId: 'b2b-sale', soldToAppUserId: 'guardian-1' })
+    txMock.genCode.findUnique.mockResolvedValue({ status: 'SOLD', businessSaleId: 'b2b-sale', soldToAppUserId: 'guardian-1' })
+    expect(await activateGenCode('GENCODE', MEMORIAL)).toEqual({ ok: true, data: { id: 'memo-1' } })
+    expect(txMock.$queryRaw).toHaveBeenCalled()
+    expect(creditsMock.consumeCreditForActivation).toHaveBeenCalledWith(txMock, { tenantId: 'tenant-1', genCodeId: 'lic-1' })
+  })
   it("rejects an unknown gen code", async () => {
     prismaMock.genCode.findUnique.mockResolvedValue(null)
     expect(await activateGenCode("NOPE", MEMORIAL)).toEqual({ ok: false, message: "gencode.notFound" })
