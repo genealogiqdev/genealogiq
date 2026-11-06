@@ -75,7 +75,9 @@ The breadcrumb name API checks the same tenant. The intermediate business route 
 3. Enter the optional price per code in BRL.
 4. Select **Registrar venda do lote**.
 
-For a specific physical plaque, enter its GenCode and quantity 1.
+For printed urns, paste the exact shipped codes, separated by lines or commas.
+The list must have exactly the requested quantity, with no duplicate or foreign code.
+One specific physical plaque still uses its GenCode and quantity 1.
 For other lots, the server selects the oldest available codes.
 The lot, codes and credit ledger commit together. The ledger is the record of credit changes.
 Each code becomes SOLD and keeps the original tenant. The sale stores the actor, time, price and original code list.
@@ -108,8 +110,34 @@ Mail runs after commit. A mail failure reports completed delivery with email pen
 Use **Reenviar acesso** in the code row. A new account gets an expiring setup link with the QR callback.
 An account with a password gets a code access email. Resend changes no stock, gift or buyer link.
 The final buyer defines a password, signs in and activates the plaque through APP.
-An unassigned B2B code shows a clear message. A code assigned to another account cannot be activated by that account.
+The November 6 clarification removes mandatory advance delivery.
+An unassigned B2B code opens APP sign-in or registration. The final buyer claims it during activation.
+A code assigned to another account cannot be activated by that account.
 APP rechecks the buyer and activation state under the code lock.
+
+### Manufacturer stock and confirmed orders, 2026-11-06
+
+MIZPAH is the BMS partner and SEQ tenant. Genealogiq sells its packages to MIZPAH.
+MIZPAH's funeral-home and cemetery customers are BusinessCustomer records. They need no SEQ login.
+The final buyer is unknown until the funeral home sells the urn in both scenarios.
+
+1. In **Meus GenCodes**, use **Imprimir QR Codes para urnas**.
+2. Enter 20 units and download the artwork. This selects unprinted AVAILABLE codes.
+3. Print the codes on the urns. Confirm printing to save `printedAt`.
+4. Keep the code list with the physical urns.
+5. Record the wholesale sale in **Clientes → Empresas B2B**. Paste the shipped code list.
+6. The funeral home sells an urn. The final buyer scans the original QR.
+7. The buyer signs in or registers in APP and creates the memorial.
+
+For scenario 1, steps 1–4 happen before a funeral-home order.
+For scenario 2, steps 1–4 happen after the order is confirmed.
+Neither printing path creates final users, Premium gifts, reservations or wholesale sales.
+The wholesale sale reserves each code once. Final activation consumes that same unit.
+The buyer link, Premium, memorial and consumption commit together.
+The code still points to the same APP URL after every step.
+Prior manual delivery is optional when MIZPAH receives the buyer details.
+Credit validity and the original wholesale price remain unchanged by printing.
+[The follow-up audit](../../../docs/audits/SEQ-B2B-SELF-ACTIVATION-2026-11-06.md) records the corrected tests and product checks.
 
 Run the B2B action, schema/state and APP activation tests.
 For real SQL, prepare a disposable loopback database named `genealogiq_coupon_qa_*` with the new migration.
@@ -119,7 +147,7 @@ For local UI checks, start APP and SEQ with the local launcher. Use an isolated 
 Expect 50 available after the lot sale. Expect 49 available and 1 delivered after account delivery.
 After APP activation, expect 49 available, 0 delivered and 1 activated. Confirm one credit consumption in SQL.
 Try one more lot sale with empty stock. Expect an error and no extra sale.
-Open an unassigned QR in APP. Expect the reseller message and no new memorial.
+Open an unassigned sold QR in APP. Expect sign-in or account creation and no write until activation.
 [The B2B audit](../../../docs/audits/SEQ-B2B-2026-11-05.md) records the actual checks and mail limits.
 
 ### Existing APP customers linked by BMS, 2026-10-29
@@ -339,3 +367,5 @@ The 2026-10-09 plan/download follow-up has 77 passing focused tests in eight fil
 [The plan/download follow-up audit](../../../docs/audits/SEQ-MEMORIALS-2026-10-09.md) specifies FREE, Premium 5+5, sixth-slot, expired-plan, second-tenant, stored-destination and no-write/persistence scenarios. The earlier G2 browser attempt above remains historical evidence, not a pass for this follow-up.
 
 [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md) · [Audit](../../../docs/audits/AGENT-MEMORY-2026-10-03.md) · [AUTHENTICATION](../../../docs/AUTHENTICATION.md) · [EMAIL-DELIVERY](../../../docs/EMAIL-DELIVERY.md)
+
+| 2026-11-06 | `d941f5b` + manufacturer correction | Source, 1,524 default tests, ten PostgreSQL B2B tests, normal Chrome signup/verification and two urn activations | Both exact 20-code lists persisted; 38 resale units, ten stock units and two activations. APP/SEQ builds and static checks passed. | [Follow-up audit](../../../docs/audits/SEQ-B2B-SELF-ACTIVATION-2026-11-06.md) separates the local email test transport and production acceptance. |

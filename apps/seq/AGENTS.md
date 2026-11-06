@@ -27,7 +27,7 @@ The app uses Next.js App Router, server-side queries, server actions and Zod sch
 
 ## Feature index
 
-**Clientes → Empresas B2B** stores reseller companies inside the current tenant. A lot sale reserves its physical codes and credits together. The code table shows available, delivered, activated and expired units. Live tenant administrators can create or reuse a final APP account from a lot code. This step keeps the wholesale sale, converts its reserved unit and grants the existing finite Premium year. The reseller has no separate staff login. See [CUSTOMERS-MEMORIALS](docs/CUSTOMERS-MEMORIALS.md).
+**Clientes → Empresas B2B** stores reseller companies inside the current tenant. The manufacturer uses SEQ. Its funeral-home customers do not need staff access. Print codes for stock or a confirmed order without a final buyer. Record the wholesale sale with the exact shipped codes. A lot sale reserves its physical codes and credits together. The final buyer can register from the printed APP QR and activate it. Assignment, Premium, memorial creation and credit use commit together. Advance delivery to a final APP account is optional. The code table shows available, delivered, activated and expired units. See [CUSTOMERS-MEMORIALS](docs/CUSTOMERS-MEMORIALS.md).
 
 | Feature | Purpose | Main code | Test command from repo root |
 | --- | --- | --- | --- |

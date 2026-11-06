@@ -14,6 +14,11 @@ describe('reseller inventory states', () => {
     expect(getBusinessCodeState({ ...code, reservation: null }, now)).toBe('expired')
     expect(getBusinessCodeState({ ...code, soldAt: null }, now)).toBe('returned')
   })
+  it('accepts exact shipped codes and rejects duplicate, mismatched or invalid lists', () => {
+    const input = { requestId: '00000000-0000-4000-8000-000000000001', quantity: 2, genCode: ' xyz\nA-BC ' }
+    expect(businessSaleSchema.parse(input).genCode).toBe('ABC,XYZ')
+    for (const genCode of ['ABC,ABC', 'ABC', 'ABC,XYZ,DEF', 'ABC,<script>']) expect(businessSaleSchema.safeParse({ ...input, genCode }).success).toBe(false)
+  })
   it('validates and normalizes CNPJ while keeping tenant duplicates a database rule', () => {
     const data = { name: '  Acme Print  ', tradeName: '', taxId: '11.222.333/0001-81', segment: 'PLAQUE_PRINTER', contactName: '', email: '', phoneCountryCode: '55', phone: '', notes: '', isActive: true }
     expect(getBusinessCustomerSchema(identityTranslator).parse(data)).toMatchObject({ name: 'Acme Print', taxId: '11222333000181' })

@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { Button } from '@genealogiq/ui/button'
 import { Input } from '@genealogiq/ui/input'
 import { sellBusinessGenCodes } from '@/actions/business-customer.actions'
+import { downloadGenCodeBatch } from '@/lib/download-gencode-batch'
 
 export type BusinessSaleRow = { id: string; quantity: number; unitValue: number | null; createdAt: Date; codes: string[]; activeCodes: string[] }
 export function BusinessGenCodeSales({ customerId, active, sales, appBaseUrl }: { customerId: string; active: boolean; sales: BusinessSaleRow[]; appBaseUrl: string }) {
@@ -38,7 +39,7 @@ export function BusinessGenCodeSales({ customerId, active, sales, appBaseUrl }: 
     }}>
       <div className="grid gap-3 sm:grid-cols-3">
         <label htmlFor="business-quantity">{t('quantity')}<Input id="business-quantity" name="quantity" type="number" min="1" max="100" step="1" defaultValue="1" required disabled={pending || !active} /></label>
-        <label htmlFor="business-code">{t('specificCode')}<Input id="business-code" name="genCode" disabled={pending || !active} /></label>
+        <label htmlFor="business-code">{t('specificCode')}<textarea id="business-code" name="genCode" className="w-full rounded-md border p-2" rows={3} disabled={pending || !active} /></label>
         <label htmlFor="business-price">{t('unitValue')}<Input id="business-price" name="unitValue" type="number" min="0" max="1000000" step="0.01" disabled={pending || !active} /></label>
       </div>
       <Button disabled={pending || !active} type="submit">{pending ? t('saving') : t('sell')}</Button>
@@ -58,13 +59,7 @@ export function BusinessGenCodeSales({ customerId, active, sales, appBaseUrl }: 
       }} disabled={sale.activeCodes.length === 0}>{t('downloadCodes')}</Button>
       <Button variant="outline" className="w-fit" onClick={async () => {
         try {
-          const QRCode = (await import('qrcode')).default
-          const escape = (value: string) => value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!)
-          const cards = await Promise.all(sale.activeCodes.map(async code => `<article>${await QRCode.toString(`${appBaseUrl}/qr/${encodeURIComponent(code)}`, { type: 'svg', margin: 4, errorCorrectionLevel: 'H' })}<p>${escape(code)}</p></article>`))
-          const html = `<!doctype html><html lang="${locale}"><meta charset="utf-8"><title>GenCodes</title><style>body{font-family:sans-serif}main{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}article{text-align:center;break-inside:avoid}svg{width:180px;height:180px}p{font-size:12px}@media print{header{display:none}}</style><header><p>${escape(t('printHelp'))}</p></header><main>${cards.join('')}</main></html>`
-          const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }))
-          const link = document.createElement('a'); link.href = url; link.download = `QR-Codes-${sale.id}.html`; link.click()
-          setTimeout(() => URL.revokeObjectURL(url), 1000)
+          await downloadGenCodeBatch(sale.activeCodes, appBaseUrl, locale, t('printHelp'), `QR-Codes-${sale.id}.html`)
         } catch { setMessage(t('qrFailed')) }
       }} disabled={sale.activeCodes.length === 0}>{t('downloadBatchQr')}</Button>
     </div>)}

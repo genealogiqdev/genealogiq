@@ -25,9 +25,11 @@ export const businessCustomerDefaults: BusinessCustomerFormValues = {
   phoneCountryCode: '55', phone: '', notes: '', isActive: true, address: addressDefaultValues,
 }
 export const businessSaleSchema = z.object({
-  requestId: z.string().uuid(), quantity: z.number().int().min(1).max(100), genCode: z.string().trim().toUpperCase().max(100),
+  requestId: z.string().uuid(), quantity: z.number().int().min(1).max(100),
+  genCode: z.string().max(10000).transform(value => value.trim().toUpperCase().split(/[\s,;]+/).filter(Boolean).map(code => code.replace(/-/g, '')).sort().join(',')),
   unitValue: z.number().finite().min(0).max(1_000_000).refine(value => Math.abs(value * 100 - Math.round(value * 100)) < 0.000001).optional(),
-}).refine(data => !data.genCode || data.quantity === 1)
+}).refine(data => !data.genCode || (data.genCode.split(',').length === data.quantity
+  && new Set(data.genCode.split(',')).size === data.quantity && data.genCode.split(',').every(code => /^[A-Z0-9]{1,100}$/.test(code))))
 export type BusinessSaleInput = z.infer<typeof businessSaleSchema>
 
 export const businessRecipientSchema = z.object({

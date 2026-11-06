@@ -27,7 +27,7 @@ export default async function GenCodePage({ params }: Props) {
     redirect(`/profile/${license.appUserId}`)
   }
 
-  if (license.businessSaleId && (!license.soldToAppUserId || (session?.user && license.soldToAppUserId !== session.user.id))) {
+  if (license.businessSaleId && license.soldToAppUserId && session?.user && license.soldToAppUserId !== session.user.id) {
     return <div className="min-h-screen relative overflow-x-hidden">
       <AuroraBackdrop variant="page" intensity="bold" />
       <main className="container relative z-10 pt-24 pb-32">

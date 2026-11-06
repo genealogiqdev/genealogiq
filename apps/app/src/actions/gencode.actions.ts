@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { getTranslations } from "next-intl/server"
+import { getTranslations, getLocale } from "next-intl/server"
 import { ok, fail, type ActionResult } from "@genealogiq/core"
 import { canActivate, consumeCreditForActivation, InsufficientCreditsError } from "@genealogiq/services/credits"
 import { grantActivationTrial } from "@genealogiq/services/activation-trial"
@@ -10,6 +10,9 @@ import { prisma } from "@/lib/prisma"
 import { verifySession } from "@/lib/dal"
 import { getMemorialSchema } from "@/schemas/memorial.schema"
 import { identityTranslator } from "@/schemas/i18n"
+import { claimResellerCode, ResellerActivationError } from '@genealogiq/services/reseller-activation'
+import { currencyForLocale } from '@genealogiq/core'
+import { PartnerConsumerAccessError } from '@genealogiq/services/partner-consumer-access'
 
 // Deliberately does NOT check getMemorialCreationStatus/memorialsMax — a
 // redeemed physical QR license is itself a standalone purchase, independent
@@ -48,7 +51,7 @@ export async function activateGenCode(
   // A code can be activated whether it's still in stock (AVAILABLE) or already
   // sold/written-off (SOLD) — only an already-ACTIVATED code is rejected.
   if (license.status === "ACTIVATED") return fail(t("gencode.alreadyActivated"))
-  if (license.businessSaleId && license.soldToAppUserId !== session.user.id) return fail(t("gencode.resellerRecipient"))
+  if (license.businessSaleId && license.soldToAppUserId && license.soldToAppUserId !== session.user.id) return fail(t("gencode.resellerRecipient"))
   // The partner must still have credit for this. This gates ACTIVATION only —
   // a memorial that already redeemed a code is never revisited, because the
   // family bought a physical plaque and it must not go dark over someone else's
@@ -66,14 +69,12 @@ export async function activateGenCode(
   }
 
   const { firstName, lastName, gender, birthDate, birthPlace, birthCountry, deathDate, deathPlace, deathCountry, avatarUrl } = parsed.data
+  const currency = license.businessSaleId ? currencyForLocale(await getLocale()).toUpperCase() : 'BRL'
 
   try {
     const memorial = await prisma.$transaction(async (tx) => {
       if (license.businessSaleId) {
-        await tx.$queryRaw`SELECT id FROM gencodes WHERE id = ${license.id} FOR UPDATE`
-        const current = await tx.genCode.findUnique({ where: { id: license.id }, select: { status: true, soldToAppUserId: true, businessSaleId: true } })
-        if (!current || !current.businessSaleId || current.soldToAppUserId !== session.user.id) throw new Error('B2B_RECIPIENT')
-        if (current.status === 'ACTIVATED') throw new Error('B2B_ACTIVATED')
+        await claimResellerCode(tx, { genCodeId: license.id, tenantId: license.tenantId, buyerId: session.user.id, currency })
       }
       const memo = await tx.appUser.create({
         data: {
@@ -127,8 +128,8 @@ export async function activateGenCode(
     revalidatePath(`/profile/${session.user.id}/memorialized`)
     return ok({ id: memorial.id })
   } catch (err: unknown) {
-    if (err instanceof Error && err.message === 'B2B_RECIPIENT') return fail(t('gencode.resellerRecipient'))
-    if (err instanceof Error && err.message === 'B2B_ACTIVATED') return fail(t('gencode.alreadyActivated'))
+    if (err instanceof ResellerActivationError) return fail(t(err.reason === 'recipient' ? 'gencode.resellerRecipient' : err.reason === 'activated' ? 'gencode.alreadyActivated' : 'gencode.expired'))
+    if (err instanceof PartnerConsumerAccessError) return fail(t('gencode.expired'))
     // Two families racing for a partner's last unit: one wins, the other is told
     // there is no credit rather than getting a memorial nobody paid for.
     if (err instanceof InsufficientCreditsError) return fail(t("gencode.expired"))

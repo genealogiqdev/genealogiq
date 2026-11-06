@@ -10,10 +10,37 @@ import { canActivate, reserveCreditForSale, releaseReservation, InsufficientCred
 import { verifyTenantSession } from '@/lib/dal'
 import { sendAppWelcomeEmail } from '@/lib/email'
 import { deliverEmail, enqueueEmail, notificationUrl } from '@genealogiq/services/email-outbox'
-import { hashToken, done, fail, type ActionResult } from '@genealogiq/core'
+import { hashToken, done, ok, fail, type ActionResult } from '@genealogiq/core'
 
 const buyerSchema = z.string().trim().min(1, 'Buyer name is required.').max(200)
 const valueSchema = z.number().finite().min(0).max(1_000_000)
+
+/** Downloading artwork does not record physical printing, a sale or an APP user. */
+export async function prepareGenCodePrintBatch(quantity: number): Promise<ActionResult<{ codes: string[]; appBaseUrl: string }>> {
+  const { customerId } = await verifyTenantSession()
+  const tPrint = await getTranslations('BusinessCustomers')
+  if (!z.number().int().min(1).max(100).safeParse(quantity).success) return fail(tPrint('invalidSale'))
+  const codes = await prisma.genCode.findMany({ where: { tenantId: customerId, status: 'AVAILABLE', printedAt: null },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: quantity, select: { genCode: true } })
+  if (codes.length !== quantity) return fail(tPrint('stockPrintUnavailable'))
+  const appBaseUrl = process.env.APP_URL
+  if (!appBaseUrl || !/^https?:\/\//.test(appBaseUrl)) return fail(tPrint('qrFailed'))
+  return ok({ codes: codes.map(code => code.genCode), appBaseUrl })
+}
+
+export async function markGenCodeBatchPrinted(codes: string[]): Promise<ActionResult> {
+  const { customerId } = await verifyTenantSession()
+  const tPrint = await getTranslations('BusinessCustomers')
+  if (!z.array(z.string().regex(/^[A-Z0-9]{1,100}$/)).min(1).max(100).safeParse(codes).success || new Set(codes).size !== codes.length) return fail(tPrint('invalidSale'))
+  try {
+    await prisma.$transaction(async tx => {
+      const result = await tx.genCode.updateMany({ where: { tenantId: customerId, status: 'AVAILABLE', genCode: { in: codes } }, data: { printedAt: new Date() } })
+      if (result.count !== codes.length) throw new Error('PRINT_STALE')
+    })
+  } catch (error) { if (error instanceof Error && error.message === 'PRINT_STALE') return fail(tPrint('stockPrintUnavailable')); throw error }
+  revalidatePath('/inventory/activations')
+  return done(tPrint('stockPrintRecorded'))
+}
 
 // Everything needed to reach a buyer who isn't registered yet. firstName and
 // lastName are required because AppUser requires them — nothing else is.

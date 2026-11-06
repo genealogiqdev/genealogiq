@@ -82,7 +82,7 @@
       "expired": "Este código ya no puede activarse. Contacta a la empresa donde lo adquiriste.",
       "notFound": "QR Code no encontrado.",
       "raceRetry": "Este código acaba de ser activado. Inténtalo de nuevo.",
-      "resellerRecipient": "La empresa que vendió la placa debe entregar este código a tu cuenta. Entra con el correo del cliente final."
+      "resellerRecipient": "Este código está reservado para otra cuenta, o su cuenta pertenece a otra empresa. Inicie sesión con la cuenta del comprador."
     },
     "geolocation": {
       "notAuthorized": "No tienes autorización para administrar este perfil."
