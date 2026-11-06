@@ -3,6 +3,7 @@ import { getLicenses, getLicenseSummary } from '@/queries/licenses'
 import { LicensesDataTable } from '@/components/licenses/licenses-data-table'
 import { StatCard } from '@/components/ui/stat-card'
 import { Separator } from '@genealogiq/ui/separator'
+import { StockPrintBatch } from '@/components/licenses/stock-print-batch'
 
 export default async function LicensesPage({
   searchParams,
@@ -36,6 +37,7 @@ export default async function LicensesPage({
       </div>
 
       <Separator />
+      <StockPrintBatch />
 
       {/* Licenses (one row per printable QR code) */}
       <LicensesDataTable data={licenses} />

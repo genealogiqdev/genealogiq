@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "exports": {
+    "./reseller-activation": "./src/reseller-activation.ts",
     "./activation-trial": "./src/activation-trial.ts",
     "./credits": "./src/credits.ts",
     "./consumer-access": "./src/consumer-access.ts",

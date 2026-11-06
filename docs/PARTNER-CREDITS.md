@@ -19,6 +19,8 @@ This grant has no final buyer yet. It keeps the source grant's expiry. A lot sal
 Its reason is `B2B resale inventory`. Other codes cannot spend this isolated unit.
 
 `commitResellerCredit` checks the live reservation when the final buyer receives the code.
+The final buyer may now receive it through APP self-activation. No prior SEQ account delivery is required.
+The buyer claim and credit consumption use one transaction. Printing for stock does not reserve or consume credit.
 It locks the grant before the reservation, matching the expiry writer's lock order.
 It sets the final buyer and the configured committed term. It does not take another unit from the pool.
 The ledger records this assignment as RESERVE with quantity 0 and balance 1.

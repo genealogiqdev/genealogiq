@@ -167,6 +167,8 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 
 ## Verification log
 
+2026-11-06: Stock printing and exact shipped-code lists separate manufacture from wholesale sale. See [the follow-up](../../../docs/audits/SEQ-B2B-SELF-ACTIVATION-2026-11-06.md). Preparing artwork is read-only. Confirming printing updates only scoped `printedAt` fields.
+
 2026-11-05: B2B source, local Chrome and independent PostgreSQL checks passed. See [the B2B audit](../../../docs/audits/SEQ-B2B-2026-11-05.md) for exact evidence and provider limits.
 
 | Date | Commit / working changes | Verified by | Scope and evidence | Mismatches or limits → action |

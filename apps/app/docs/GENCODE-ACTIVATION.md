@@ -11,19 +11,27 @@ The APP application supplies gencode activation and memorial trial. Activation p
 
 ### SEQ B2B lots, 2026-11-05
 
-A QR code from a reseller lot must first be delivered to a final APP account in SEQ.
-An unassigned code shows a message that asks the buyer to contact the seller.
-A signed-in account must match `soldToAppUserId` for a B2B code.
-The activation action rechecks the buyer and current status under a code row lock.
+The November 6 clarification replaces the prior mandatory SEQ delivery rule.
+The manufacturer prints codes without final users. The funeral home sells the urn to the final buyer.
+An unassigned sold QR shows the normal sign-in and create-account choices.
+The callback preserves the QR link through registration and email verification.
+A signed-in final buyer claims the unassigned code inside activation.
+[claimResellerCode](../../../packages/services/src/reseller-activation.ts) locks the company, code and buyer.
+It links an independent APP_USER to the original manufacturer tenant, assigns the reserved credit and grants Premium.
+Memorial creation and credit consumption use the same transaction. A failure rolls back the claim and company link.
+Existing accounts in another tenant are not transferred. Staff and inactive accounts cannot claim a code.
+If SEQ has already named a buyer, that buyer must match `soldToAppUserId`.
+The activation action rechecks the buyer and current status under the code row lock.
 Another buyer or a second activation cannot create a memorial.
 Activated codes retain the existing public profile redirect.
 This guard applies to B2B lots. Existing other physical code paths keep their current contract.
 
-SEQ delivery creates or uses the final account and grants the existing finite partner Premium year.
+Optional SEQ delivery creates or uses the final account and grants the existing finite partner Premium year.
 Its setup email keeps `/qr/<GenCode>` as the sign-in callback.
 Activation consumes the code's existing reserved credit. It does not take another stock unit.
 [The B2B contract](../../seq/docs/CUSTOMERS-MEMORIALS.md) and [audit](../../../docs/audits/SEQ-B2B-2026-11-05.md)
 record the full flow, local Chrome checks and external mail limits.
+[The November 6 follow-up](../../../docs/audits/SEQ-B2B-SELF-ACTIVATION-2026-11-06.md) records the corrected manufacturer flow.
 
 | # | Step | Kind | Code / symbol | Produces |
 | --- | --- | --- | --- | --- |
@@ -149,3 +157,5 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 ## Related
 
 [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md) · [Audit](../../../docs/audits/AGENT-MEMORY-2026-10-03.md) · [PARTNER-CREDITS](../../../docs/PARTNER-CREDITS.md) · [MEMORIALS-GUARDIANS](MEMORIALS-GUARDIANS.md)
+
+| 2026-11-06 | `d941f5b` + manufacturer correction | Source, 1,524 default tests, ten PostgreSQL B2B tests, normal Chrome signup/verification and two urn activations | Both exact 20-code lists persisted; 38 resale units, ten stock units and two activations. APP/SEQ builds and static checks passed. | [Follow-up audit](../../../docs/audits/SEQ-B2B-SELF-ACTIVATION-2026-11-06.md) separates the local email test transport and production acceptance. |

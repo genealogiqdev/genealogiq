@@ -9,6 +9,7 @@ describe.skipIf(!url)('B2B resale on PostgreSQL', () => {
   let assign: typeof import('./business-gencode-recipient').assignBusinessGenCode
   let grant: typeof import('@genealogiq/services/partner-onboarding').grantInitialGenCodes
   let credits: typeof import('@genealogiq/services/credits')
+  let claim: typeof import('@genealogiq/services/reseller-activation').claimResellerCode
   let actorId: string
   const prefix = `b2b-${randomUUID().slice(0, 8)}`
   beforeAll(async () => {
@@ -20,6 +21,7 @@ describe.skipIf(!url)('B2B resale on PostgreSQL', () => {
     assign = (await import('./business-gencode-recipient')).assignBusinessGenCode
     grant = (await import('@genealogiq/services/partner-onboarding')).grantInitialGenCodes
     credits = await import('@genealogiq/services/credits')
+    claim = (await import('@genealogiq/services/reseller-activation')).claimResellerCode
     actorId = (await db.user.create({ data: { email: `${prefix}@genealogiq.test`, firstName: 'B2B', lastName: 'Admin', role: 'ADMIN', isActive: true } })).id
   })
   afterAll(async () => { await db?.$disconnect() })
@@ -33,6 +35,49 @@ describe.skipIf(!url)('B2B resale on PostgreSQL', () => {
   const recipient = (input: Awaited<ReturnType<typeof fixture>>, genCode: string, email = `${randomUUID()}@genealogiq.test`) => ({
     tenantId: input.tenantId, businessCustomerId: input.customerId, actorId, genCode, email,
     firstName: 'Ana', lastName: 'Silva', token: `synthetic-${randomUUID()}`, currency: 'BRL',
+  })
+  it('claims a printed wholesale code from a self-registered account without prior SEQ delivery', async () => {
+    const input = await fixture(20)
+    const stock = await db.genCode.findMany({ where: { tenantId: input.tenantId }, orderBy: { genCode: 'asc' } })
+    await db.genCode.updateMany({ where: { tenantId: input.tenantId }, data: { printedAt: new Date() } })
+    await sell(db, { ...input, genCode: stock.map(code => code.genCode).join(',') })
+    expect(await db.appUser.count({ where: { tenantId: input.tenantId } })).toBe(0)
+    const buyer = await db.appUser.create({ data: { firstName: 'Final', lastName: 'Buyer', email: `${randomUUID()}@genealogiq.test`, role: 'APP_USER', isActive: true } })
+    const code = stock[0]
+    await db.$transaction(async tx => {
+      await claim(tx, { genCodeId: code.id, tenantId: input.tenantId, buyerId: buyer.id, currency: 'BRL' })
+      const memo = await tx.appUser.create({ data: { firstName: 'Urn', lastName: 'Memorial', role: 'APP_MEMO' } })
+      const creditTransactionId = await credits.consumeCreditForActivation(tx, { tenantId: input.tenantId, genCodeId: code.id })
+      await tx.genCode.update({ where: { id: code.id }, data: { status: 'ACTIVATED', appUserId: memo.id, activatedAt: new Date(), creditTransactionId } })
+    })
+    expect(await db.appUser.findUnique({ where: { id: buyer.id } })).toMatchObject({ tenantId: input.tenantId })
+    expect(await db.genCode.findUnique({ where: { id: code.id } })).toMatchObject({ soldToAppUserId: buyer.id, status: 'ACTIVATED', businessSaleId: input.requestId })
+    expect(await db.appSale.count({ where: { appUserId: buyer.id, tenantId: input.tenantId } })).toBe(1)
+    expect(await credits.getCreditBalance(input.tenantId)).toMatchObject({ total: 19, general: 0, committed: 19 })
+    expect(await db.genCode.count({ where: { tenantId: input.tenantId, status: 'SOLD', soldToAppUserId: null } })).toBe(19)
+  })
+  it('allows one final buyer under a claim race and rolls back a failed memorial after claiming', async () => {
+    const input = await fixture(1); await sell(db, input)
+    const code = await db.genCode.findFirstOrThrow({ where: { businessSaleId: input.requestId } })
+    const buyers = await Promise.all([1,2].map(() => db.appUser.create({ data: { firstName: 'Buyer', lastName: 'Test', email: `${randomUUID()}@genealogiq.test`, role: 'APP_USER', isActive: true } })))
+    await expect(db.$transaction(async tx => { await claim(tx, { genCodeId: code.id, tenantId: input.tenantId, buyerId: buyers[0].id, currency: 'BRL' }); throw new Error('memorial failure') })).rejects.toThrow('memorial failure')
+    expect(await db.appUser.findUnique({ where: { id: buyers[0].id } })).toMatchObject({ tenantId: null })
+    expect(await db.genCode.findUnique({ where: { id: code.id } })).toMatchObject({ soldToAppUserId: null })
+    const results = await Promise.allSettled(buyers.map(buyer => db.$transaction(tx => claim(tx, { genCodeId: code.id, tenantId: input.tenantId, buyerId: buyer.id, currency: 'BRL' }))))
+    expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1)
+    expect(await db.appSale.count({ where: { tenantId: input.tenantId } })).toBe(1)
+  })
+  it('rejects a foreign final account and expired wholesale stock without moving the customer', async () => {
+    const input = await fixture(1); await sell(db, input)
+    const other = await fixture(0)
+    const buyer = await db.appUser.create({ data: { firstName: 'Foreign', lastName: 'Buyer', email: `${randomUUID()}@genealogiq.test`, tenantId: other.tenantId, role: 'APP_USER', isActive: true } })
+    const code = await db.genCode.findFirstOrThrow({ where: { businessSaleId: input.requestId } })
+    await expect(db.$transaction(tx => claim(tx, { genCodeId: code.id, tenantId: input.tenantId, buyerId: buyer.id, currency: 'BRL' }))).rejects.toThrow('recipient')
+    await db.appUser.update({ where: { id: buyer.id }, data: { tenantId: null } })
+    await db.creditReservation.update({ where: { genCodeId: code.id }, data: { expiresAt: new Date('2000-01-01') } })
+    await expect(db.$transaction(tx => claim(tx, { genCodeId: code.id, tenantId: input.tenantId, buyerId: buyer.id, currency: 'BRL' }))).rejects.toThrow()
+    expect(await db.appUser.findUnique({ where: { id: buyer.id } })).toMatchObject({ tenantId: null })
+    expect(await db.genCode.findUnique({ where: { id: code.id } })).toMatchObject({ soldToAppUserId: null })
   })
   it('sells 50, assigns one, activates one, and never debits a second stock unit or credit', async () => {
     const input = await fixture(50)

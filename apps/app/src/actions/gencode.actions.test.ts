@@ -27,6 +27,8 @@ const { creditsMock } = vi.hoisted(() => ({
   },
 }))
 const { activationTrialMock } = vi.hoisted(() => ({ activationTrialMock: vi.fn() }))
+const { claimMock } = vi.hoisted(() => ({ claimMock: vi.fn() }))
+vi.mock('@genealogiq/services/reseller-activation', () => ({ claimResellerCode: claimMock, ResellerActivationError: class extends Error { constructor(public reason: string) { super(reason) } } }))
 vi.mock("@genealogiq/services/credits", () => creditsMock)
 vi.mock("@genealogiq/services/activation-trial", () => ({
   grantActivationTrial: activationTrialMock,
@@ -36,6 +38,7 @@ vi.mock("@genealogiq/services/media-storage", () => ({ isAuthorizedMediaReferenc
 // Stub it to echo the key so assertions can pin the exact message source.
 vi.mock("next-intl/server", () => ({
   getTranslations: async () => (key: string) => key,
+  getLocale: async () => 'pt-BR',
 }))
 // The action calls getMemorialSchema(identityTranslator).safeParse(data); stub the
 // factory so it always hands back an object whose safeParse we control per-test.
@@ -43,6 +46,7 @@ vi.mock("@/schemas/memorial.schema", () => ({ getMemorialSchema: () => ({ safePa
 
 import { activateGenCode } from "./gencode.actions"
 import { verifySession } from "@/lib/dal"
+import { ResellerActivationError } from '@genealogiq/services/reseller-activation'
 
 const MEMORIAL = { firstName: "Ana", lastName: "Silva" }
 
@@ -56,6 +60,7 @@ beforeEach(() => {
   txMock.appUserGuardian.create.mockResolvedValue({})
   txMock.genCode.update.mockResolvedValue({})
   activationTrialMock.mockResolvedValue({ granted: true })
+  claimMock.mockResolvedValue(undefined)
 })
 
 // A paid, non-reversed sale with no term and no subscription — the window is
@@ -63,8 +68,8 @@ beforeEach(() => {
 const OPEN_SALE = { paidAt: new Date(), reversedAt: null, status: null, accessEndsAt: null }
 
 describe("activateGenCode", () => {
-  it('rejects an unassigned reseller code and a code assigned to another buyer', async () => {
-    for (const soldToAppUserId of [null, 'other-buyer']) {
+  it('rejects a reseller code assigned to another buyer', async () => {
+    for (const soldToAppUserId of ['other-buyer']) {
       prismaMock.genCode.findUnique.mockResolvedValue({ id: 'lic-1', status: 'SOLD', businessSaleId: 'b2b-sale', soldToAppUserId })
       expect(await activateGenCode('GENCODE', MEMORIAL)).toEqual({ ok: false, message: 'gencode.resellerRecipient' })
     }
@@ -72,10 +77,10 @@ describe("activateGenCode", () => {
   })
   it('rechecks reseller recipient and activation after taking the row lock', async () => {
     prismaMock.genCode.findUnique.mockResolvedValue({ id: 'lic-1', status: 'SOLD', businessSaleId: 'b2b-sale', soldToAppUserId: 'guardian-1' })
-    txMock.genCode.findUnique.mockResolvedValue({ status: 'ACTIVATED', businessSaleId: 'b2b-sale', soldToAppUserId: 'guardian-1' })
+    claimMock.mockRejectedValue(new ResellerActivationError('activated'))
     expect(await activateGenCode('GENCODE', MEMORIAL)).toEqual({ ok: false, message: 'gencode.alreadyActivated' })
     expect(txMock.appUser.create).not.toHaveBeenCalled()
-    txMock.genCode.findUnique.mockResolvedValue({ status: 'SOLD', businessSaleId: 'b2b-sale', soldToAppUserId: 'other' })
+    claimMock.mockRejectedValue(new ResellerActivationError('recipient'))
     expect(await activateGenCode('GENCODE', MEMORIAL)).toEqual({ ok: false, message: 'gencode.resellerRecipient' })
     expect(txMock.appUser.create).not.toHaveBeenCalled()
   })
@@ -83,8 +88,13 @@ describe("activateGenCode", () => {
     prismaMock.genCode.findUnique.mockResolvedValue({ id: 'lic-1', tenantId: 'tenant-1', status: 'SOLD', businessSaleId: 'b2b-sale', soldToAppUserId: 'guardian-1' })
     txMock.genCode.findUnique.mockResolvedValue({ status: 'SOLD', businessSaleId: 'b2b-sale', soldToAppUserId: 'guardian-1' })
     expect(await activateGenCode('GENCODE', MEMORIAL)).toEqual({ ok: true, data: { id: 'memo-1' } })
-    expect(txMock.$queryRaw).toHaveBeenCalled()
+    expect(claimMock).toHaveBeenCalledWith(txMock, { genCodeId: 'lic-1', tenantId: 'tenant-1', buyerId: 'guardian-1', currency: 'BRL' })
     expect(creditsMock.consumeCreditForActivation).toHaveBeenCalledWith(txMock, { tenantId: 'tenant-1', genCodeId: 'lic-1' })
+  })
+  it('lets an unassigned reseller code be claimed by the signed-in end customer inside activation', async () => {
+    prismaMock.genCode.findUnique.mockResolvedValue({ id: 'lic-1', tenantId: 'tenant-1', status: 'SOLD', businessSaleId: 'b2b-sale', soldToAppUserId: null })
+    expect(await activateGenCode('GENCODE', MEMORIAL)).toEqual({ ok: true, data: { id: 'memo-1' } })
+    expect(claimMock).toHaveBeenCalledWith(txMock, { genCodeId: 'lic-1', tenantId: 'tenant-1', buyerId: 'guardian-1', currency: 'BRL' })
   })
   it("rejects an unknown gen code", async () => {
     prismaMock.genCode.findUnique.mockResolvedValue(null)

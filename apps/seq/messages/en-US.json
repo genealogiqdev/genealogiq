@@ -1081,9 +1081,9 @@
     "duplicate": "This CNPJ is already registered in your company.",
     "notFound": "Company not found.",
     "salesTitle": "Sell a batch to the reseller",
-    "saleHelp": "Enter the number of QR codes sold. They leave your stock and become available to this reseller. To select a specific plaque, enter its GenCode and quantity 1.",
+    "saleHelp": "Record the urn sale to the funeral home or cemetery. No end customer is required. Enter the quantity and, for printed urns, paste the exact codes shipped. Without a list, the oldest available codes are selected.",
     "quantity": "Quantity (1 to 100)",
-    "specificCode": "Specific GenCode (optional)",
+    "specificCode": "Codes shipped (optional; one per line or comma-separated)",
     "unitValue": "Price per code (BRL, optional)",
     "sell": "Record batch sale",
     "saleRecorded": "Batch sold. The codes are available for resale.",
@@ -1097,7 +1097,7 @@
     "saleSummary": "{quantity} codes sold · {active} available for resale",
     "downloadCodes": "Download available resale list",
     "inventoryTitle": "Reseller QR codes",
-    "inventoryHelp": "Each code is listed below. Use Deliver to end customer when the reseller makes a sale. An App account is created if the email is new.",
+    "inventoryHelp": "The end customer can scan the urn QR code, create an App account and activate it. Advance registration is not required. Deliver to end customer is optional when the funeral home already has the buyer details.",
     "code": "GenCode",
     "codeStatus": "Status",
     "recipient": "End customer",
@@ -1120,6 +1120,14 @@
     "accessEmailSent": "Access email sent.",
     "accessEmailPending": "The email is pending. Try Resend access again.",
     "downloadBatchQr": "Download batch QR codes for printing",
-    "printHelp": "Open this file in your browser and use Print. The batch codes are shown below."
+    "printHelp": "Open this file in your browser and use Print. The batch codes are shown below.",
+    "stockPrintTitle": "Print QR codes for urns",
+    "stockPrintHelp": "Prepare codes without an end customer, for stock or a confirmed order. Printing does not record a sale or create accounts. Then record the funeral-home sale in Customers → B2B companies, using the codes shipped.",
+    "stockPrintDownload": "Prepare print batch",
+    "stockPrintReady": "{quantity} codes prepared. Print them on the urns and confirm below. Keep this list to record the exact codes sold.",
+    "stockPrintConfirm": "Confirm I printed these codes",
+    "stockPrintUnavailable": "There are not enough unprinted codes, or a code changed stock. Check the batch.",
+    "stockPrintRecorded": "Batch marked as printed. No sale or activation was recorded.",
+    "stockPrintFailed": "Could not confirm printing. Check the batch and try again."
   }
 }

@@ -1081,9 +1081,9 @@
     "duplicate": "Este CNPJ já está cadastrado na sua empresa.",
     "notFound": "Empresa não encontrada.",
     "salesTitle": "Vender um lote à revendedora",
-    "saleHelp": "Informe quantos QR Codes você vendeu. Eles saem do seu estoque e ficam disponíveis para esta revendedora. Para escolher uma placa específica, informe seu GenCode e quantidade 1.",
+    "saleHelp": "Registre a venda das urnas à funerária ou cemitério. Nenhum cliente final é necessário. Informe a quantidade e, se as urnas já estão impressas, cole os códigos exatos enviados. Sem uma lista, serão usados os códigos disponíveis mais antigos.",
     "quantity": "Quantidade (1 a 100)",
-    "specificCode": "GenCode específico (opcional)",
+    "specificCode": "Códigos enviados (opcional; separados por linha ou vírgula)",
     "unitValue": "Valor por código (R$, opcional)",
     "sell": "Registrar venda do lote",
     "saleRecorded": "Lote vendido. Os códigos estão disponíveis para revenda.",
@@ -1097,7 +1097,7 @@
     "saleSummary": "{quantity} códigos vendidos · {active} disponíveis para revenda",
     "downloadCodes": "Baixar lista disponível para revenda",
     "inventoryTitle": "QR Codes da revendedora",
-    "inventoryHelp": "Cada código aparece abaixo. Use Entregar ao cliente final quando a revendedora fizer a venda. A conta do App será criada se o e-mail ainda não estiver cadastrado.",
+    "inventoryHelp": "O cliente final pode escanear o QR da urna, criar sua conta no App e ativá-lo. Não é necessário cadastrar o cliente antes. Entregar ao cliente final é uma opção quando a funerária já possui os dados do comprador.",
     "code": "GenCode",
     "codeStatus": "Situação",
     "recipient": "Cliente final",
@@ -1120,6 +1120,14 @@
     "accessEmailSent": "E-mail de acesso enviado.",
     "accessEmailPending": "O envio do e-mail está pendente. Tente Reenviar acesso novamente.",
     "downloadBatchQr": "Baixar QR Codes do lote para impressão",
-    "printHelp": "Abra este arquivo no navegador e use Imprimir. Os códigos deste lote estão abaixo."
+    "printHelp": "Abra este arquivo no navegador e use Imprimir. Os códigos deste lote estão abaixo.",
+    "stockPrintTitle": "Imprimir QR Codes para urnas",
+    "stockPrintHelp": "Prepare códigos sem cliente final, para estoque ou para um pedido confirmado. A impressão não registra venda nem cria contas. Depois, registre a venda à funerária em Clientes → Empresas B2B, com os códigos enviados.",
+    "stockPrintDownload": "Preparar lote para impressão",
+    "stockPrintReady": "{quantity} códigos preparados. Imprima nas urnas e confirme abaixo. Guarde esta lista para registrar a venda dos códigos exatos.",
+    "stockPrintConfirm": "Confirmar que imprimi estes códigos",
+    "stockPrintUnavailable": "Não há códigos não impressos suficientes, ou algum código mudou de estoque. Confira o lote.",
+    "stockPrintRecorded": "Lote marcado como impresso. Nenhuma venda ou ativação foi registrada.",
+    "stockPrintFailed": "Não foi possível confirmar a impressão. Confira o lote e tente novamente."
   }
 }

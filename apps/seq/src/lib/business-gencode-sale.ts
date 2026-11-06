@@ -24,7 +24,7 @@ export async function recordBusinessGenCodeSale(db: PrismaClient, input: Input) 
       if (await replay(tx)) return
       if (!customer.isActive) throw new BusinessSaleError('inactive')
       const codes = await tx.genCode.findMany({ where: { tenantId: input.tenantId, status: 'AVAILABLE',
-        ...(input.genCode ? { genCode: input.genCode } : {}),
+        ...(input.genCode ? { genCode: { in: input.genCode.split(',') } } : {}),
       }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: input.quantity, select: { id: true, genCode: true } })
       if (codes.length !== input.quantity) throw new BusinessSaleError('stockUnavailable')
       const sale = await tx.businessGenCodeSale.create({ data: { id: input.requestId, tenantId: input.tenantId,
