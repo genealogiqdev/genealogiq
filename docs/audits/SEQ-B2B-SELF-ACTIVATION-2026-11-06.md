@@ -90,6 +90,23 @@ Existing payment and recovery limits in [the Vercel runbook](../VERCEL-MIGRATION
 Local APP and SEQ processes and owned Chrome sessions were stopped.
 Owned PostgreSQL and Azurite containers were stopped. Database volumes and prior local data remain.
 The new test rows stay in the separate local MIZPAH fixture. Generated tsconfig edits were restored.
-GitHub PR and production promotion are pending at this audit revision.
+[GitHub PR #211](https://github.com/genealogiqdev/genealogiq/pull/211) is merged.
+GitHub verification and all three production container jobs passed.
+The released source is `68dbf9882bb486faf5ea8f3a86945643147f9a39`.
+The merge commit is `d047abdd607814538533b2304beef1e844a2021a`. Their tracked source trees are identical.
+
+APP deployment: `dpl_4wE1meNhJCGEPwoU3GrrZHtrDGqs`.
+SEQ deployment: `dpl_8eHvyXBY1WQWQYFQmeFBHEZMaqCy`.
+Both are READY, target Production and use the `gru1` function region.
+Both were promoted from the reviewed source archives. No migration ran.
+The live HTML at `genealogiq.com.br`, `www.genealogiq.com.br` and
+`sequoia.genealogiq.com.br` names these exact deployment IDs.
+All four custom HTTPS hosts returned 200. All three database readiness checks returned 200/ready.
+Anonymous APP document access returned 401. An unknown QR kept the normal not-found result.
+The protected SEQ company page returned the streamed 307 sign-in redirect and no company form.
+An initial HTML check looked for a rendered password field; the corrected check reads the redirect marker.
+BMS keeps its existing production deployment.
+Sanitized release receipts are in `preflight.json`, `production-source.json` and `public-checks.json`
+under the ignored evidence folder.
 The release uses APP and SEQ source archives from the same reviewed commit.
 Do not enable the November 5 migration flags again.
