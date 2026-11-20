@@ -78,7 +78,7 @@ export function TributeForm({ profileId, authorName, existing }: Props) {
   const handleSubmit = () => {
     if (uploading) { toast.warning(t("toasts.waitForUpload")); return }
     startTransition(async () => {
-      const result = await submitTribute(profileId, { text, imageUrl })
+      const result = await submitTribute(profileId, { text, imageUrl }, existing?.id)
       if (!result.ok) {
         toast.error(result.message)
       } else {

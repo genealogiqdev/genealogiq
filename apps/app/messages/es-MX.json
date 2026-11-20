@@ -1765,7 +1765,8 @@
       "endOfTributes": "Fin de los homenajes",
       "newestFirst": "Más recientes primero",
       "oldestFirst": "Más antiguos primero",
-      "sendATribute": "Enviar un homenaje",
+      "rejected": "Tu homenaje no fue aprobado.",
+      "sendATribute": "Añadir homenaje",
       "subtitle": "Palabras que quedan: pequeñas llamas que llevan quienes recuerdan"
     },
     "title": "Homenajes para {name}",

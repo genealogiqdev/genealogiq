@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { deleteTribute } from "@/actions/tribute.actions"
 import { formatDateTime } from "@/lib/format-date"
-import type { ApprovedTributeRow } from "@/queries/tribute"
+import type { ApprovedTributeRow, UnpublishedTributeRow } from "@/queries/tribute"
 
 const PAGE_SIZE = 10
 type SortDir = "newest" | "oldest"
@@ -42,17 +42,16 @@ interface Props {
   sessionUserId: string
   canWrite: boolean
   isManager?: boolean
-  hasPendingFromMe?: boolean
+  unpublishedTributes?: UnpublishedTributeRow[]
 }
 
-export function TributesClient({ items, profileId, sessionUserId, canWrite, isManager = false, hasPendingFromMe }: Props) {
+export function TributesClient({ items, profileId, sessionUserId, canWrite, isManager = false, unpublishedTributes }: Props) {
   const t = useTranslations("Tributes")
   const tc = useTranslations("Common")
   const locale = useLocale()
   const router = useRouter()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [, startDelete] = useTransition()
-  const myTribute = items.find((t) => t.authorId === sessionUserId)
   const [sort, setSort] = useState<SortDir>("newest")
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
@@ -98,7 +97,6 @@ export function TributesClient({ items, profileId, sessionUserId, canWrite, isMa
 
   const visible = sorted.slice(0, visibleCount)
   const writeHref = `/profile/${profileId}/tributes/edit`
-  const writeLabel = myTribute ? t("list.editYourTribute") : t("list.sendATribute")
 
   return (
     <>
@@ -107,16 +105,16 @@ export function TributesClient({ items, profileId, sessionUserId, canWrite, isMa
           <p className="text-muted-foreground italic">
             {t("list.subtitle")}
           </p>
-          {hasPendingFromMe && (
-            <p className="text-xs text-muted-foreground">
-              {t("list.awaitingModeration")}{" "}
-              <Link href={writeHref} className="text-primary hover:underline">
-                {t("list.editPendingLink")}
+          {canWrite && unpublishedTributes?.map((tribute) => (
+            <p key={tribute.id} className="text-xs text-muted-foreground">
+              {tribute.status === "PENDING" ? t("list.awaitingModeration") : t("list.rejected")}{" "}
+              <Link href={`${writeHref}?tributeId=${encodeURIComponent(tribute.id)}`} className="text-primary hover:underline" aria-label={`${t("list.editYourTribute")}: ${tribute.text}`}>
+                {t("list.editPendingLink")} {tribute.text.slice(0, 80)}
               </Link>
             </p>
-          )}
+          ))}
         </div>
-        <div className="flex items-center gap-2 shrink-0 self-end lg:self-auto">
+        <div className="flex flex-wrap items-center justify-end gap-2 self-end lg:self-auto">
           {!items.length ? null : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -134,8 +132,8 @@ export function TributesClient({ items, profileId, sessionUserId, canWrite, isMa
           {canWrite && (
             <Button asChild className="gap-2">
               <Link href={writeHref}>
-                {myTribute ? <SquarePen className="h-4 w-4" /> : <Send className="h-4 w-4" />}
-                <span className="sr-only md:not-sr-only">{writeLabel}</span>
+                <Send className="h-4 w-4" />
+                <span>{t("list.sendATribute")}</span>
               </Link>
             </Button>
           )}
@@ -180,6 +178,13 @@ export function TributesClient({ items, profileId, sessionUserId, canWrite, isMa
                         </div>
                         <div className="text-xs text-muted-foreground">{formatDateTime(tribute.createdAt, locale)}</div>
                       </div>
+                      {isMine && canWrite && (
+                        <Button asChild variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label={t("list.editYourTribute")}>
+                          <Link href={`${writeHref}?tributeId=${encodeURIComponent(tribute.id)}`}>
+                            <SquarePen className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      )}
                       {(isMine || isManager) && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>

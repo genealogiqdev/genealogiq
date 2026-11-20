@@ -14,7 +14,7 @@ import { deleteBlobs } from "@/lib/blob"
 import { notify, markNotificationsRead } from "@/lib/notifications"
 import { isAuthorizedMediaReference } from "@genealogiq/services/media-storage"
 
-export async function submitTribute(profileId: string, data: unknown): Promise<ActionResult> {
+export async function submitTribute(profileId: string, data: unknown, tributeId?: string): Promise<ActionResult> {
   const t = await getTranslations("Actions")
   const session = await verifySession()
   if (session.user.id === profileId) return fail(t("tribute.cannotTributeSelf"))
@@ -22,10 +22,13 @@ export async function submitTribute(profileId: string, data: unknown): Promise<A
   const parsed = getTributeSchema(identityTranslator).safeParse(data)
   if (!parsed.success) return fail(t("common.invalidData"))
 
-  const existing = await prisma.tribute.findUnique({
-    where: { authorId_profileId: { authorId: session.user.id, profileId } },
-    select: { imageUrl: true },
-  })
+  const existing = tributeId !== undefined
+    ? await prisma.tribute.findFirst({
+        where: { id: tributeId, authorId: session.user.id, profileId },
+        select: { id: true, imageUrl: true },
+      })
+    : null
+  if (tributeId !== undefined && !existing) return fail(t("tribute.notAuthorized"))
   if (
     parsed.data.imageUrl !== existing?.imageUrl &&
     !isAuthorizedMediaReference(
@@ -36,13 +39,19 @@ export async function submitTribute(profileId: string, data: unknown): Promise<A
   ) {
     return fail(t("common.invalidData"))
   }
-  const tribute = await prisma.tribute.upsert({
-    where: { authorId_profileId: { authorId: session.user.id, profileId } },
-    create: { authorId: session.user.id, profileId, ...parsed.data, status: "PENDING" },
-    update: { ...parsed.data, status: "PENDING" },
-  })
+  // Clearing an image must also clear the stored value; Prisma ignores undefined.
+  const content = { text: parsed.data.text, imageUrl: parsed.data.imageUrl ?? null, status: "PENDING" as const }
+  const tribute = existing
+    ? await prisma.tribute.update({
+        where: { id: existing.id, authorId: session.user.id, profileId },
+        data: content,
+      })
+    : await prisma.tribute.create({
+        data: { authorId: session.user.id, profileId, ...content },
+      })
   if (existing?.imageUrl && existing.imageUrl !== parsed.data.imageUrl) {
-    await deleteBlobs([existing.imageUrl])
+    const references = await prisma.tribute.count({ where: { imageUrl: existing.imageUrl } })
+    if (!references) await deleteBlobs([existing.imageUrl])
   }
 
   // Notify everyone who can moderate this profile: the profile owner (when it's
@@ -63,6 +72,7 @@ export async function submitTribute(profileId: string, data: unknown): Promise<A
   }
 
   revalidatePath(`/profile/${profileId}/tributes`)
+  revalidatePath(`/profile/${profileId}/tributes/moderate`)
   return done()
 }
 
@@ -183,7 +193,10 @@ export async function deleteTribute(tributeId: string): Promise<ActionResult> {
 
   await markNotificationsRead(session.user.id, { tributeId: tribute.id })
   await prisma.tribute.delete({ where: { id: tribute.id } })
-  await deleteBlobs([tribute.imageUrl])
+  if (tribute.imageUrl) {
+    const references = await prisma.tribute.count({ where: { imageUrl: tribute.imageUrl } })
+    if (!references) await deleteBlobs([tribute.imageUrl])
+  }
 
   revalidatePath(`/profile/${tribute.profileId}/tributes`)
   return done()

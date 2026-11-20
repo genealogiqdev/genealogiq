@@ -11,10 +11,13 @@ import { getProfileById } from "@/queries/profile"
 
 interface Props {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ tributeId?: string | string[] }>
 }
 
-export default async function TributeWritePage({ params }: Props) {
+export default async function TributeWritePage({ params, searchParams }: Props) {
   const { id } = await params
+  const { tributeId } = await searchParams
+  if (tributeId !== undefined && (typeof tributeId !== "string" || !tributeId)) notFound()
   const t = await getTranslations("Tributes")
   const tc = await getTranslations("Common")
   const session = await verifySession()
@@ -23,9 +26,9 @@ export default async function TributeWritePage({ params }: Props) {
 
   const [profile, existing] = await Promise.all([
     getProfileById(id),
-    getMyTributeForProfile(session.user.id, id),
+    tributeId ? getMyTributeForProfile(session.user.id, id, tributeId) : Promise.resolve(null),
   ])
-  if (!profile) notFound()
+  if (!profile || (tributeId && !existing)) notFound()
 
   const isEditing = !!existing
   const authorName = session.user.name ?? t("form.youFallback")
@@ -51,6 +54,7 @@ export default async function TributeWritePage({ params }: Props) {
         </section>
 
         <TributeForm
+          key={existing?.id ?? "new"}
           profileId={id}
           authorName={authorName}
           existing={existing ? { id: existing.id, text: existing.text, imageUrl: existing.imageUrl } : null}
