@@ -78,9 +78,12 @@ The next tester must run these two UI cases in Chrome after screen access is res
 Documentation, schema, migration shape and whitespace checks passed.
 The first local build used Turbopack. It stayed in compilation for more than seven minutes.
 The agent stopped only that build's process tree. This attempt has no passing result.
-A second local build uses the supported Webpack option. Its result is pending.
+A second local build used the supported Webpack option. It also did not finish compilation after several minutes.
+The agent stopped only that build's process tree. Neither local attempt is a build pass.
 Both builds use local settings with external services disabled.
-The PR starts as a draft while build and Chrome evidence remain pending.
+The GitHub check runs in a clean Linux environment. Its build result is separate from the local attempts.
+Read the checks and build logs on [PR #215](https://github.com/genealogiqdev/genealogiq/pull/215) for that result.
+The PR is a draft. The Chrome cases remain pending.
 The owned SEQ launcher was stopped after the runtime checks.
 Shared Docker services were kept for other local work. No volume was removed.
 The fix has not been merged or deployed by this task.
