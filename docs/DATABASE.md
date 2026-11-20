@@ -3,7 +3,7 @@
 > **Code:** [schema.prisma](../packages/db/prisma/schema.prisma), [Prisma configuration](../packages/db/prisma.config.ts), [client initialization](../packages/db/src/index.ts), [migration gate](../scripts/check-migrations.mjs)
 > **Last verified against code:** 2026-10-09 at `462f8a9`; the consolidated release audit records local SQL replay, production migrations and independent data-repair verification. Earlier audits remain below.
 
-All three apps consume @genealogiq/db. The schema contains 48 models and the migration tree contains 79 migration.sql files. This includes B2B reseller customers and lot sales. Counts are recomputed from files; the single-schema gate excludes competing app schemas.
+All three apps consume @genealogiq/db. The schema contains 48 models and the migration tree contains 80 migration.sql files. This includes B2B reseller customers, lot sales and multiple tributes. Counts are recomputed from files; the single-schema gate excludes competing app schemas.
 
 ## Model/table and creation provenance
 
@@ -258,6 +258,8 @@ The corrected Premium repair also cancels only the migration test allowance repl
 | 2026-10-09 | `12bbeb6` + biography Unicode tests | Encoding diagnosis and local persistence | ASCII decoding reproduces the two/three/four-byte loss pattern. Local biography save/reload preserves literal accents and emoji in PostgreSQL and the browser; anonymous editing rejects. [Unicode audit](audits/APP-BIOGRAPHY-UNICODE-2026-10-09.md). No production writes or new identification of the historical writer. |
 | 2026-10-20 | `2da3a06` + recovery documentation | Approved legacy dump restore, local/Neon migrations and guarded repair | All 42 source-table counts matched; eight pending migrations applied; all 78 canonical migrations recorded, zero unresolved failures, Prisma schema diff empty. Five repair test entries pass; 44 eligible test expiries repaired with backup/receipt. [Recovery audit](audits/NEON-RECOVERY-2026-10-20.md). App UI, later Azure data and three excluded partner terms remain separate. |
 | 2026-11-20 | `084670f` + multiple-tribute change | Local incremental SQL | Reproduced the old unique-index rejection. Replayed the exact migration twice in a transaction. Two same-author/profile rows and a selected-ID edit passed. The original approved text stayed unchanged. Rolled back the test rows, then applied the change only to the local database. | [Tribute audit](audits/APP-TRIBUTES-2026-11-20.md). No production database change. |
+
+Production verification on 2026-11-20 at `58344b6`: the guarded tribute release applied the one pending migration after ID-based APP publication. A separate check found all 80 canonical migrations applied and the exact SQL hash saved. Two temporary messages and a selected-ID edit passed and rolled back. Four existing tributes and 15 notifications remained. [The release audit](audits/PRODUCTION-RELEASE-2026-11-20.md) records both verified private snapshots and recovery limits.
 
 ## Related
 

@@ -106,8 +106,6 @@ Kept the local `main` branch.
 The review publication uses the verified GitHub `main` base.
 It contains only this change, without the separate SEQ commit made during the session.
 
-## Related
-
 ## Release preparation after the user's merge and deploy request
 
 The user authorized production release later on November 20.
@@ -127,5 +125,10 @@ That test reproduced the old duplicate rejection.
 It applied the exact SQL twice and checked the message test and rollback.
 Documentation, migration shape and whitespace checks passed.
 Production execution and the final release receipt are recorded in the later release audit.
+
+The [production release audit](PRODUCTION-RELEASE-2026-11-20.md) records completed merge, publication, migration and final verification.
+Chrome acceptance remains pending.
+
+## Related
 
 [TRIBUTES](../../apps/app/docs/TRIBUTES.md) · [DATABASE](../DATABASE.md) · [LOCAL-DEVELOPMENT](../LOCAL-DEVELOPMENT.md) · [TESTING](../TESTING.md)

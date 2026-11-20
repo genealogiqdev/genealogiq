@@ -364,6 +364,8 @@ Check whether the customer is in the session tenant and the guardian relation is
 
 2026-11-20: The B2B segment fix passed 33 focused tests. The default working-tree suite passed 1,567 tests. Local Credentials HTTP requests, PostgreSQL reads and reloaded HTML verified all four current segments, old-value rejection, an empty choice and tenant/session limits. [The segment audit](../../../docs/audits/SEQ-B2B-SEGMENTS-2026-11-20.md) records static/build checks, cleanup and the Windows screen-access failure. Chrome UI checks remain n/a.
 
+Later on 2026-11-20, PR #215 merged and SEQ deployed from `58344b6`. GitHub passed 1,574 tests and all three production image builds. The live Sequoia domain identifies the reviewed READY deployment and passes database readiness. [The release audit](../../../docs/audits/PRODUCTION-RELEASE-2026-11-20.md) records source, release and cleanup. Chrome acceptance remains pending.
+
 2026-11-05: B2B source, local Chrome and independent PostgreSQL checks passed. See [the B2B audit](../../../docs/audits/SEQ-B2B-2026-11-05.md) for exact evidence and provider limits.
 
 2026-10-29: [BMS company-link acceptance](../../../docs/audits/BMS-CONSUMER-PARTNER-2026-10-29.md) verified that an independent APP registration appears in the chosen SEQ company after linking, retains its accepted tenantless memorial and original plan/QR data, and can export an existing plaque's SVG. FREE and empty-stock boundaries remained enforced. This link change does not own the concurrent QR issuance implementation.

@@ -178,6 +178,10 @@ The snapshot preserves rows and schema. It does not prove a full database recove
 - **Root cause:** The UI, edit query, action and database all assumed one tribute per author per profile.
 - **Resolution:** This change keeps Add visible, opens a blank form and uses a selected ID for edits. The migration preserves existing rows and removes the limit. The four regression files above and local PostgreSQL replay check the change. The [audit](../../../docs/audits/APP-TRIBUTES-2026-11-20.md) records the Chrome access failure. The release owner must apply the migration and deploy APP. Browser acceptance remains pending.
 
+The November 20 [production release](../../../docs/audits/PRODUCTION-RELEASE-2026-11-20.md) completed the G2 merge, APP deployment and migration.
+The database checks permit two separate messages and preserve the first during a second-message edit.
+Chrome acceptance remains pending.
+
 ### TRIBUTES-G1: Two-person moderation QA fixture missing
 
 - **Status:** open
@@ -194,6 +198,8 @@ The snapshot preserves rows and schema. It does not prove a full database recove
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
 | 2026-11-20 | `084670f` + multiple-tribute change | Source, tests and local PostgreSQL | Rechecked all tribute routes, queries, actions, schema and upload scope since `6e06634`. Separate create/edit regressions and exact SQL replay passed. The original approved row stayed unchanged. | [Audit](../../../docs/audits/APP-TRIBUTES-2026-11-20.md) separates checks, local HTTP and the blocked Chrome scenario. No production migration or deployment. |
+
+Production verification on 2026-11-20 at `58344b6`: PR #216 merged, APP live, all 80 canonical migrations applied and exact SQL hash checked. The separate production check rolled back both synthetic messages and retained four tributes and 15 notifications. All three readiness checks and anonymous document/cron denial passed. [The release audit](../../../docs/audits/PRODUCTION-RELEASE-2026-11-20.md) records builds, backups, cleanup and Chrome limits.
 
 ## Related
 

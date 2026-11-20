@@ -88,3 +88,10 @@ The owned SEQ launcher was stopped after the runtime checks.
 Shared Docker services were kept for other local work. No volume was removed.
 The fix has not been merged or deployed by this task.
 The reviewer must review the PR. The release owner must merge and deploy it.
+
+## Later production release
+
+The user authorized merge and deployment later on November 20.
+PR #215 is now merged. The four buyer segments are live in SEQ.
+The [production release audit](PRODUCTION-RELEASE-2026-11-20.md) records the source, builds and public checks.
+Chrome save/reload and the old-record error remain pending.

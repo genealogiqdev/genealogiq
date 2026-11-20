@@ -148,6 +148,14 @@ Azure currently cannot serve as a working rollback destination. Before launch, e
 
 ## Verification log
 
+The [November 20 release](audits/PRODUCTION-RELEASE-2026-11-20.md) merged PRs #215 and #216.
+APP and SEQ now serve source `58344b6`.
+The guarded tribute migration ran after ID-based APP publication.
+Two private row snapshots passed read-back checks.
+All 80 canonical migrations, the saved SQL hash and the separate message test passed.
+Four public HTTPS roots, three database readiness routes and anonymous document/cron limits passed.
+Chrome, provider and recovery acceptance remain open where listed below.
+
 The [October 30 consolidated release](audits/PRODUCTION-RELEASE-2026-10-30.md)
 reviews subsequent feature chats and records all three promoted production
 builds from `694dd1f`, identical to merged main `2066c6b`. GitHub PRs #207–#209
