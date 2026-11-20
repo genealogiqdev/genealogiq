@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server'
 import { getBusinessCustomer } from '@/queries/business-customers'
 import { BusinessCustomerForm } from '@/components/customers/business-customer-form'
 import { BusinessGenCodeSales } from '@/components/customers/business-gencode-sales'
-import { businessCustomerDefaults, type BusinessCustomerFormValues } from '@/schemas/business-customer.schema'
+import { businessCustomerDefaults } from '@/schemas/business-customer.schema'
 import { BusinessCodeInventory } from '@/components/customers/business-code-inventory'
 import { getBusinessCodeState } from '@/lib/business-code-status'
 import { canManageCustomerAccess } from '@/lib/customer-access'
@@ -26,7 +26,7 @@ export default async function BusinessCustomerPage({ params }: { params: Promise
       createdAt: sale.createdAt, codes: sale.codes, activeCodes: sale.genCodes.filter(code => getBusinessCodeState(code) === 'available').map(code => code.genCode),
     }))} />
     <details><summary className="cursor-pointer text-xl font-semibold">{t('companyDetails')}</summary><div className="mt-4"><BusinessCustomerForm id={id} defaultValues={{ name: customer.name, tradeName: customer.tradeName, taxId: customer.taxId,
-      segment: customer.segment as BusinessCustomerFormValues['segment'], contactName: customer.contactName,
+      segment: customer.segment, contactName: customer.contactName,
       email: customer.email, phoneCountryCode: customer.phoneCountryCode, phone: customer.phone,
       notes: customer.notes ?? '', isActive: customer.isActive, address,
     }} /></div></details>

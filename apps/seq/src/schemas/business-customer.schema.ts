@@ -3,13 +3,13 @@ import { validateCnpj } from '@/lib/masks'
 import { addressSchema, addressDefaultValues } from './address.schema'
 import type { Translator } from './i18n'
 
-export const BUSINESS_SEGMENTS = ['PLAQUE_PRINTER', 'MARBLE_SHOP', 'FUNERAL_SUPPLIES', 'URN_MANUFACTURER', 'OTHER'] as const
+export const BUSINESS_SEGMENTS = ['CEMETERY', 'CREMATORIUM', 'MEMORIAL', 'FUNERAL_HOME'] as const
 export function getBusinessCustomerSchema(t: Translator) {
   return z.object({
     name: z.string().trim().min(2, t('minChars', { count: 2 })).max(200),
     tradeName: z.string().trim().max(200),
     taxId: z.string().transform(value => value.replace(/[.\/\-\s]/g, '')).pipe(z.string().regex(/^\d{14}$/, t('invalidCnpj')).refine(validateCnpj, t('invalidCnpj'))),
-    segment: z.enum(BUSINESS_SEGMENTS),
+    segment: z.enum(BUSINESS_SEGMENTS, { error: t('required') }),
     contactName: z.string().trim().max(200),
     email: z.union([z.literal(''), z.string().trim().toLowerCase().email(t('invalidEmail'))]),
     phoneCountryCode: z.string().regex(/^\d{1,4}$/, t('countryCodeRequired')),
@@ -21,7 +21,7 @@ export function getBusinessCustomerSchema(t: Translator) {
 }
 export type BusinessCustomerFormValues = z.infer<ReturnType<typeof getBusinessCustomerSchema>>
 export const businessCustomerDefaults: BusinessCustomerFormValues = {
-  name: '', tradeName: '', taxId: '', segment: 'PLAQUE_PRINTER', contactName: '', email: '',
+  name: '', tradeName: '', taxId: '', segment: 'CEMETERY', contactName: '', email: '',
   phoneCountryCode: '55', phone: '', notes: '', isActive: true, address: addressDefaultValues,
 }
 export const businessSaleSchema = z.object({

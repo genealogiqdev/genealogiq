@@ -63,7 +63,16 @@ It is not a new BMS partner or an APP account. It has no separate staff login.
 The form stores legal name, trade name, CNPJ, segment, contact, address and active status.
 The server checks the CNPJ and stores digits only. The same CNPJ can belong to different tenants.
 Duplicate CNPJ values in one tenant are rejected. Updates also check tenant ownership.
-The segments include print shops, marble shops, funeral supplies and cremation urns.
+The first form used print shops, marble shops, funeral supplies and cremation urns.
+The November 20 correction uses the buyer's segment. The company with SEQ access registers these buyers.
+The form offers only **Cemitérios**, **Crematórios**, **Memoriais** and **Funerárias**, in that order.
+Their stored values are `CEMETERY`, `CREMATORIUM`, `MEMORIAL` and `FUNERAL_HOME`.
+The server accepts only these four values for new records and updates.
+The database stores the segment as text. This change needs no database migration.
+Old records keep their original value and list label. No automatic conversion occurs.
+When you edit an old record, select one of the four current segments before saving.
+A blank or old segment stops the save and leaves the stored record unchanged.
+The BMS partner segments and SEQ supplier records keep their separate rules.
 
 [Business actions](../src/actions/business-customer.actions.ts), [schemas](../src/schemas/business-customer.schema.ts),
 [queries](../src/queries/business-customers.ts) and [the lot writer](../src/lib/business-gencode-sale.ts) own this flow.
@@ -287,6 +296,15 @@ Check whether the customer is in the session tenant and the guardian relation is
 
 ## Gaps and fixes
 
+### CUSTOMERS-MEMORIALS-G7: B2B form showed supplier segments
+
+- **Status:** fixed
+- **Found:** 2026-11-20, user report with the B2B registration screen.
+- **Evidence:** `BUSINESS_SEGMENTS` listed print shops, marble shops, funeral supplies, urn makers and Other.
+- **Impact:** Staff could not select the segment of the company that buys the products.
+- **Root cause:** The buyer form used supplier segments.
+- **Resolution:** This change replaces the choices and the server rules with the four buyer segments above. Old data stays in place. An old record needs a new segment choice before save. The action and form tests check all current choices and reject all five old choices. [The audit](../../../docs/audits/SEQ-B2B-SEGMENTS-2026-11-20.md) records the checks and limits. The commit that contains this entry owns the fix.
+
 ### CUSTOMERS-MEMORIALS-G6: Generating a customer QR did not consume GenCode stock
 
 - **Status:** fixed
@@ -343,6 +361,8 @@ Check whether the customer is in the session tenant and the guardian relation is
 - **2026-10-14 partial coverage:** Normal Credentials HTTP/action checks now create and reload local customers, exercise permission denial and persist invitation tokens; real PostgreSQL tests reject another tenant. External mail and the Chrome invitation/cross-tenant browser scenario remain open.
 
 ## Verification log
+
+2026-11-20: The B2B segment fix passed 33 focused tests. The default working-tree suite passed 1,567 tests. Local Credentials HTTP requests, PostgreSQL reads and reloaded HTML verified all four current segments, old-value rejection, an empty choice and tenant/session limits. [The segment audit](../../../docs/audits/SEQ-B2B-SEGMENTS-2026-11-20.md) records static/build checks, cleanup and the Windows screen-access failure. Chrome UI checks remain n/a.
 
 2026-11-05: B2B source, local Chrome and independent PostgreSQL checks passed. See [the B2B audit](../../../docs/audits/SEQ-B2B-2026-11-05.md) for exact evidence and provider limits.
 

@@ -15,7 +15,7 @@ vi.mock('@genealogiq/services/email-outbox', () => ({ deliverEmail: mocks.email 
 vi.mock('@genealogiq/services/credits', () => ({ InsufficientCreditsError: class extends Error {} }))
 vi.mock('@genealogiq/services/partner-consumer-access', () => ({ PartnerConsumerAccessError: class extends Error {} }))
 import { saveBusinessCustomer, sellBusinessGenCodes, deliverBusinessGenCode, resendBusinessGenCode } from './business-customer.actions'
-const data = { name: 'Acme Print', tradeName: '', taxId: '11.222.333/0001-81', segment: 'PLAQUE_PRINTER' as const, contactName: '', email: '', phoneCountryCode: '55', phone: '', notes: '', isActive: true }
+const data = { name: 'Acme Cemetery', tradeName: '', taxId: '11.222.333/0001-81', segment: 'CEMETERY' as const, contactName: '', email: '', phoneCountryCode: '55', phone: '', notes: '', isActive: true }
 beforeEach(() => {
   vi.resetAllMocks()
   const session = { customerId: 'verified-tenant', user: { id: 'operator' } }
@@ -23,6 +23,19 @@ beforeEach(() => {
   mocks.transaction.mockImplementation(async callback => callback({ fixture: 'transaction' }))
 })
 describe('B2B actions', () => {
+  it.each(['CEMETERY', 'CREMATORIUM', 'MEMORIAL', 'FUNERAL_HOME'] as const)('saves the buyer segment %s on create and update', async segment => {
+    expect(await saveBusinessCustomer(undefined, { ...data, segment })).toEqual({ ok: true, message: 'saved' })
+    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ segment }) }))
+    expect(await saveBusinessCustomer('company', { ...data, segment })).toEqual({ ok: true, message: 'saved' })
+    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'company', tenantId: 'verified-tenant' }, data: expect.objectContaining({ segment }) }))
+  })
+  it.each(['PLAQUE_PRINTER', 'MARBLE_SHOP', 'FUNERAL_SUPPLIES', 'URN_MANUFACTURER', 'OTHER', '', 'UNKNOWN'])('rejects segment %s without changing a new or existing company', async segment => {
+    const input = { ...data, segment } as unknown as Parameters<typeof saveBusinessCustomer>[1]
+    expect(await saveBusinessCustomer(undefined, input)).toEqual({ ok: false, message: 'invalidData' })
+    expect(await saveBusinessCustomer('company', input)).toEqual({ ok: false, message: 'invalidData' })
+    expect(mocks.create).not.toHaveBeenCalled()
+    expect(mocks.update).not.toHaveBeenCalled()
+  })
   it('uses verified tenant scope for create and update and strips browser tenant fields', async () => {
     expect(await saveBusinessCustomer(undefined, { ...data, tenantId: 'forged' } as never)).toEqual({ ok: true, message: 'saved' })
     expect(mocks.create).toHaveBeenCalledWith({ data: { ...data, taxId: '11222333000181', tenant: { connect: { id: 'verified-tenant' } }, address: undefined } })
