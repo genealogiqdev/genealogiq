@@ -20,8 +20,8 @@ describe('reseller inventory states', () => {
     for (const genCode of ['ABC,ABC', 'ABC', 'ABC,XYZ,DEF', 'ABC,<script>']) expect(businessSaleSchema.safeParse({ ...input, genCode }).success).toBe(false)
   })
   it('validates and normalizes CNPJ while keeping tenant duplicates a database rule', () => {
-    const data = { name: '  Acme Print  ', tradeName: '', taxId: '11.222.333/0001-81', segment: 'PLAQUE_PRINTER', contactName: '', email: '', phoneCountryCode: '55', phone: '', notes: '', isActive: true }
-    expect(getBusinessCustomerSchema(identityTranslator).parse(data)).toMatchObject({ name: 'Acme Print', taxId: '11222333000181' })
+    const data = { name: '  Acme Cemetery  ', tradeName: '', taxId: '11.222.333/0001-81', segment: 'CEMETERY', contactName: '', email: '', phoneCountryCode: '55', phone: '', notes: '', isActive: true }
+    expect(getBusinessCustomerSchema(identityTranslator).parse(data)).toMatchObject({ name: 'Acme Cemetery', taxId: '11222333000181' })
     expect(getBusinessCustomerSchema(identityTranslator).safeParse({ ...data, taxId: '11111111111111' }).success).toBe(false)
     expect(getBusinessCustomerSchema(identityTranslator).safeParse({ ...data, taxId: '11X222333000181' }).success).toBe(false)
   })

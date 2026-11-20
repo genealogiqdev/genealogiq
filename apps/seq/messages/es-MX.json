@@ -1057,12 +1057,17 @@
       "activated": "Activados"
     },
     "segments": {
+      "CEMETERY": "Cementerios",
+      "CREMATORIUM": "Crematorios",
+      "MEMORIAL": "Memoriales",
+      "FUNERAL_HOME": "Funerarias",
       "PLAQUE_PRINTER": "Imprenta / placas de porcelana o acero",
       "MARBLE_SHOP": "Marmolería",
       "FUNERAL_SUPPLIES": "Artículos funerarios",
       "URN_MANUFACTURER": "Urnas de cremación",
       "OTHER": "Otro"
     },
+    "selectSegment": "Seleccione el segmento de la empresa",
     "codeStates": {
       "available": "Disponible para reventa",
       "assigned": "Entregado al cliente final",

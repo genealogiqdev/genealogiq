@@ -1057,12 +1057,17 @@
       "activated": "Activated"
     },
     "segments": {
+      "CEMETERY": "Cemeteries",
+      "CREMATORIUM": "Crematoriums",
+      "MEMORIAL": "Memorials",
+      "FUNERAL_HOME": "Funeral homes",
       "PLAQUE_PRINTER": "Print shop / porcelain or steel plaques",
       "MARBLE_SHOP": "Marble shop",
       "FUNERAL_SUPPLIES": "Funeral supplies",
       "URN_MANUFACTURER": "Cremation urns",
       "OTHER": "Other"
     },
+    "selectSegment": "Select the company's segment",
     "codeStates": {
       "available": "Available for resale",
       "assigned": "Delivered to end customer",

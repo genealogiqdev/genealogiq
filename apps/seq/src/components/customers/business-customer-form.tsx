@@ -15,13 +15,16 @@ import { saveBusinessCustomer } from '@/actions/business-customer.actions'
 import { BUSINESS_SEGMENTS, businessCustomerDefaults, getBusinessCustomerSchema, type BusinessCustomerFormValues } from '@/schemas/business-customer.schema'
 
 const textFields = ['name', 'tradeName', 'taxId', 'contactName', 'email', 'phoneCountryCode', 'phone'] as const
-export function BusinessCustomerForm({ id, defaultValues }: { id?: string; defaultValues?: BusinessCustomerFormValues }) {
+export function BusinessCustomerForm({ id, defaultValues }: { id?: string; defaultValues?: Omit<BusinessCustomerFormValues, 'segment'> & { segment: string } }) {
   const t = useTranslations('BusinessCustomers')
   const te = useTranslations('Errors')
   const router = useRouter()
   const [error, setError] = useState('')
+  const currentSegment = BUSINESS_SEGMENTS.find(segment => segment === defaultValues?.segment)
+  const hasLegacySegment = !!defaultValues && !currentSegment
   const { register, control, setValue, handleSubmit, formState: { errors, isSubmitting } } = useForm<BusinessCustomerFormValues>({
-    resolver: useMemo(() => zodResolver(getBusinessCustomerSchema(te)), [te]), defaultValues: defaultValues ?? businessCustomerDefaults,
+    resolver: useMemo(() => zodResolver(getBusinessCustomerSchema(te)), [te]),
+    defaultValues: defaultValues ? { ...defaultValues, segment: currentSegment } : businessCustomerDefaults,
   })
   return (
     <form className="flex max-w-2xl flex-col gap-6" onSubmit={handleSubmit(async values => {
@@ -42,11 +45,13 @@ export function BusinessCustomerForm({ id, defaultValues }: { id?: string; defau
             {errors[name] && <FieldError errors={[errors[name]]} />}
           </Field>
         ))}
-        <Field>
+        <Field data-invalid={!!errors.segment}>
           <FieldLabel htmlFor="business-segment">{t('fields.segment')}</FieldLabel>
-          <select id="business-segment" {...register('segment')} className="border-input rounded-md border bg-transparent p-2">
+          <select id="business-segment" {...register('segment')} defaultValue={hasLegacySegment ? '' : currentSegment ?? businessCustomerDefaults.segment} aria-invalid={!!errors.segment} className="border-input rounded-md border bg-transparent p-2">
+            {hasLegacySegment && <option value="" disabled>{t('selectSegment')}</option>}
             {BUSINESS_SEGMENTS.map(segment => <option key={segment} value={segment}>{t(`segments.${segment}`)}</option>)}
           </select>
+          {errors.segment && <FieldError errors={[errors.segment]} />}
         </Field>
       </div>
       <AddressSection control={control as unknown as Parameters<typeof AddressSection>[0]['control']} setValue={setValue} errors={errors} prefix="address" />
