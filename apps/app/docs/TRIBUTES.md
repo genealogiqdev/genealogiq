@@ -139,6 +139,22 @@ Old APP code uses the removed unique key and must not run after the migration.
 To recover, use APP code that keeps ID-based tribute reads and writes.
 Do not restore the unique key after authors have added multiple tributes.
 
+The guarded [tribute release job](../../../scripts/production-tributes-release.mjs) uses the existing APP production credentials.
+Ordinary builds do not run this job.
+Set `TRIBUTES_RELEASE_MODE=preflight` and `TRIBUTES_RELEASE_PROJECT=prj_ADnKLeafBavDDoSXs1jPR93WLqdO` for a staged production build.
+The job checks the one pending migration and saves a private row snapshot.
+It reads the snapshot back and checks its hash.
+Publish this ID-based APP build and verify its live domain first.
+Then stage the same source with `TRIBUTES_RELEASE_MODE=migrate` and `TRIBUTES_APP_READY=1`.
+The job takes a fresh checked snapshot and runs canonical Prisma migrations.
+Only the named tribute migration may be pending.
+Its database test adds two temporary messages and edits the second by ID.
+It rolls back both temporary messages.
+Use `TRIBUTES_RELEASE_MODE=verify` in a separate staged build for the final history, index and message checks.
+Use build-only variables. Do not add these flags to the project's normal environment.
+After migration, recover only to a build with ID-based tribute code.
+The snapshot preserves rows and schema. It does not prove a full database recovery rehearsal.
+
 1. Read this document and [the applicable AGENTS.md](../AGENTS.md); trace the linked entry through session, schema, query/action and integration.
 2. Recheck changes with `git log --oneline 6e06634..HEAD -- apps/app/src/actions/tribute.actions.ts apps/app/src/queries/tribute.ts apps/app/src/schemas/tribute.schema.ts apps/app/src/app/api/tribute/upload/route.ts`. Reverify affected claims and carry relevant uncommitted changes into the log.
 3. Run `pnpm test` and `node scripts/check-docs.mjs`. For schema/i18n changes run the additional commands in [TESTING](../../../docs/TESTING.md). Run generation/typecheck/lint/build sequentially to avoid generated-client races.

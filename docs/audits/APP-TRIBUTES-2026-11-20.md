@@ -108,4 +108,24 @@ It contains only this change, without the separate SEQ commit made during the se
 
 ## Related
 
+## Release preparation after the user's merge and deploy request
+
+The user authorized production release later on November 20.
+The release adds a guarded job in the existing APP build.
+Normal builds do not run it.
+It accepts only the named APP project, production and the existing Neon database.
+The job checks for the one tribute migration.
+It saves a private row snapshot and reads back its hash before migration.
+The operator must publish ID-based APP code before enabling the migration mode.
+The job then uses canonical Prisma migration and checks its saved SQL hash.
+Its message check adds two temporary rows and edits the second by ID.
+It rolls back the temporary rows.
+
+Two release guard tests passed.
+One real PostgreSQL test passed in a disposable local database copy.
+That test reproduced the old duplicate rejection.
+It applied the exact SQL twice and checked the message test and rollback.
+Documentation, migration shape and whitespace checks passed.
+Production execution and the final release receipt are recorded in the later release audit.
+
 [TRIBUTES](../../apps/app/docs/TRIBUTES.md) · [DATABASE](../DATABASE.md) · [LOCAL-DEVELOPMENT](../LOCAL-DEVELOPMENT.md) · [TESTING](../TESTING.md)

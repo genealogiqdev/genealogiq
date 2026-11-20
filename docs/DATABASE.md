@@ -123,6 +123,15 @@ The current local setup intentionally uses db push to create the complete intros
 
 ## Deployed migrations
 
+The November 20 tribute release uses [production-tributes-release.mjs](../scripts/production-tributes-release.mjs).
+It runs only in the verified APP production project and Neon database.
+The job requires a checked private row snapshot before the one reviewed migration.
+The release owner publishes ID-based APP code before the database step.
+Read [the tribute release order](../apps/app/docs/TRIBUTES.md#runbooks) before use or recovery.
+The job checks migration history and the saved SQL hash.
+It tests two temporary messages and rolls them back.
+It does not use the old Azure migration workflow.
+
 The approved [October 20 Neon recovery](audits/NEON-RECOVERY-2026-10-20.md) restored the repository-root legacy dump, preserved its migration history and applied all eight pending canonical migrations without reset, rebaseline or db push. Both the local rehearsal and Neon schema match Prisma. That recovery has a September 9 data boundary; it is not a current Azure snapshot. The existing guarded Premium expiry repair corrected 44 eligible independent-consumer test allowances, leaving three partner-scoped rows outside its guard for review.
 
 [AZURE-AGENT-RUNBOOK](AZURE-AGENT-RUNBOOK.md) and [AZURE-DATABASE-ACCESS](AZURE-DATABASE-ACCESS.md) retain the existing private-database constraints. The current [.github/workflows/migrate.yml](../.github/workflows/migrate.yml) uses workflow_dispatch to invoke an Azure migration job; it is not automatically triggered by an ordinary merge. The original documentation audit made no cloud writes; the separately authorized October 20 Neon restore and migrations are recorded above. Discover current resource/execution IDs before an authorized operation.
