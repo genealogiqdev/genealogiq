@@ -4,7 +4,7 @@ import { AuroraBackdrop } from "@/components/aurora-backdrop"
 import { BackButton } from "@/components/back-button"
 import { TributesClient } from "@/components/tributes-client"
 import { SignupPrompt } from "@/components/auth/signup-prompt"
-import { getApprovedTributesByProfileId, getMyTributeForProfile, getTributeCountByProfileId } from "@/queries/tribute"
+import { getApprovedTributesByProfileId, getMyUnpublishedTributesForProfile, getTributeCountByProfileId } from "@/queries/tribute"
 import { getProfileById } from "@/queries/profile"
 import { canManageProfile } from "@/lib/profile"
 import { assertPublicMemorialAccess } from "@/lib/public-profile-access"
@@ -34,8 +34,7 @@ export default async function TributesPage({ params }: Props) {
 
   const isExactOwn = viewerId === id
   const canWrite = !isAnon && !isExactOwn
-  const myTribute = viewerId ? await getMyTributeForProfile(viewerId, id) : null
-  const hasPendingFromMe = myTribute?.status === "PENDING"
+  const unpublishedTributes = viewerId ? await getMyUnpublishedTributesForProfile(viewerId, id) : []
 
   const isManager = viewerId ? canManageProfile(profile, viewerId) : false
 
@@ -64,7 +63,7 @@ export default async function TributesPage({ params }: Props) {
           sessionUserId={viewerId ?? ""}
           canWrite={canWrite}
           isManager={isManager}
-          hasPendingFromMe={hasPendingFromMe}
+          unpublishedTributes={unpublishedTributes}
         />
 
       </main>

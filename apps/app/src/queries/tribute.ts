@@ -9,9 +9,19 @@ export async function getApprovedTributesByProfileId(profileId: string, take?: n
   })
 }
 
-export async function getMyTributeForProfile(authorId: string, profileId: string) {
-  return prisma.tribute.findUnique({ where: { authorId_profileId: { authorId, profileId } } })
+export async function getMyTributeForProfile(authorId: string, profileId: string, tributeId: string) {
+  return prisma.tribute.findFirst({ where: { id: tributeId, authorId, profileId } })
 }
+
+export async function getMyUnpublishedTributesForProfile(authorId: string, profileId: string) {
+  return prisma.tribute.findMany({
+    where: { authorId, profileId, status: { in: ["PENDING", "REJECTED"] } },
+    select: { id: true, text: true, status: true },
+    orderBy: { createdAt: "desc" },
+  })
+}
+
+export type UnpublishedTributeRow = Awaited<ReturnType<typeof getMyUnpublishedTributesForProfile>>[number]
 
 export async function getTributeCountByProfileId(profileId: string) {
   return prisma.tribute.count({ where: { profileId, status: "APPROVED" } })

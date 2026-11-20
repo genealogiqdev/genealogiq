@@ -3,7 +3,7 @@
 > **Code:** [src/actions/tribute.actions.ts](../src/actions/tribute.actions.ts) · [src/queries/tribute.ts](../src/queries/tribute.ts) · [src/schemas/tribute.schema.ts](../src/schemas/tribute.schema.ts) · [src/app/api/tribute/upload/route.ts](../src/app/api/tribute/upload/route.ts)
 > **Entry points:** `/profile/[id]/tributes` · `/api/tribute/upload`
 > **Depends on:** [MESSAGES](MESSAGES.md) · [MEDIA-STORAGE](../../../docs/MEDIA-STORAGE.md) · [WEB-PUSH](WEB-PUSH.md) · [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) · [DATABASE](../../../docs/DATABASE.md) · [CONFIGURATION](../../../docs/CONFIGURATION.md) · [TESTING](../../../docs/TESTING.md) · [OBSERVABILITY](../../../docs/OBSERVABILITY.md) · [RUNBOOKS](../../../docs/RUNBOOKS.md)
-> **Last verified against code:** 2026-10-03 at `6e06634`, including this task’s uncommitted documentation, launcher and test changes. Source verification is separate from runtime/UI below.
+> **Last verified against code:** 2026-11-20 at `084670f` plus the multiple-tribute change. Source, tests, database and browser limits are separate in the [audit](../../../docs/audits/APP-TRIBUTES-2026-11-20.md).
 
 The APP application supplies tribute submission and moderation. Authenticated authors submit a message and optional image; moderators are resolved through canManageProfile. Tribute.status separates public approved content from pending author/moderator data; use schema.prisma for mapped columns and enum values.
 
@@ -26,13 +26,40 @@ No LLM/model stage exists in this implementation.
 
 ## Rules and why
 
-submitTribute checks author/target conditions; approval/rejection rechecks the moderator and creates notification side effects. deleteTribute is author-scoped. The existing action tests pin rejection branches; origin not recorded.
+An author can add more than one tribute to the same profile.
+The Add button always opens an empty form.
+Each tribute has its own edit link.
+The link contains `tributeId`, the unique name of that tribute in the database.
+The edit page and action check the author, profile and tribute ID together.
+A missing or unowned edit cannot create a new tribute.
+An author cannot submit a tribute to their own profile.
+
+Each new or edited tribute needs approval.
+Public readers see only approved tributes.
+The author can see separate edit links for all their pending and rejected tributes.
+Approval and rejection still check the profile manager.
+The author or profile manager can delete a tribute.
+Image removal clears the stored link.
+The action deletes image bytes only when no other tribute uses them.
 
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
 ## Contracts and data
 
 Authenticated authors submit a message and optional image; moderators are resolved through canManageProfile. Tribute.status separates public approved content from pending author/moderator data; use schema.prisma for mapped columns and enum values.
+
+`submitTribute(profileId, data)` creates a new row.
+`submitTribute(profileId, data, tributeId)` edits only the selected row.
+The form accepts 1–512 characters and one optional image.
+`/profile/[id]/tributes/edit` creates a new tribute.
+`/profile/[id]/tributes/edit?tributeId=<id>` edits an author-owned tribute.
+The public badge still counts only approved tributes.
+
+The [multiple-tribute migration](../../../packages/db/prisma/migrations/20261120000000_multiple_tributes_per_author/migration.sql) removes the old author/profile unique key.
+It keeps all rows, IDs, text, images, dates, status and notification links.
+It adds a regular index for author/profile reads.
+An index helps the database find rows.
+It does not limit their number.
 
 Inputs, defaults and output types live in the linked schema/actions/query files. APP/BMS/SEQ actions generally return [ActionResult (`done`/`ok`/`fail`)](../../../packages/core/src/result.ts); redirects/forbidden errors propagate from the DAL. Shared helpers retain their declared return types.
 
@@ -68,6 +95,11 @@ Run commands from the repository root `C:/Users/Tiger/Desktop/dev/personal/genea
 
 **Specs included in the successful 2026-10-03 full-suite run:** [src/actions/tribute.actions.test.ts](../src/actions/tribute.actions.test.ts). The opt-in media integration was run separately; skipped default integration tests are not counted as passes.
 
+The 2026-11-20 regressions are in [action tests](../src/actions/tribute.actions.test.ts), [query tests](../src/queries/tribute.test.ts), [control/form tests](../src/components/tributes-client.test.tsx) and [edit-page tests](../src/app/(public)/profile/[id]/tributes/edit/page.test.tsx).
+Run `pnpm exec vitest run --project app tribute` for this group.
+They check separate creates, exact-ID edits, image retention, public reads, private edit links and rejected access.
+They do not prove a real browser submission.
+
 **Expected answers:** literal hand-authored `expect` values in these specs and the scenario values below. The full run’s pass count is a coverage ledger, never the expected business output. Do not generate a golden answer from the function being tested.
 
 **Acceptance:** the stated happy-path outputs/persisted rows match the independent scenario, and the boundary rejects without an unauthorized write or duplicate side effect. A unit/helper pass does not satisfy a missing product step.
@@ -85,6 +117,8 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 1. **Happy path:** With two local consumers, submit a tribute to a managed memorial; the guardian approves it; reload anonymously and expect the approved message and notification. Requires a second fixture identity.
 2. **Boundary:** A non-guardian attempts approval and sees rejection without a status change; a pending tribute stays out of the public list. Requires two identities.
 3. **Persistence/cleanup:** independently query the feature-owned rows or downstream result. Restore temporary edits; retain ledger/audit history. Only delete disposable fixtures when authorized by the task.
+4. **Multiple tributes:** Add two different messages to the same memorial as the same author. Expect two separate IDs. Approve both as the guardian. Reload and expect both messages and the Add button. Edit the second message. Expect only that message to return to pending approval. Check that the first ID, text, image and approval are unchanged.
+5. **Edit boundary:** Open an edit link for another author's tribute or another profile. Expect a missing-page result. Sign out. Expect no Add or edit control in the public list. Check that no tribute changed.
 
 ### QA evidence
 
@@ -95,6 +129,15 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 ## Runbooks
 
 ### Change or diagnose this feature
+
+For this change, publish the APP code that uses tribute IDs first.
+Then apply the reviewed migration in the same release window.
+The old database key still blocks second submissions until the migration runs.
+Use the approved database release process in [DATABASE](../../../docs/DATABASE.md).
+Merging the PR alone does not apply this migration or deploy the app.
+Old APP code uses the removed unique key and must not run after the migration.
+To recover, use APP code that keeps ID-based tribute reads and writes.
+Do not restore the unique key after authors have added multiple tributes.
 
 1. Read this document and [the applicable AGENTS.md](../AGENTS.md); trace the linked entry through session, schema, query/action and integration.
 2. Recheck changes with `git log --oneline 6e06634..HEAD -- apps/app/src/actions/tribute.actions.ts apps/app/src/queries/tribute.ts apps/app/src/schemas/tribute.schema.ts apps/app/src/app/api/tribute/upload/route.ts`. Reverify affected claims and carry relevant uncommitted changes into the log.
@@ -109,6 +152,15 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 3. Restart the launcher and sign in separately for each app. Ephemeral secrets make old cookies invalid after a restart. Restore temporary fixture edits and append the new result, rather than rewriting the dated audit.
 
 ## Gaps and fixes
+
+### TRIBUTES-G2: Add disappears after the first tribute
+
+- **Status:** fixed
+- **Found:** 2026-11-20, user screenshot of a deceased person's tribute list.
+- **Evidence:** The page showed one tribute and only Edit your tribute. The action used an author/profile upsert. The database allowed only one row for that pair.
+- **Impact:** An author could not add a second memory. Sending another message replaced the first message.
+- **Root cause:** The UI, edit query, action and database all assumed one tribute per author per profile.
+- **Resolution:** This change keeps Add visible, opens a blank form and uses a selected ID for edits. The migration preserves existing rows and removes the limit. The four regression files above and local PostgreSQL replay check the change. The [audit](../../../docs/audits/APP-TRIBUTES-2026-11-20.md) records the Chrome access failure. The release owner must apply the migration and deploy APP. Browser acceptance remains pending.
 
 ### TRIBUTES-G1: Two-person moderation QA fixture missing
 
@@ -125,6 +177,7 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
+| 2026-11-20 | `084670f` + multiple-tribute change | Source, tests and local PostgreSQL | Rechecked all tribute routes, queries, actions, schema and upload scope since `6e06634`. Separate create/edit regressions and exact SQL replay passed. The original approved row stayed unchanged. | [Audit](../../../docs/audits/APP-TRIBUTES-2026-11-20.md) separates checks, local HTTP and the blocked Chrome scenario. No production migration or deployment. |
 
 ## Related
 

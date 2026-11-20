@@ -1765,7 +1765,8 @@
       "endOfTributes": "Fim das homenagens",
       "newestFirst": "Mais recentes primeiro",
       "oldestFirst": "Mais antigas primeiro",
-      "sendATribute": "Enviar uma homenagem",
+      "rejected": "Sua homenagem não foi aprovada.",
+      "sendATribute": "Adicionar homenagem",
       "subtitle": "Palavras deixadas para trás: pequenas chamas conduzidas por quem se lembra"
     },
     "title": "Homenagens para {name}",

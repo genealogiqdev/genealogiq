@@ -62,6 +62,17 @@ The table names above come from @@map. Column names come from each field's @map;
 
 ## Current amendments and removed contracts
 
+The [multiple-tribute migration](../packages/db/prisma/migrations/20261120000000_multiple_tributes_per_author/migration.sql) removes the unique author/profile key on `app_tributes`.
+It keeps every existing row and notification link.
+It adds a regular author/profile index.
+Publish the APP code that uses tribute IDs for edits first.
+Then apply the migration in the same release window.
+Second submissions remain blocked until the migration runs.
+Old APP code uses the removed unique key and cannot run after this migration.
+Do not add the old key again after authors have multiple tributes.
+[TRIBUTES](../apps/app/docs/TRIBUTES.md) owns this rule.
+The [audit](audits/APP-TRIBUTES-2026-11-20.md) records local replay and release limits.
+
 The B2B migration adds two tables and nullable `gencodes.business_sale_id`.
 It changes no existing customer, plan, code status or sale value.
 Business CNPJ uniqueness is per tenant. Lot quantities are 1–100.
@@ -237,6 +248,7 @@ The corrected Premium repair also cancels only the migration test allowance repl
 | 2026-10-07 | `b8afb94` + consumer access migration | Incremental local migration and transactions | 45 models / 76 migrations. Exact additive SQL applied to normal local and disposable-copy databases; nine integration cases passed, including concurrency, audit rollback and detached retention. [Consumer audit](audits/CONSUMER-ACCESS-2026-10-07.md); historical empty-database replay remains separate. |
 | 2026-10-09 | `12bbeb6` + biography Unicode tests | Encoding diagnosis and local persistence | ASCII decoding reproduces the two/three/four-byte loss pattern. Local biography save/reload preserves literal accents and emoji in PostgreSQL and the browser; anonymous editing rejects. [Unicode audit](audits/APP-BIOGRAPHY-UNICODE-2026-10-09.md). No production writes or new identification of the historical writer. |
 | 2026-10-20 | `2da3a06` + recovery documentation | Approved legacy dump restore, local/Neon migrations and guarded repair | All 42 source-table counts matched; eight pending migrations applied; all 78 canonical migrations recorded, zero unresolved failures, Prisma schema diff empty. Five repair test entries pass; 44 eligible test expiries repaired with backup/receipt. [Recovery audit](audits/NEON-RECOVERY-2026-10-20.md). App UI, later Azure data and three excluded partner terms remain separate. |
+| 2026-11-20 | `084670f` + multiple-tribute change | Local incremental SQL | Reproduced the old unique-index rejection. Replayed the exact migration twice in a transaction. Two same-author/profile rows and a selected-ID edit passed. The original approved text stayed unchanged. Rolled back the test rows, then applied the change only to the local database. | [Tribute audit](audits/APP-TRIBUTES-2026-11-20.md). No production database change. |
 
 ## Related
 

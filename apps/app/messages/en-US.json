@@ -1765,7 +1765,8 @@
       "endOfTributes": "End of tributes",
       "newestFirst": "Newest first",
       "oldestFirst": "Oldest first",
-      "sendATribute": "Send a tribute",
+      "rejected": "Your tribute was not approved.",
+      "sendATribute": "Add a tribute",
       "subtitle": "Words left behind: small flames carried by those who remember"
     },
     "title": "Tributes for {name}",
