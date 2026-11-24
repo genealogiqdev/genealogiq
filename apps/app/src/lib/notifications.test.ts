@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { db, queue, deliver, push, callbacks } = vi.hoisted(() => ({
+const { db, queue, deliver, push, nativePush, callbacks } = vi.hoisted(() => ({
   db: { $transaction: vi.fn(), notification: { create: vi.fn() }, appUser: { findUnique: vi.fn() } },
-  queue: vi.fn(), deliver: vi.fn(), push: vi.fn(), callbacks: [] as (() => Promise<void>)[],
+  queue: vi.fn(), deliver: vi.fn(), push: vi.fn(), nativePush: vi.fn(), callbacks: [] as (() => Promise<void>)[],
 }))
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
 vi.mock('next/server', () => ({ after: (fn: () => Promise<void>) => callbacks.push(fn) }))
-vi.mock('@/lib/push', () => ({ sendPushForNotification: push }))
+vi.mock('@/lib/push', () => ({ sendPushForNotification: push, sendNativePushForNotification: nativePush }))
 vi.mock('@genealogiq/services/email-outbox', () => ({ enqueueEmail: queue, deliverEmail: deliver, notificationUrl: () => 'https://genealogiq.com.br/messages' }))
 import { notify } from './notifications'
 
@@ -30,6 +30,8 @@ describe('APP activity notifications', () => {
     await callbacks[0]()
     expect(deliver).toHaveBeenCalledExactlyOnceWith('activity:notice-1')
     expect(push).toHaveBeenCalledOnce()
+    // The mobile app's native push goes out with the same notification, after the response.
+    expect(nativePush).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ type: 'GUARDIAN_REQUEST_PENDING', userId: 'recipient-1', appUserGuardianId: 'request-1' }))
   })
 
   it('stores self activity without sending the actor an email', async () => {

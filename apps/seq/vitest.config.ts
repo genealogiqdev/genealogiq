@@ -15,5 +15,8 @@ export default defineConfig({
     name: "seq",
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     environment: "node",
+    // next-auth's ESM build imports "next/server" without a file extension,
+    // which only a bundler resolves; inlining lets Vite handle it in tests.
+    server: { deps: { inline: ["next-auth"] } },
   },
 })

@@ -31,6 +31,10 @@ Missing VAPID configuration disables delivery with a warning; 404/410 responses 
 
 The enforcing files are linked above. Test names and literal assertions below record the cases that were recovered; a missing historical origin is not replaced with an invented rationale.
 
+### Native push for the mobile app (added 2026-11-23)
+
+The mobile app registers an Expo push token instead of a browser subscription. [src/actions/device-push.actions.ts](../src/actions/device-push.actions.ts) `registerDevicePushToken` upserts by token for the signed-in consumer (a token moves to whoever registered it last on that device) and `unregisterDevicePushToken` removes it only for its current owner. Tokens must match the Expo format. [src/lib/expo-push.ts](../src/lib/expo-push.ts) `sendExpoPush` posts to Expo's push service and prunes tokens reported as `DeviceNotRegistered`; other failures are logged. `notify()` calls `sendNativePushForNotification` next to the web fan-out, after the response; it needs no VAPID keys and never throws. Rows live in `DevicePushToken` / `app_device_push_tokens` ([migration](../../../packages/db/prisma/migrations/20261122000000_mobile_push_and_genealogy_scan/migration.sql)). Tests: [src/lib/expo-push.test.ts](../src/lib/expo-push.test.ts) and [src/lib/notifications.test.ts](../src/lib/notifications.test.ts). Delivery to a real device is unverified (see WEB-PUSH-G2).
+
 ## Contracts and data
 
 Zod validates endpoint and encryption keys. subscribePush upserts by endpoint for the signed-in consumer; unsubscribePush removes that device endpoint. Push payload shaping is separate from transport.
@@ -119,12 +123,22 @@ Follow [LOCAL-DEVELOPMENT](../../../docs/LOCAL-DEVELOPMENT.md) for exact setup/s
 - **Root cause:** The present implementation/contract is described in the evidence; original decision not recorded.
 - **Resolution:** Not fixed in this task. Use a disposable endpoint and test VAPID pair; record delivery and 410 cleanup independently.
 
+### WEB-PUSH-G2: Native push delivery is not exercised
+
+- **Status:** open
+- **Found:** 2026-11-23, mobile app implementation.
+- **Evidence:** Token registration and removal were exercised over HTTP against a local database (rows 1 then 0); Expo's push service was never called with a real device token.
+- **Impact:** Delivery, the tap-through URL and token pruning are unverified end to end.
+- **Root cause:** No device build or Expo project credentials in this session.
+- **Resolution:** Not fixed. Build the app with EAS, register a device and trigger a tribute notification.
+
 ## Verification log
 
 | Date | Commit / working changes | Verified by | Scope and evidence | Mismatches or limits → action |
 | --- | --- | --- | --- | --- |
 | 2026-10-03 | `6e06634` + docs/local launcher/new tests | Codex source trace and git/test review | Source: linked paths/symbols/router/model/defaults checked; tests: listed specs included in `pnpm test` (840 pass, one opt-in skip) | Open gaps above; original incident history preserved separately |
 | 2026-10-03 | Same revision + working changes | Local Credentials/browser/Azurite audit | Runtime/UI: n/a for the complete feature scenario; the repository baseline does not establish this feature. | Prerequisite/scenario remains listed above. |
+| 2026-11-23 | `8bde62d` + uncommitted mobile work | Source trace, tests and local HTTP | Native push section above: `pnpm test` 1,849 passed; register/unregister persisted and removed one row locally | Real delivery open (WEB-PUSH-G2) |
 
 ## Related
 

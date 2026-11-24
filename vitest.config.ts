@@ -9,6 +9,6 @@ export default defineConfig({
     // unreachable dummy endpoint so plain `pnpm test` needs no local env file
     // and an accidental unmocked query fails instead of touching real data.
     env: { DATABASE_URL: "postgresql://unit:unit@127.0.0.1:1/unit" },
-    projects: ["apps/app", "apps/seq", "apps/bms", "packages/core", "packages/auth", "packages/services", "packages/email"],
+    projects: ["apps/app", "apps/seq", "apps/bms", "packages/core", "packages/auth", "packages/services", "packages/email", "apps/mobile"],
   },
 })

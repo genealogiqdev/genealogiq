@@ -2,7 +2,7 @@ import "server-only"
 
 import { after } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { sendPushForNotification } from "@/lib/push"
+import { sendNativePushForNotification, sendPushForNotification } from "@/lib/push"
 import { enqueueEmail, deliverEmail, notificationUrl } from '@genealogiq/services/email-outbox'
 
 type NotificationType =
@@ -67,7 +67,11 @@ export async function notify(args: NotifyArgs) {
   // Web push fan-out runs after the response is flushed — it never slows the
   // calling action, and sendPushForNotification never throws.
   after(async () => {
-    await Promise.allSettled([sendPushForNotification(args), ...(emailId ? [deliverEmail(emailId)] : [])])
+    await Promise.allSettled([
+      sendPushForNotification(args),
+      sendNativePushForNotification(args),
+      ...(emailId ? [deliverEmail(emailId)] : []),
+    ])
   })
 }
 

@@ -8,6 +8,7 @@ import {
   shouldPruneSubscription,
 } from "@/lib/push-payload"
 import type { NotificationType } from "@genealogiq/db"
+import { sendExpoPush } from "@/lib/expo-push"
 
 // Mirrors NotifyArgs in lib/notifications.ts — notify() forwards its args here.
 interface PushArgs {
@@ -60,6 +61,29 @@ async function resolveUrl(args: PushArgs): Promise<string> {
   }
   // Pending items are actioned on /messages; visiting also marks all read.
   return "/messages"
+}
+
+/**
+ * Native (Expo) push for the mobile app. Independent of web push: it needs no
+ * VAPID keys and has its own device tokens. Never throws.
+ */
+export async function sendNativePushForNotification(args: PushArgs): Promise<void> {
+  try {
+    const recipient = await prisma.appUser.findUnique({
+      where: { id: args.userId },
+      select: { preferredLocale: true, _count: { select: { devicePushTokens: true } } },
+    })
+    if (!recipient || recipient._count.devicePushTokens === 0) return
+    const payload = buildPushPayload({
+      type: args.type,
+      locale: recipient.preferredLocale,
+      url: await resolveUrl(args),
+      entityId: args.tributeId ?? args.familyRelationId ?? args.appUserGuardianId ?? null,
+    })
+    await sendExpoPush(args.userId, { title: payload.title, body: payload.body, url: payload.url })
+  } catch (error) {
+    console.error("[push] native fan-out failed", error)
+  }
 }
 
 /**

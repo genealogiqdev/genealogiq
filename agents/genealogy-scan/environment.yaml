@@ -1,0 +1,14 @@
+# Environment for the Genealogy Scan agent.
+#
+# Networking is `unrestricted` because the research reads genealogy sites that
+# cannot be listed in advance, and under `limited` networking web_search and
+# web_fetch only reach hosts in `allowed_hosts`. The trade-off: `unrestricted`
+# gives the whole sandbox open egress, not only the web tools. This agent has
+# no shell (only web_search, web_fetch, read, write), mounts no files and
+# receives no credentials, so there is nothing in the sandbox to send out.
+# Keep it that way: do not add secrets, vaults or the bash tool to this agent
+# without switching this to `limited` with an explicit host list.
+name: genealogy-scan
+config:
+  type: cloud
+  networking: {type: unrestricted}

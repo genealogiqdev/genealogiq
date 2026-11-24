@@ -1,6 +1,5 @@
 import { getTranslations } from 'next-intl/server'
-import { prisma } from '@/lib/prisma'
-import { hashToken } from '@genealogiq/core'
+import { consumeEmailToken } from '@/lib/verify-email'
 import { VerifyEmailCard } from '@/components/auth/verify-email-card'
 
 interface Props {
@@ -24,16 +23,9 @@ export default async function VerifyEmailPage({ searchParams }: Props) {
     )
   }
 
-  const record = await prisma.emailToken.findUnique({
-    where: { token: hashToken(token) },
-  })
+  const outcome = await consumeEmailToken(token)
 
-  // userId is nullable in the schema (also supports AppUser tokens written by
-  // SEQ/APP); BMS only ever issues User-bound tokens, so reject if absent.
-  if (!record || !record.userId || record.expiresAt < new Date()) {
-    if (record) {
-      await prisma.emailToken.delete({ where: { token: hashToken(token) } })
-    }
+  if (outcome === 'invalid') {
     return (
       <VerifyEmailCard
         title={t('verify.invalidTitle')}
@@ -45,17 +37,8 @@ export default async function VerifyEmailPage({ searchParams }: Props) {
       />
     )
   }
-  const userId = record.userId
 
-  if (record.type === 'CHANGE') {
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: userId },
-        data: { email: record.newEmail!, emailVerified: new Date() },
-      }),
-      prisma.emailToken.delete({ where: { token: hashToken(token) } }),
-    ])
-
+  if (outcome === 'changed') {
     return (
       <VerifyEmailCard
         title={t('verify.changedTitle')}
@@ -66,15 +49,6 @@ export default async function VerifyEmailPage({ searchParams }: Props) {
       />
     )
   }
-
-  // VERIFICATION
-  await prisma.$transaction([
-    prisma.user.update({
-      where: { id: userId },
-      data: { emailVerified: new Date() },
-    }),
-    prisma.emailToken.delete({ where: { token: hashToken(token) } }),
-  ])
 
   return (
     <VerifyEmailCard

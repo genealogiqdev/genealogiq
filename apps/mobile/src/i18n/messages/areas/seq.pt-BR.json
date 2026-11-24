@@ -1,0 +1,42 @@
+{
+  "tabs": {
+    "genCodes": "GenCodes",
+    "buy": "Comprar",
+    "more": "Mais"
+  },
+  "dashboard": {
+    "last12Months": "Últimos 12 meses",
+    "noData": "Ainda não há dados para este período.",
+    "revenueByChannel": "Receita por canal",
+    "revenueByChannelHint": "Venda no balcão x envio por e-mail · últimos 12 meses",
+    "newCustomers": "Novos clientes",
+    "newCustomersHint": "Novos clientes finais por mês · últimos 12 meses",
+    "qrConsumption": "Consumo de QR",
+    "qrConsumptionHint": "QR Codes vendidos por mês · últimos 12 meses"
+  },
+  "more": {
+    "records": "Cadastros",
+    "support": "Suporte"
+  },
+  "business": {
+    "lots": "Lotes vendidos",
+    "quantityInvalid": "Informe um número inteiro de 1 a 100."
+  },
+  "memorial": {
+    "invalidCoordinate": "Informe uma coordenada válida em graus decimais."
+  },
+  "memorialQr": {
+    "generate": "Mostrar QR Code"
+  },
+  "profile": {
+    "changeEmail": "Alterar e-mail",
+    "changeEmailHint": "Informe o novo endereço e sua senha atual. Um link de confirmação é enviado ao novo e-mail.",
+    "newEmail": "Novo e-mail",
+    "currentPassword": "Senha atual",
+    "changePassword": "Alterar senha",
+    "changePasswordHint": "Informe sua senha atual e escolha uma nova.",
+    "newPassword": "Nova senha",
+    "deleteAccount": "Excluir conta",
+    "deleteAccountWarning": "Isso exclui permanentemente sua conta e todos os dados relacionados. Esta ação não pode ser desfeita."
+  }
+}

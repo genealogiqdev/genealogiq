@@ -1,0 +1,21 @@
+{
+  "tabs": {
+    "dashboard": "Panel",
+    "customers": "Clientes",
+    "sales": "Ventas",
+    "products": "Productos",
+    "more": "Más"
+  },
+  "segments": {
+    "partners": "Socios (B2B)",
+    "consumers": "Clientes finales"
+  },
+  "readOnly": "Tu rol puede consultar esta información, pero no puede modificarla.",
+  "fixedAmount": "Monto fijo de descuento",
+  "amountIn": "Monto ({currency})",
+  "countries": {
+    "BR": "Brasil",
+    "US": "Estados Unidos",
+    "MX": "México"
+  }
+}
