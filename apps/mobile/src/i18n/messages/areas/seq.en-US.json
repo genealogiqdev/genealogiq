@@ -1,0 +1,42 @@
+{
+  "tabs": {
+    "genCodes": "GenCodes",
+    "buy": "Buy",
+    "more": "More"
+  },
+  "dashboard": {
+    "last12Months": "Last 12 months",
+    "noData": "No data for this period yet.",
+    "revenueByChannel": "Revenue by channel",
+    "revenueByChannelHint": "Counter sale vs. sent by email · last 12 months",
+    "newCustomers": "New customers",
+    "newCustomersHint": "New end customers per month · last 12 months",
+    "qrConsumption": "QR consumption",
+    "qrConsumptionHint": "QR codes sold per month · last 12 months"
+  },
+  "more": {
+    "records": "Records",
+    "support": "Support"
+  },
+  "business": {
+    "lots": "Batches sold",
+    "quantityInvalid": "Enter a whole number from 1 to 100."
+  },
+  "memorial": {
+    "invalidCoordinate": "Enter a valid coordinate in decimal degrees."
+  },
+  "memorialQr": {
+    "generate": "Show QR code"
+  },
+  "profile": {
+    "changeEmail": "Change email",
+    "changeEmailHint": "Enter the new address and your current password. A confirmation link is sent to the new email.",
+    "newEmail": "New email",
+    "currentPassword": "Current password",
+    "changePassword": "Change password",
+    "changePasswordHint": "Enter your current password and choose a new one.",
+    "newPassword": "New password",
+    "deleteAccount": "Delete account",
+    "deleteAccountWarning": "This permanently deletes your account and all related data. This action cannot be undone."
+  }
+}

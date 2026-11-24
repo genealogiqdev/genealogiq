@@ -1,0 +1,221 @@
+{
+  "title": "Genealogy Scan",
+  "intro": {
+    "what": "Type a family surname and a research assistant searches the public web for several minutes, then draws what it found as a map of connected notes: origins, spelling variants, places, migrations and documented people.",
+    "limit": "A surname alone is shared by many unrelated families, so without more details the result is a map of the surname, not your own ancestry. Add relatives you know (names, places, approximate years) to make it about your family.",
+    "privacy": "The surname and the details you type here are sent to an AI research service. Living private people are left out of the results."
+  },
+  "access": {
+    "usage": "{used} of {limit} scans used this month",
+    "notConfigured": {
+      "title": "Genealogy Scan isn't available yet",
+      "body": "This feature hasn't been switched on. Please check back later."
+    },
+    "premiumRequired": {
+      "title": "Part of the Premium plan",
+      "body": "Genealogy Scan runs long research sessions, so it is included with Premium.",
+      "cta": "See plans"
+    },
+    "monthlyLimitReached": {
+      "title": "This month's scans are used up",
+      "body": "You have used {used} of {limit} scans this month. More will be available next month."
+    },
+    "scanInProgress": {
+      "title": "A scan is already running",
+      "body": "You can start another one when it finishes.",
+      "cta": "Open the running scan"
+    }
+  },
+  "form": {
+    "heading": "Start a scan",
+    "surname": "Family surname",
+    "surnameHint": "Letters, spaces, apostrophes, dots and hyphens.",
+    "anchorsTitle": "Relatives you know (optional)",
+    "anchorsHint": "Up to 8. Each one helps the research find your family among everyone who shares the surname.",
+    "anchorN": "Relative {n}",
+    "removeAnchor": "Remove relative {n}",
+    "relation": "Who is this?",
+    "relations": {
+      "self": "Me",
+      "parent": "My parent",
+      "grandparent": "My grandparent",
+      "great_grandparent": "My great-grandparent",
+      "other": "Another relative"
+    },
+    "name": "Full name",
+    "place": "Place (optional)",
+    "year": "Approximate year (optional)",
+    "yearHint": "A birth year or any year you know they were alive.",
+    "addAnchor": "Add a relative",
+    "maxAnchors": "You can add up to {max} relatives.",
+    "notes": "Anything else worth knowing (optional)",
+    "notesHint": "{count} of {max} characters",
+    "consent": "Starting sends the surname and these details to the AI research service and uses one of this month's scans.",
+    "start": "Start scan"
+  },
+  "issues": {
+    "required": "This field is required.",
+    "tooShort": "Use at least 2 characters.",
+    "tooLong": "Use at most {max} characters.",
+    "invalidCharacters": "Use only letters, spaces, apostrophes, dots and hyphens, starting with a letter.",
+    "invalidYear": "Enter a four-digit year, no later than this year."
+  },
+  "list": {
+    "title": "Your scans",
+    "empty": "You haven't run a scan yet.",
+    "nodes": "{count, plural, =0 {No notes yet} one {# note} other {# notes}}",
+    "links": "{count, plural, =0 {No links} one {# link} other {# links}}",
+    "delete": "Delete the {surname} scan",
+    "deleteTitle": "Delete the {surname} scan?",
+    "deleteBody": "The scan and its graph will be removed. This can't be undone.",
+    "deleteRunningBody": "This scan is still running. Deleting it stops the research and removes what was found so far. This can't be undone.",
+    "filteredEmpty": "No notes match the current filters."
+  },
+  "status": {
+    "RUNNING": "Researching",
+    "COMPLETED": "Finished",
+    "FAILED": "Stopped"
+  },
+  "detail": {
+    "notFound": {
+      "title": "Scan not found",
+      "body": "It may have been deleted.",
+      "cta": "Back to Genealogy Scan"
+    },
+    "running": {
+      "title": "Researching {surname}…",
+      "body": "This usually takes several minutes. You can leave and come back: the graph appears here as soon as the first results arrive.",
+      "banner": "{count, plural, one {Still researching. # note so far.} other {Still researching. # notes so far.}}"
+    },
+    "failed": {
+      "title": "This scan couldn't be completed",
+      "body": "The research stopped before it produced a result. You can start again.",
+      "partial": "The research stopped early. These are partial results.",
+      "cta": "Start again"
+    },
+    "empty": {
+      "title": "Nothing was found",
+      "body": "The research finished without results for this surname."
+    }
+  },
+  "notify": {
+    "button": "Turn on notifications",
+    "hint": "Turns on Genealogiq notifications on this device. Scans don't send their own alert yet, so check back in a few minutes.",
+    "enabled": "Notifications are on for this device.",
+    "unsupported": "Notifications aren't available on this device.",
+    "unavailable": "Notifications couldn't be turned on right now.",
+    "channel": "Genealogiq"
+  },
+  "controls": {
+    "search": "Find a note",
+    "showList": "Show as list",
+    "showGraph": "Show as graph",
+    "local": "Local graph",
+    "hops": "{count, plural, one {# step} other {# steps}}",
+    "fewerHops": "Fewer steps",
+    "moreHops": "More steps",
+    "legend": "Legend and filters",
+    "fit": "Fit to screen",
+    "recentre": "Go to surname",
+    "hint": "Tap a note to read it. Pinch to zoom, drag to move.",
+    "summary": "Scan summary",
+    "share": "Share as Markdown"
+  },
+  "legend": {
+    "title": "Legend and filters",
+    "help": "Tap an item to show or hide it on the graph and in the list.",
+    "types": "Kind of note (colour)",
+    "confidences": "Confidence (outline)",
+    "confidence": "{confidence} ({style})",
+    "size": "Bigger circles have more links.",
+    "shown": "{label}, shown",
+    "hidden": "{label}, hidden"
+  },
+  "types": {
+    "surname": "Surname",
+    "variant": "Variant",
+    "person": "Person",
+    "family": "Family",
+    "place": "Place",
+    "event": "Event"
+  },
+  "confidence": {
+    "documented": "Documented",
+    "probable": "Probable",
+    "speculative": "Speculative"
+  },
+  "confidenceMeaning": {
+    "documented": "A record or reputable reference states this directly.",
+    "probable": "Several sources point the same way, but none states it outright.",
+    "speculative": "A lead worth checking, not an established fact."
+  },
+  "confidenceStyle": {
+    "documented": "solid outline",
+    "probable": "dashed outline",
+    "speculative": "dotted outline"
+  },
+  "note": {
+    "noSummary": "No description for this note.",
+    "linked": "Linked notes",
+    "noLinks": "No other note links here.",
+    "sources": "Sources",
+    "noSources": "No source is recorded.",
+    "sourceNoLink": "No link available"
+  },
+  "relations": {
+    "parent_of": { "out": "Parent of", "in": "Child of" },
+    "spouse_of": { "out": "Spouse of", "in": "Spouse of" },
+    "sibling_of": { "out": "Sibling of", "in": "Sibling of" },
+    "variant_of": { "out": "Variant of", "in": "Variants" },
+    "originated_in": { "out": "Originated in", "in": "Place of origin of" },
+    "lived_in": { "out": "Lived in", "in": "Lived here" },
+    "migrated_to": { "out": "Migrated to", "in": "Migrated here" },
+    "member_of": { "out": "Member of", "in": "Members" },
+    "participated_in": { "out": "Took part in", "in": "Took part" },
+    "related_to": { "out": "Related to", "in": "Related to" }
+  },
+  "summary": {
+    "title": "{surname}: summary",
+    "counts": "{nodes} notes · {edges} links · {sources} sources",
+    "noSummary": "No overview was written for this scan.",
+    "byType": "Notes by kind",
+    "byConfidence": "Notes by confidence",
+    "sources": "All sources"
+  },
+  "tree": {
+    "action": "Add to my tree",
+    "title": "Add to my family tree",
+    "explain": "This creates a new person in your own family tree from this note. Check the details and choose how this person is related to you. Nothing is saved until you confirm.",
+    "firstName": "First name",
+    "lastName": "Family name",
+    "relation": "This person is…",
+    "kinds": {
+      "parent": "My parent",
+      "child": "My child",
+      "spouse": "My spouse or partner",
+      "sibling": "My sibling"
+    },
+    "birthYear": "Birth year",
+    "deathYear": "Death year",
+    "approximate": "The scan marks these years as approximate.",
+    "yearNote": "Only the year is known, so it is saved as 1 January of that year. You can correct the date in your tree.",
+    "required": "This field is required.",
+    "relationRequired": "Choose how this person is related to you.",
+    "invalidYear": "Enter a four-digit year, no later than this year.",
+    "deathBeforeBirth": "The death year can't be before the birth year.",
+    "speculativeWarning": "This note is speculative: no source confirms it. Add it only if you have your own evidence.",
+    "confirmTitle": "Add this person to your tree?",
+    "confirmBody": "{name} will be added to your family tree. Relation to you: {relation}.",
+    "confirm": "Add to my tree",
+    "added": "{name} was added to your family tree."
+  },
+  "export": {
+    "title": "Genealogy Scan: {surname}",
+    "type": "Kind",
+    "years": "Years",
+    "confidence": "Confidence"
+  },
+  "a11y": {
+    "canvas": "Graph with {nodes} notes and {edges} links. Switch to the list to read the notes one by one."
+  }
+}

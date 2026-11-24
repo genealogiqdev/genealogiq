@@ -127,6 +127,16 @@
       "unavailable": "Este perfil não está disponível na sua árvore ou você ainda não é um guardião autorizado.",
       "coGuardianLimit": "Outro guardião deste perfil atingiu o limite de memoriais do plano. É necessário liberar capacidade antes de adicionar este memorial.",
       "retry": "O perfil ou o limite do plano mudou durante a solicitação. Tente novamente."
+    },
+    "genealogyScan": {
+      "tooManyRequests": "Muitas solicitações de busca. Tente novamente mais tarde.",
+      "notConfigured": "A Busca Genealógica ainda não está disponível.",
+      "premiumRequired": "A Busca Genealógica faz parte do plano Premium.",
+      "monthlyLimitReached": "Você já usou todas as buscas deste mês. Novas buscas estarão disponíveis no próximo mês.",
+      "scanInProgress": "Já existe uma busca em andamento. Aguarde a conclusão para iniciar outra.",
+      "unavailable": "Não foi possível iniciar a busca. Nada foi descontado da sua franquia. Tente novamente.",
+      "notFound": "Busca não encontrada.",
+      "deleted": "Busca excluída."
     }
   },
   "Auth": {

@@ -1,0 +1,42 @@
+{
+  "tabs": {
+    "genCodes": "GenCodes",
+    "buy": "Comprar",
+    "more": "Más"
+  },
+  "dashboard": {
+    "last12Months": "Últimos 12 meses",
+    "noData": "Aún no hay datos para este periodo.",
+    "revenueByChannel": "Ingresos por canal",
+    "revenueByChannelHint": "Venta en mostrador vs. envío por correo · últimos 12 meses",
+    "newCustomers": "Nuevos clientes",
+    "newCustomersHint": "Nuevos clientes finales por mes · últimos 12 meses",
+    "qrConsumption": "Consumo de QR",
+    "qrConsumptionHint": "Códigos QR vendidos por mes · últimos 12 meses"
+  },
+  "more": {
+    "records": "Registros",
+    "support": "Soporte"
+  },
+  "business": {
+    "lots": "Lotes vendidos",
+    "quantityInvalid": "Ingresa un número entero del 1 al 100."
+  },
+  "memorial": {
+    "invalidCoordinate": "Ingresa una coordenada válida en grados decimales."
+  },
+  "memorialQr": {
+    "generate": "Mostrar código QR"
+  },
+  "profile": {
+    "changeEmail": "Cambiar correo",
+    "changeEmailHint": "Ingresa la nueva dirección y tu contraseña actual. Se envía un enlace de confirmación al nuevo correo.",
+    "newEmail": "Nuevo correo",
+    "currentPassword": "Contraseña actual",
+    "changePassword": "Cambiar contraseña",
+    "changePasswordHint": "Ingresa tu contraseña actual y elige una nueva.",
+    "newPassword": "Nueva contraseña",
+    "deleteAccount": "Eliminar cuenta",
+    "deleteAccountWarning": "Esto elimina permanentemente tu cuenta y todos los datos relacionados. Esta acción no se puede deshacer."
+  }
+}

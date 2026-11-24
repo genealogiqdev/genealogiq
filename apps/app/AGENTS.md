@@ -21,6 +21,8 @@ Premium human memorial QR exports use the guardian's memorial quota independentl
 
 An unassigned B2B code permits normal APP registration from its QR link. Activation assigns its reserved credit to the final buyer and creates the memorial in one transaction. A tenantless buyer joins the original manufacturer tenant. A buyer from another tenant cannot claim the code. Keep any named recipient check. See [GENCODE-ACTIVATION](docs/GENCODE-ACTIVATION.md).
 
+The mobile app reaches this app through `src/mobile/` (views and actions registries) and `/api/mobile/v1`; a page or action change needs the matching registry change. See [MOBILE-API](../../docs/MOBILE-API.md).
+
 The app uses Next.js App Router, server-side queries, server actions and Zod schema factories. Shared database/auth/services/email/core/UI/i18n contracts are indexed in [root AGENTS.md](../../AGENTS.md). Default local origin is http://localhost:3000; use the launcher's configured canonical host/port for auth redirects and cookies. See [LOCAL-DEVELOPMENT](../../docs/LOCAL-DEVELOPMENT.md) for isolated sessions.
 
 ## Feature index
@@ -45,6 +47,7 @@ The app uses Next.js App Router, server-side queries, server actions and Zod sch
 | [PWA](docs/PWA.md) | Progressive web app installation | `src/lib/pwa-install.ts` | `pnpm test` |
 | [WEB-PUSH](docs/WEB-PUSH.md) | Device web push subscriptions | `src/actions/push.actions.ts` | `pnpm test` |
 | [MARKETING-FEEDBACK](docs/MARKETING-FEEDBACK.md) | Public marketing and feedback | `src/actions/feedback.actions.ts` | `pnpm test` |
+| [GENEALOGY-SCAN](docs/GENEALOGY-SCAN.md) | AI surname research graph (mobile) | `src/lib/genealogy-scan/service.ts` | `pnpm test` |
 
 ## Local run and checks
 

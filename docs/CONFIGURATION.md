@@ -31,6 +31,8 @@ There is no single environment-validation schema. Settings are read at import, r
 | NEXT_PUBLIC_VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT | absent | apps/app/src/lib/push-client.ts / push.ts | Missing key disables push; public key needs rebuild |
 | NEXT_PUBLIC_TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY | absent | apps/app/src/lib/turnstile.ts / feedback UI | Missing server secret warns/skips anti-bot verification; public key needs rebuild |
 | ENABLE_WIKITREE_SEARCH | enabled unless false in app wrapper | apps/app/src/app/api/wikitree/search/route.ts | Launcher sets false; upstream import remains an integration |
+| ANTHROPIC_API_KEY / GENEALOGY_SCAN_AGENT_ID / GENEALOGY_SCAN_ENVIRONMENT_ID | absent | apps/app/src/lib/genealogy-scan/service.ts | APP only. Without all three, Genealogy Scan reports "not available" and starts nothing |
+| EXPO_ACCESS_TOKEN | absent | apps/app/src/lib/expo-push.ts | APP only. Optional credential for Expo push; native push still sends without it |
 | NEXT_PUBLIC_SENTRY_DSN | absent | per-app Sentry configuration | Disabled capture without DSN; public client changes need rebuild |
 | SENTRY_ORG / SENTRY_PROJECT / SENTRY_AUTH_TOKEN | absent | per-app next.config.ts | Optional build source-map upload; no cloud upload in local baseline |
 | NODE_ENV | development in local-qa | Next / APP register-service-worker.tsx | Production worker registration; stop dev before building |

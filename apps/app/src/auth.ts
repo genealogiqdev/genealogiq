@@ -1,4 +1,5 @@
 import { createAuth, googleCredentialsFromEnv } from "@genealogiq/auth"
+import { createMobileAuth } from "@genealogiq/auth/mobile"
 import type { AppPrincipal } from "@genealogiq/auth/types"
 import type { Profile } from "next-auth"
 import { resolveLocale } from "@genealogiq/i18n/server"
@@ -64,7 +65,7 @@ function syncGoogleLink(row: { id: string; emailVerified: Date | null }, profile
 // googleCredentialsFromEnv's own comment in packages/auth/src/node.ts.
 const googleCreds = googleCredentialsFromEnv()
 
-export const { handlers, auth, signIn, signOut } = createAuth({
+const nextAuth = createAuth({
   edgeConfig: authConfig,
   loadUserByEmail: (email) => prisma.appUser.findFirst({ where: { email } }),
   resetLockout: (id) =>
@@ -87,3 +88,22 @@ export const { handlers, auth, signIn, signOut } = createAuth({
     syncGoogleLink,
   },
 })
+
+export const { handlers, signIn, signOut } = nextAuth
+
+// Native (Expo) clients authenticate with a bearer token instead of the session
+// cookie. Same identity rules as the web sign-in; the row is reloaded per request.
+export const mobileAuth = createMobileAuth({
+  cookieName: authConfig.cookies.sessionToken.name,
+  loadUserById: (id) => prisma.appUser.findUnique({ where: { id } }),
+  loadUserByEmail: (email) => prisma.appUser.findFirst({ where: { email } }),
+  resetLockout: (id) =>
+    prisma.appUser.update({ where: { id }, data: { failedLoginAttempts: 0, lockedUntil: null } }),
+  persistFailedLogin: (id, data) => prisma.appUser.update({ where: { id }, data }),
+  extraGate: (u) => u.role === "APP_USER",
+  toPrincipal: (u) => ({ ...toPrincipal(u), image: u.avatarUrl }),
+})
+
+// Cookie session first (browser), bearer token second (mobile). Every guard,
+// query, action and route handler that calls auth() accepts both.
+export const auth = mobileAuth.withBearer(() => nextAuth.auth())

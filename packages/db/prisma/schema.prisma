@@ -624,6 +624,8 @@ model AppUser {
   genCode                   GenCode?             @relation("GenCodeMemorial")
   genCodesBought            GenCode[]            @relation("GenCodeBuyer")
   pushSubscriptions         PushSubscription[]
+  devicePushTokens          DevicePushToken[]
+  genealogyScans            GenealogyScan[]
   qrCode                    QrCode?
   treeNodePositionsAsRoot   TreeNodePosition[]   @relation("TreeNodePositionRoot")
   treeNodePositionsAsPerson TreeNodePosition[]   @relation("TreeNodePositionPerson")
@@ -908,6 +910,58 @@ model PushSubscription {
 
   @@index([userId])
   @@map("app_push_subscriptions")
+}
+
+// Native (Expo) push destinations for the mobile app. Web Push keeps its own
+// table above; a user can have both. Dead tokens are pruned when Expo reports
+// DeviceNotRegistered (see apps/app src/lib/expo-push.ts).
+model DevicePushToken {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  platform  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      AppUser  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId])
+  @@map("app_device_push_tokens")
+}
+
+// ─── Genealogy Scan ──────────────────────────────────────────────────────────
+
+enum GenealogyScanStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+// One AI research run for a surname (apps/app docs/GENEALOGY-SCAN.md). The
+// graph is stored as one validated JSON document: it is read and replaced as a
+// whole, never queried by node. `sessionId` is the Anthropic Managed Agents
+// session doing the research; `requestId` makes "start" idempotent.
+model GenealogyScan {
+  id            String              @id @default(cuid())
+  appUserId     String              @map("app_user_id")
+  requestId     String              @unique @map("request_id")
+  surname       String
+  anchors       Json?
+  locale        String              @default("en-US")
+  status        GenealogyScanStatus @default(RUNNING)
+  sessionId     String?             @map("session_id")
+  graph         Json?
+  nodeCount     Int                 @default(0) @map("node_count")
+  edgeCount     Int                 @default(0) @map("edge_count")
+  failureCode   String?             @map("failure_code")
+  listCostCents Int?                @map("list_cost_cents")
+  lastSyncedAt  DateTime?           @map("last_synced_at")
+  completedAt   DateTime?           @map("completed_at")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  appUser       AppUser             @relation(fields: [appUserId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([appUserId, createdAt])
+  @@map("app_genealogy_scans")
 }
 
 // ─── Suppliers ───────────────────────────────────────────────────────────────

@@ -127,6 +127,16 @@
       "unavailable": "This profile is not available in your tree, or you are not yet an authorized guardian.",
       "coGuardianLimit": "Another guardian of this profile has reached their plan's memorial limit. Capacity must be available before adding this memorial.",
       "retry": "The profile or plan limit changed during this request. Please try again."
+    },
+    "genealogyScan": {
+      "tooManyRequests": "Too many scan requests. Please try again later.",
+      "notConfigured": "Genealogy Scan isn't available yet.",
+      "premiumRequired": "Genealogy Scan is part of the Premium plan.",
+      "monthlyLimitReached": "You've used all of this month's scans. More will be available next month.",
+      "scanInProgress": "A scan is already running. Wait for it to finish before starting another.",
+      "unavailable": "The scan couldn't be started. Nothing was charged to your allowance. Please try again.",
+      "notFound": "Scan not found.",
+      "deleted": "Scan deleted."
     }
   },
   "Auth": {

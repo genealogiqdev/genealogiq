@@ -1,0 +1,34 @@
+@import 'tailwindcss';
+@import 'uniwind';
+@import 'heroui-native/styles';
+@import './themes/systems.css';
+
+@source './node_modules/heroui-native/lib';
+@source './src';
+
+@theme {
+  --field-border-width: 1px;
+}
+
+/* Uniwind requires every theme to define the same variables. The built-in
+   light/dark themes are only on screen for an instant before a system theme
+   is applied, but they still need the font and radius tokens. */
+@layer theme {
+  :root {
+    @variant light {
+      --font-normal: 'Inter_400Regular';
+      --font-medium: 'Inter_500Medium';
+      --font-semibold: 'Inter_600SemiBold';
+      --font-bold: 'Inter_700Bold';
+      --radius: 0.625rem;
+    }
+
+    @variant dark {
+      --font-normal: 'Inter_400Regular';
+      --font-medium: 'Inter_500Medium';
+      --font-semibold: 'Inter_600SemiBold';
+      --font-bold: 'Inter_700Bold';
+      --radius: 0.625rem;
+    }
+  }
+}

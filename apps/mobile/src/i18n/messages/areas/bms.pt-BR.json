@@ -1,0 +1,21 @@
+{
+  "tabs": {
+    "dashboard": "Painel",
+    "customers": "Clientes",
+    "sales": "Vendas",
+    "products": "Produtos",
+    "more": "Mais"
+  },
+  "segments": {
+    "partners": "Parceiros (B2B)",
+    "consumers": "Clientes finais"
+  },
+  "readOnly": "Seu perfil pode consultar estas informações, mas não pode alterá-las.",
+  "fixedAmount": "Valor fixo de desconto",
+  "amountIn": "Valor ({currency})",
+  "countries": {
+    "BR": "Brasil",
+    "US": "Estados Unidos",
+    "MX": "México"
+  }
+}

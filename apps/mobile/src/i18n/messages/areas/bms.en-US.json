@@ -1,0 +1,21 @@
+{
+  "tabs": {
+    "dashboard": "Dashboard",
+    "customers": "Customers",
+    "sales": "Sales",
+    "products": "Products",
+    "more": "More"
+  },
+  "segments": {
+    "partners": "Partners (B2B)",
+    "consumers": "Final customers"
+  },
+  "readOnly": "Your role can view this information but cannot change it.",
+  "fixedAmount": "Fixed amount off",
+  "amountIn": "Amount ({currency})",
+  "countries": {
+    "BR": "Brazil",
+    "US": "United States",
+    "MX": "Mexico"
+  }
+}

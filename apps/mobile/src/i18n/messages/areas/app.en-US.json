@@ -1,0 +1,33 @@
+{
+  "tabs": {
+    "home": "Home",
+    "scan": "Scan",
+    "messages": "Messages",
+    "messagesUnread": "Messages, {count} unread",
+    "account": "Account"
+  },
+  "home": {
+    "searchMinChars": "Type at least {count} characters to search.",
+    "genealogyScan": "Genealogy Scan",
+    "genealogyScanSubtitle": "Scan a document or photo into your family history"
+  },
+  "scan": {
+    "permissionIntro": "Allow camera access to scan a Genealogiq QR Code.",
+    "allowCamera": "Allow camera",
+    "permissionDeniedHint": "Allow camera access for Genealogiq in the device settings, then come back.",
+    "openSettings": "Open settings",
+    "retry": "Try again",
+    "manualHint": "No camera at hand? Type the activation code printed with the plaque."
+  },
+  "account": {
+    "deleted": "Your account was deleted.",
+    "noPassword": "This account signs in with Google and has no password, so its email, password and deletion are managed on the website.",
+    "deleteHint": "Permanently removes your account and all its data."
+  },
+  "plans": {
+    "manualPrice": "Activated by the team"
+  },
+  "avatar": {
+    "takePhoto": "Take photo"
+  }
+}

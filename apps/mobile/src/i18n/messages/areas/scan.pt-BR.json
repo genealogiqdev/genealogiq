@@ -1,0 +1,221 @@
+{
+  "title": "Busca Genealógica",
+  "intro": {
+    "what": "Digite um sobrenome de família e um assistente de pesquisa vasculha a web pública por alguns minutos. Depois, ele mostra o que encontrou como um mapa de notas conectadas: origens, variações de grafia, lugares, migrações e pessoas documentadas.",
+    "limit": "Um mesmo sobrenome é usado por muitas famílias sem parentesco entre si. Por isso, sem mais detalhes, o resultado é um mapa do sobrenome, e não da sua ascendência. Informe parentes que você conhece (nomes, lugares, anos aproximados) para que a pesquisa seja sobre a sua família.",
+    "privacy": "O sobrenome e os detalhes digitados aqui são enviados a um serviço de pesquisa com IA. Pessoas vivas sem vida pública ficam de fora dos resultados."
+  },
+  "access": {
+    "usage": "{used} de {limit} buscas usadas neste mês",
+    "notConfigured": {
+      "title": "A Busca Genealógica ainda não está disponível",
+      "body": "Este recurso ainda não foi ativado. Volte mais tarde."
+    },
+    "premiumRequired": {
+      "title": "Recurso do plano Premium",
+      "body": "A Busca Genealógica faz pesquisas longas e, por isso, está incluída no Premium.",
+      "cta": "Ver planos"
+    },
+    "monthlyLimitReached": {
+      "title": "As buscas deste mês acabaram",
+      "body": "Você usou {used} de {limit} buscas neste mês. No mês que vem haverá mais."
+    },
+    "scanInProgress": {
+      "title": "Já existe uma busca em andamento",
+      "body": "Você poderá iniciar outra quando ela terminar.",
+      "cta": "Abrir a busca em andamento"
+    }
+  },
+  "form": {
+    "heading": "Iniciar uma busca",
+    "surname": "Sobrenome da família",
+    "surnameHint": "Letras, espaços, apóstrofos, pontos e hifens.",
+    "anchorsTitle": "Parentes que você conhece (opcional)",
+    "anchorsHint": "Até 8. Cada um ajuda a pesquisa a encontrar a sua família entre todas as que têm o mesmo sobrenome.",
+    "anchorN": "Parente {n}",
+    "removeAnchor": "Remover parente {n}",
+    "relation": "Quem é?",
+    "relations": {
+      "self": "Eu",
+      "parent": "Meu pai ou minha mãe",
+      "grandparent": "Meu avô ou minha avó",
+      "great_grandparent": "Meu bisavô ou minha bisavó",
+      "other": "Outro parente"
+    },
+    "name": "Nome completo",
+    "place": "Lugar (opcional)",
+    "year": "Ano aproximado (opcional)",
+    "yearHint": "O ano de nascimento ou qualquer ano em que a pessoa estava viva.",
+    "addAnchor": "Adicionar parente",
+    "maxAnchors": "Você pode adicionar até {max} parentes.",
+    "notes": "Mais alguma informação útil (opcional)",
+    "notesHint": "{count} de {max} caracteres",
+    "consent": "Ao iniciar, o sobrenome e esses detalhes são enviados ao serviço de pesquisa com IA, e uma das buscas deste mês é usada.",
+    "start": "Iniciar busca"
+  },
+  "issues": {
+    "required": "Este campo é obrigatório.",
+    "tooShort": "Use pelo menos 2 caracteres.",
+    "tooLong": "Use no máximo {max} caracteres.",
+    "invalidCharacters": "Use apenas letras, espaços, apóstrofos, pontos e hifens, começando por uma letra.",
+    "invalidYear": "Informe um ano com quatro dígitos, até o ano atual."
+  },
+  "list": {
+    "title": "Suas buscas",
+    "empty": "Você ainda não fez nenhuma busca.",
+    "nodes": "{count, plural, =0 {Nenhuma nota ainda} one {# nota} other {# notas}}",
+    "links": "{count, plural, =0 {Sem ligações} one {# ligação} other {# ligações}}",
+    "delete": "Excluir a busca {surname}",
+    "deleteTitle": "Excluir a busca {surname}?",
+    "deleteBody": "A busca e o grafo serão removidos. Não é possível desfazer.",
+    "deleteRunningBody": "Esta busca ainda está em andamento. Ao excluir, a pesquisa é interrompida e o que já foi encontrado é removido. Não é possível desfazer.",
+    "filteredEmpty": "Nenhuma nota corresponde aos filtros atuais."
+  },
+  "status": {
+    "RUNNING": "Pesquisando",
+    "COMPLETED": "Concluída",
+    "FAILED": "Interrompida"
+  },
+  "detail": {
+    "notFound": {
+      "title": "Busca não encontrada",
+      "body": "Ela pode ter sido excluída.",
+      "cta": "Voltar à Busca Genealógica"
+    },
+    "running": {
+      "title": "Pesquisando {surname}…",
+      "body": "Isso costuma levar alguns minutos. Você pode sair e voltar depois: o grafo aparece aqui assim que chegarem os primeiros resultados.",
+      "banner": "{count, plural, one {Pesquisa em andamento. # nota até agora.} other {Pesquisa em andamento. # notas até agora.}}"
+    },
+    "failed": {
+      "title": "Não foi possível concluir esta busca",
+      "body": "A pesquisa parou antes de gerar um resultado. Você pode começar de novo.",
+      "partial": "A pesquisa parou antes do fim. Estes são resultados parciais.",
+      "cta": "Começar de novo"
+    },
+    "empty": {
+      "title": "Nada foi encontrado",
+      "body": "A pesquisa terminou sem resultados para este sobrenome."
+    }
+  },
+  "notify": {
+    "button": "Ativar notificações",
+    "hint": "Ativa as notificações do Genealogiq neste aparelho. As buscas ainda não enviam um aviso próprio; volte em alguns minutos.",
+    "enabled": "As notificações estão ativadas neste aparelho.",
+    "unsupported": "As notificações não estão disponíveis neste aparelho.",
+    "unavailable": "Não foi possível ativar as notificações agora.",
+    "channel": "Genealogiq"
+  },
+  "controls": {
+    "search": "Localizar uma nota",
+    "showList": "Ver como lista",
+    "showGraph": "Ver como grafo",
+    "local": "Grafo local",
+    "hops": "{count, plural, one {# passo} other {# passos}}",
+    "fewerHops": "Menos passos",
+    "moreHops": "Mais passos",
+    "legend": "Legenda e filtros",
+    "fit": "Ajustar à tela",
+    "recentre": "Ir para o sobrenome",
+    "hint": "Toque em uma nota para ler. Use dois dedos para ampliar e arraste para mover.",
+    "summary": "Resumo da busca",
+    "share": "Compartilhar em Markdown"
+  },
+  "legend": {
+    "title": "Legenda e filtros",
+    "help": "Toque em um item para mostrá-lo ou ocultá-lo no grafo e na lista.",
+    "types": "Tipo de nota (cor)",
+    "confidences": "Confiança (contorno)",
+    "confidence": "{confidence} ({style})",
+    "size": "Círculos maiores têm mais ligações.",
+    "shown": "{label}, visível",
+    "hidden": "{label}, oculto"
+  },
+  "types": {
+    "surname": "Sobrenome",
+    "variant": "Variação",
+    "person": "Pessoa",
+    "family": "Família",
+    "place": "Lugar",
+    "event": "Evento"
+  },
+  "confidence": {
+    "documented": "Documentado",
+    "probable": "Provável",
+    "speculative": "Especulativo"
+  },
+  "confidenceMeaning": {
+    "documented": "Um registro ou uma referência confiável afirma isso diretamente.",
+    "probable": "Várias fontes apontam na mesma direção, mas nenhuma afirma isso com todas as letras.",
+    "speculative": "Uma pista que vale conferir, não um fato comprovado."
+  },
+  "confidenceStyle": {
+    "documented": "contorno contínuo",
+    "probable": "contorno tracejado",
+    "speculative": "contorno pontilhado"
+  },
+  "note": {
+    "noSummary": "Esta nota não tem descrição.",
+    "linked": "Notas ligadas",
+    "noLinks": "Nenhuma outra nota está ligada a esta.",
+    "sources": "Fontes",
+    "noSources": "Nenhuma fonte registrada.",
+    "sourceNoLink": "Link indisponível"
+  },
+  "relations": {
+    "parent_of": { "out": "Pai ou mãe de", "in": "Filho ou filha de" },
+    "spouse_of": { "out": "Cônjuge de", "in": "Cônjuge de" },
+    "sibling_of": { "out": "Irmão ou irmã de", "in": "Irmão ou irmã de" },
+    "variant_of": { "out": "Variação de", "in": "Variações" },
+    "originated_in": { "out": "Originou-se em", "in": "Lugar de origem de" },
+    "lived_in": { "out": "Viveu em", "in": "Viveram aqui" },
+    "migrated_to": { "out": "Migrou para", "in": "Migraram para cá" },
+    "member_of": { "out": "Faz parte de", "in": "Integrantes" },
+    "participated_in": { "out": "Participou de", "in": "Participantes" },
+    "related_to": { "out": "Relacionado a", "in": "Relacionado a" }
+  },
+  "summary": {
+    "title": "{surname}: resumo",
+    "counts": "{nodes} notas · {edges} ligações · {sources} fontes",
+    "noSummary": "Esta busca não tem um resumo geral.",
+    "byType": "Notas por tipo",
+    "byConfidence": "Notas por confiança",
+    "sources": "Todas as fontes"
+  },
+  "tree": {
+    "action": "Adicionar à minha árvore",
+    "title": "Adicionar à minha árvore genealógica",
+    "explain": "Isso cria uma nova pessoa na sua árvore genealógica a partir desta nota. Confira os dados e escolha o parentesco dela com você. Nada é salvo antes da sua confirmação.",
+    "firstName": "Nome",
+    "lastName": "Sobrenome",
+    "relation": "Esta pessoa é…",
+    "kinds": {
+      "parent": "Meu pai ou minha mãe",
+      "child": "Meu filho ou minha filha",
+      "spouse": "Meu cônjuge ou companheiro(a)",
+      "sibling": "Meu irmão ou minha irmã"
+    },
+    "birthYear": "Ano de nascimento",
+    "deathYear": "Ano de falecimento",
+    "approximate": "A busca indica que esses anos são aproximados.",
+    "yearNote": "Como só o ano é conhecido, a data é salva como 1º de janeiro daquele ano. Você pode corrigi-la na sua árvore.",
+    "required": "Este campo é obrigatório.",
+    "relationRequired": "Escolha o parentesco desta pessoa com você.",
+    "invalidYear": "Informe um ano com quatro dígitos, até o ano atual.",
+    "deathBeforeBirth": "O ano de falecimento não pode ser anterior ao de nascimento.",
+    "speculativeWarning": "Esta nota é especulativa: nenhuma fonte a confirma. Adicione apenas se você tiver suas próprias evidências.",
+    "confirmTitle": "Adicionar esta pessoa à sua árvore?",
+    "confirmBody": "{name} será adicionado(a) à sua árvore genealógica. Parentesco com você: {relation}.",
+    "confirm": "Adicionar à minha árvore",
+    "added": "{name} agora faz parte da sua árvore genealógica."
+  },
+  "export": {
+    "title": "Busca Genealógica: {surname}",
+    "type": "Tipo",
+    "years": "Anos",
+    "confidence": "Confiança"
+  },
+  "a11y": {
+    "canvas": "Grafo com {nodes} notas e {edges} ligações. Mude para a lista para ler as notas uma a uma."
+  }
+}

@@ -1,0 +1,221 @@
+{
+  "title": "Búsqueda Genealógica",
+  "intro": {
+    "what": "Escribe un apellido y un asistente de investigación revisa la web pública durante varios minutos. Después te muestra lo que encontró como un mapa de notas conectadas: orígenes, variantes de escritura, lugares, migraciones y personas documentadas.",
+    "limit": "Un mismo apellido lo llevan muchas familias sin parentesco entre sí. Por eso, sin más datos, el resultado es un mapa del apellido y no de tu ascendencia. Agrega familiares que conozcas (nombres, lugares, años aproximados) para que la investigación trate de tu familia.",
+    "privacy": "El apellido y los datos que escribas aquí se envían a un servicio de investigación con IA. Las personas vivas sin vida pública quedan fuera de los resultados."
+  },
+  "access": {
+    "usage": "{used} de {limit} búsquedas usadas este mes",
+    "notConfigured": {
+      "title": "La Búsqueda Genealógica aún no está disponible",
+      "body": "Esta función todavía no se ha activado. Vuelve más tarde."
+    },
+    "premiumRequired": {
+      "title": "Incluida en el plan Premium",
+      "body": "La Búsqueda Genealógica realiza investigaciones largas, por eso forma parte de Premium.",
+      "cta": "Ver planes"
+    },
+    "monthlyLimitReached": {
+      "title": "Ya usaste las búsquedas de este mes",
+      "body": "Usaste {used} de {limit} búsquedas este mes. El próximo mes tendrás más."
+    },
+    "scanInProgress": {
+      "title": "Ya hay una búsqueda en curso",
+      "body": "Podrás iniciar otra cuando termine.",
+      "cta": "Abrir la búsqueda en curso"
+    }
+  },
+  "form": {
+    "heading": "Iniciar una búsqueda",
+    "surname": "Apellido de la familia",
+    "surnameHint": "Letras, espacios, apóstrofos, puntos y guiones.",
+    "anchorsTitle": "Familiares que conoces (opcional)",
+    "anchorsHint": "Hasta 8. Cada uno ayuda a encontrar a tu familia entre todas las que comparten el apellido.",
+    "anchorN": "Familiar {n}",
+    "removeAnchor": "Quitar familiar {n}",
+    "relation": "¿Quién es?",
+    "relations": {
+      "self": "Yo",
+      "parent": "Mi padre o mi madre",
+      "grandparent": "Mi abuelo o mi abuela",
+      "great_grandparent": "Mi bisabuelo o mi bisabuela",
+      "other": "Otro familiar"
+    },
+    "name": "Nombre completo",
+    "place": "Lugar (opcional)",
+    "year": "Año aproximado (opcional)",
+    "yearHint": "El año de nacimiento o cualquier año en que la persona vivía.",
+    "addAnchor": "Agregar familiar",
+    "maxAnchors": "Puedes agregar hasta {max} familiares.",
+    "notes": "Algo más que convenga saber (opcional)",
+    "notesHint": "{count} de {max} caracteres",
+    "consent": "Al iniciar, el apellido y estos datos se envían al servicio de investigación con IA y se usa una de las búsquedas de este mes.",
+    "start": "Iniciar búsqueda"
+  },
+  "issues": {
+    "required": "Este campo es obligatorio.",
+    "tooShort": "Usa al menos 2 caracteres.",
+    "tooLong": "Usa como máximo {max} caracteres.",
+    "invalidCharacters": "Usa solo letras, espacios, apóstrofos, puntos y guiones, empezando con una letra.",
+    "invalidYear": "Escribe un año de cuatro dígitos que no sea posterior al actual."
+  },
+  "list": {
+    "title": "Tus búsquedas",
+    "empty": "Aún no has hecho ninguna búsqueda.",
+    "nodes": "{count, plural, =0 {Aún sin notas} one {# nota} other {# notas}}",
+    "links": "{count, plural, =0 {Sin vínculos} one {# vínculo} other {# vínculos}}",
+    "delete": "Eliminar la búsqueda {surname}",
+    "deleteTitle": "¿Eliminar la búsqueda {surname}?",
+    "deleteBody": "Se eliminarán la búsqueda y su grafo. Esta acción no se puede deshacer.",
+    "deleteRunningBody": "Esta búsqueda sigue en curso. Al eliminarla, la investigación se detiene y se borra lo encontrado hasta ahora. Esta acción no se puede deshacer.",
+    "filteredEmpty": "Ninguna nota coincide con los filtros actuales."
+  },
+  "status": {
+    "RUNNING": "Investigando",
+    "COMPLETED": "Terminada",
+    "FAILED": "Interrumpida"
+  },
+  "detail": {
+    "notFound": {
+      "title": "No encontramos esta búsqueda",
+      "body": "Es posible que se haya eliminado.",
+      "cta": "Volver a Búsqueda Genealógica"
+    },
+    "running": {
+      "title": "Investigando {surname}…",
+      "body": "Suele tardar varios minutos. Puedes salir y volver después: el grafo aparecerá aquí en cuanto lleguen los primeros resultados.",
+      "banner": "{count, plural, one {Investigación en curso. # nota hasta ahora.} other {Investigación en curso. # notas hasta ahora.}}"
+    },
+    "failed": {
+      "title": "No se pudo completar esta búsqueda",
+      "body": "La investigación se detuvo antes de dar un resultado. Puedes empezar de nuevo.",
+      "partial": "La investigación se detuvo antes de terminar. Estos son resultados parciales.",
+      "cta": "Empezar de nuevo"
+    },
+    "empty": {
+      "title": "No se encontró nada",
+      "body": "La investigación terminó sin resultados para este apellido."
+    }
+  },
+  "notify": {
+    "button": "Activar notificaciones",
+    "hint": "Activa las notificaciones de Genealogiq en este dispositivo. Las búsquedas aún no envían su propio aviso; vuelve en unos minutos.",
+    "enabled": "Las notificaciones están activadas en este dispositivo.",
+    "unsupported": "Las notificaciones no están disponibles en este dispositivo.",
+    "unavailable": "No se pudieron activar las notificaciones en este momento.",
+    "channel": "Genealogiq"
+  },
+  "controls": {
+    "search": "Buscar una nota",
+    "showList": "Ver como lista",
+    "showGraph": "Ver como grafo",
+    "local": "Grafo local",
+    "hops": "{count, plural, one {# paso} other {# pasos}}",
+    "fewerHops": "Menos pasos",
+    "moreHops": "Más pasos",
+    "legend": "Leyenda y filtros",
+    "fit": "Ajustar a la pantalla",
+    "recentre": "Ir al apellido",
+    "hint": "Toca una nota para leerla. Pellizca para acercar y arrastra para mover.",
+    "summary": "Resumen de la búsqueda",
+    "share": "Compartir en Markdown"
+  },
+  "legend": {
+    "title": "Leyenda y filtros",
+    "help": "Toca un elemento para mostrarlo u ocultarlo en el grafo y en la lista.",
+    "types": "Tipo de nota (color)",
+    "confidences": "Confianza (contorno)",
+    "confidence": "{confidence} ({style})",
+    "size": "Los círculos más grandes tienen más vínculos.",
+    "shown": "{label}, visible",
+    "hidden": "{label}, oculto"
+  },
+  "types": {
+    "surname": "Apellido",
+    "variant": "Variante",
+    "person": "Persona",
+    "family": "Familia",
+    "place": "Lugar",
+    "event": "Evento"
+  },
+  "confidence": {
+    "documented": "Documentado",
+    "probable": "Probable",
+    "speculative": "Especulativo"
+  },
+  "confidenceMeaning": {
+    "documented": "Un registro o una referencia confiable lo afirma directamente.",
+    "probable": "Varias fuentes apuntan en la misma dirección, pero ninguna lo dice de forma explícita.",
+    "speculative": "Una pista que vale la pena revisar, no un hecho comprobado."
+  },
+  "confidenceStyle": {
+    "documented": "contorno continuo",
+    "probable": "contorno discontinuo",
+    "speculative": "contorno punteado"
+  },
+  "note": {
+    "noSummary": "Esta nota no tiene descripción.",
+    "linked": "Notas vinculadas",
+    "noLinks": "Ninguna otra nota está vinculada con esta.",
+    "sources": "Fuentes",
+    "noSources": "No hay fuentes registradas.",
+    "sourceNoLink": "Enlace no disponible"
+  },
+  "relations": {
+    "parent_of": { "out": "Padre o madre de", "in": "Hijo o hija de" },
+    "spouse_of": { "out": "Cónyuge de", "in": "Cónyuge de" },
+    "sibling_of": { "out": "Hermano o hermana de", "in": "Hermano o hermana de" },
+    "variant_of": { "out": "Variante de", "in": "Variantes" },
+    "originated_in": { "out": "Se originó en", "in": "Lugar de origen de" },
+    "lived_in": { "out": "Vivió en", "in": "Vivieron aquí" },
+    "migrated_to": { "out": "Migró a", "in": "Migraron aquí" },
+    "member_of": { "out": "Forma parte de", "in": "Integrantes" },
+    "participated_in": { "out": "Participó en", "in": "Participantes" },
+    "related_to": { "out": "Relacionado con", "in": "Relacionado con" }
+  },
+  "summary": {
+    "title": "{surname}: resumen",
+    "counts": "{nodes} notas · {edges} vínculos · {sources} fuentes",
+    "noSummary": "Esta búsqueda no tiene un resumen general.",
+    "byType": "Notas por tipo",
+    "byConfidence": "Notas por confianza",
+    "sources": "Todas las fuentes"
+  },
+  "tree": {
+    "action": "Agregar a mi árbol",
+    "title": "Agregar a mi árbol genealógico",
+    "explain": "Esto crea una persona nueva en tu árbol genealógico a partir de esta nota. Revisa los datos y elige su parentesco contigo. No se guarda nada hasta que confirmes.",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "relation": "Esta persona es…",
+    "kinds": {
+      "parent": "Mi padre o mi madre",
+      "child": "Mi hijo o mi hija",
+      "spouse": "Mi cónyuge o pareja",
+      "sibling": "Mi hermano o mi hermana"
+    },
+    "birthYear": "Año de nacimiento",
+    "deathYear": "Año de fallecimiento",
+    "approximate": "La búsqueda indica que estos años son aproximados.",
+    "yearNote": "Como solo se conoce el año, la fecha se guarda como el 1 de enero de ese año. Puedes corregirla en tu árbol.",
+    "required": "Este campo es obligatorio.",
+    "relationRequired": "Elige el parentesco de esta persona contigo.",
+    "invalidYear": "Escribe un año de cuatro dígitos que no sea posterior al actual.",
+    "deathBeforeBirth": "El año de fallecimiento no puede ser anterior al de nacimiento.",
+    "speculativeWarning": "Esta nota es especulativa: ninguna fuente la confirma. Agrégala solo si tienes tus propias pruebas.",
+    "confirmTitle": "¿Agregar esta persona a tu árbol?",
+    "confirmBody": "{name} se agregará a tu árbol genealógico. Parentesco contigo: {relation}.",
+    "confirm": "Agregar a mi árbol",
+    "added": "{name} ya forma parte de tu árbol genealógico."
+  },
+  "export": {
+    "title": "Búsqueda Genealógica: {surname}",
+    "type": "Tipo",
+    "years": "Años",
+    "confidence": "Confianza"
+  },
+  "a11y": {
+    "canvas": "Grafo con {nodes} notas y {edges} vínculos. Cambia a la lista para leer las notas una por una."
+  }
+}

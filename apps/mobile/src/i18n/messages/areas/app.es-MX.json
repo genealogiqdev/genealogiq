@@ -1,0 +1,33 @@
+{
+  "tabs": {
+    "home": "Inicio",
+    "scan": "Escanear",
+    "messages": "Mensajes",
+    "messagesUnread": "Mensajes, {count} sin leer",
+    "account": "Cuenta"
+  },
+  "home": {
+    "searchMinChars": "Escribe al menos {count} caracteres para buscar.",
+    "genealogyScan": "Genealogy Scan",
+    "genealogyScanSubtitle": "Digitaliza un documento o una foto para la historia de tu familia"
+  },
+  "scan": {
+    "permissionIntro": "Permite el acceso a la cámara para escanear un código QR de Genealogiq.",
+    "allowCamera": "Permitir cámara",
+    "permissionDeniedHint": "Permite el acceso a la cámara para Genealogiq en los ajustes del dispositivo y vuelve aquí.",
+    "openSettings": "Abrir ajustes",
+    "retry": "Intentar de nuevo",
+    "manualHint": "¿Sin cámara a la mano? Escribe el código de activación impreso con la placa."
+  },
+  "account": {
+    "deleted": "Tu cuenta fue eliminada.",
+    "noPassword": "Esta cuenta inicia sesión con Google y no tiene contraseña; por eso el correo, la contraseña y la eliminación se gestionan en el sitio web.",
+    "deleteHint": "Elimina de forma permanente tu cuenta y todos sus datos."
+  },
+  "plans": {
+    "manualPrice": "Activado por el equipo"
+  },
+  "avatar": {
+    "takePhoto": "Tomar foto"
+  }
+}

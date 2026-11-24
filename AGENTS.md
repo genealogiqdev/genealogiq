@@ -16,13 +16,14 @@
 
 ## Repository and apps
 
-The pnpm/Turbo monorepo has three Next.js apps and shared workspace packages. The apps share one PostgreSQL database and canonical Prisma schema.
+The pnpm/Turbo monorepo has three Next.js apps, one Expo mobile app and shared workspace packages. The apps share one PostgreSQL database and canonical Prisma schema. The mobile app holds no data of its own: it calls the three web apps through the [mobile API](docs/MOBILE-API.md).
 
 | App | Agent guide | Product responsibility | Local origin |
 | --- | --- | --- | --- |
 | APP | [apps/app/AGENTS.md](apps/app/AGENTS.md) | Consumer accounts, public profiles, memorials, genealogy, media and consumer billing | http://localhost:3000 |
 | BMS | [apps/bms/AGENTS.md](apps/bms/AGENTS.md) | Back-office company/staff, partner catalog, contracts, pricing, package sales, APP customer directory, direct consumer access and reporting | http://localhost:3001 |
 | SEQ | [apps/seq/AGENTS.md](apps/seq/AGENTS.md) | Tenant staff, customers/suppliers, GenCode inventory, purchasing and operations | http://localhost:3002 |
+| Mobile | [apps/mobile/AGENTS.md](apps/mobile/AGENTS.md) | Expo / React Native client for APP, BMS and SEQ; the user picks the system at sign-in | Expo dev server |
 
 | Shared package | Responsibility |
 | --- | --- |
@@ -42,8 +43,9 @@ The pnpm/Turbo monorepo has three Next.js apps and shared workspace packages. Th
 | [MEDIA-STORAGE](docs/MEDIA-STORAGE.md) | Azure/Vercel media authorization and promotion | `packages/services/src/media-storage.ts` | `pnpm test` |
 | [MEDIA-MIGRATION](docs/MEDIA-MIGRATION.md) | Resumable legacy-media migration | `packages/services/src/media-migration.ts` | `pnpm test` |
 | [EMAIL-DELIVERY](docs/EMAIL-DELIVERY.md) | Transactional email delivery | `packages/email/src/index.ts` | `pnpm test` |
+| [MOBILE-API](docs/MOBILE-API.md) | Bearer sessions and the view/action bridge used by the mobile app | `packages/auth/src/mobile.ts` | `pnpm test` |
 
-The app indexes contain 18 APP, ten BMS and seven SEQ feature documents; the five shared documents bring the inventory to 40. Feature boundaries describe independently entered contracts, not promises of complete test or UI coverage.
+The app indexes contain 19 APP, ten BMS and seven SEQ feature documents; the six shared documents bring the inventory to 42. Feature boundaries describe independently entered contracts, not promises of complete test or UI coverage.
 
 ## Invariants
 
@@ -52,6 +54,8 @@ The app indexes contain 18 APP, ten BMS and seven SEQ feature documents; the fiv
 - SEQ reseller customers use BusinessCustomer inside the current Tenant. They are not APP accounts or BMS partners. The manufacturer uses SEQ; its funeral-home customers need no staff login. Printing stock creates no buyer or sale. BusinessGenCodeSale records the exact wholesale codes. An authenticated final APP buyer may claim an unassigned sold code during activation, using its reserved credit. Prior SEQ delivery is optional. [SEQ customers](apps/seq/docs/CUSTOMERS-MEMORIALS.md) owns this flow.
 - The BMS APP customer directory lists all APP_USER accounts across partners, including inactive accounts and legacy rows without email. Reads require live platform administrator scope; this global visibility does not change SEQ tenant boundaries or eligibility for independent Premium gifts.
 - BMS platform administrators may explicitly link an independent APP_USER, including direct APP registrations, to an active Sequoia company. Link only the customer, preserving guardianships, QR data and sale/gift scope; reject transfers of already linked customers. Original direct gifts remain manageable in BMS after linking. [CONSUMERS](apps/bms/docs/CONSUMERS.md) owns this contract.
+- The mobile app authenticates with a per-system bearer token and reaches data only through `/api/mobile/v1` in each app. Every mobile view applies the guard of the web page it mirrors, takes user and tenant ids from the session, and requires an `Authorization` header unless explicitly public. Keep the web and mobile registries in step when a page or action changes. [MOBILE-API](docs/MOBILE-API.md) owns this contract.
+- Adding a workspace must not change how the web apps resolve React or Next: shared packages pin `react`/`react-dom` 19.2.8 as dev dependencies because the mobile app uses React 19.3. Check `pnpm-lock.yaml` for a new `next@` variant after dependency changes.
 - UI visibility is not authorization. Recheck scope/permissions on every mutation. The current DAL reads session roles; immediate role revocation is an open gap, not an established guarantee.
 - APP authors can add multiple tributes to one profile. Each message has its own ID. Check the tribute ID, author and profile before an edit. Public readers still see only APPROVED tributes. [APP tributes](apps/app/docs/TRIBUTES.md) owns the contract and migration release order.
 - The November 20 tribute migration runs only in the guarded APP release job. Publish ID-based APP code first. Check a private row snapshot before migration. Keep release flags in the named build only; ordinary builds do not run this job. [APP tributes](apps/app/docs/TRIBUTES.md) owns the release and recovery steps.
