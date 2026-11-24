@@ -148,6 +148,7 @@ Rotate that app's `AUTH_SECRET`. Mobile tokens and browser cookies for that syst
 | --- | --- | --- | --- | --- |
 | 2026-11-23 | `8bde62d` + uncommitted mobile work | Source trace and tests | Source: bridge, three registries, per-app `auth()` wrapping. Tests: `pnpm test` 1,849 passed, 71 skipped | None in tests |
 | 2026-11-23 | Same | Local runtime over HTTP | The three manual scenarios above against ports 4000–4002 | Device run remains open (G1) |
+| 2026-11-24 | `2d02307` (merged PR #218) | Production release | Migration applied by the guarded APP build; all three hosts serve the release; mobile API boundaries 401/400/404 as designed on each host. [Release audit](audits/PRODUCTION-RELEASE-2026-11-24.md) | No authenticated production sign-in; device run open (G1) |
 
 ## Related
 

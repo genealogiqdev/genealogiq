@@ -155,6 +155,7 @@ Adjust `SCAN_POLICY` (budget per scan, scans per month, grading iterations) in [
 | --- | --- | --- | --- | --- |
 | 2026-11-23 | `8bde62d` + uncommitted work | Source trace and tests | Source: actions, service, validator, views, agent files. Tests: `pnpm test` 1,849 passed, 71 skipped | None in tests |
 | 2026-11-23 | Same | Local runtime over HTTP | Unconfigured boundary and input validation, as in QA evidence | Happy path n/a without a key (G1) |
+| 2026-11-24 | `2d02307` (merged PR #218) | Production release | The `app_genealogy_scans` table exists in production; the feature stays off until its three settings are configured. [Release audit](../../../docs/audits/PRODUCTION-RELEASE-2026-11-24.md) | Happy path still n/a (G1) |
 
 ## Related
 

@@ -95,6 +95,8 @@ The Vercel migration runbook's database, media, authentication, billing and
 health gates govern production acceptance. A successful build or DNS update
 alone does not establish a completed cutover.
 
+**November 24 release:** [Release audit](docs/audits/PRODUCTION-RELEASE-2026-11-24.md) records merged PR #218 (mobile app, mobile API, Genealogy Scan, native push) at `2d02307`, green CI, the guarded additive mobile migration with a checked private snapshot (81 migrations applied), and three new production builds. All public roots, readiness routes and mobile API boundaries pass; device and authenticated acceptance remain pending.
+
 **November 20 release:** [Release audit](docs/audits/PRODUCTION-RELEASE-2026-11-20.md) records merged PRs #215/#216, 1,574 passing tests, all three CI image builds and live APP/SEQ source `58344b6`. The guarded tribute migration followed APP publication; two checked private snapshots, all 80 canonical migrations and the exact SQL hash pass. Four public HTTPS roots, three database readiness routes and anonymous document/cron limits pass. Chrome acceptance remains pending.
 
 **October 30 release:** [Consolidated release audit](docs/audits/PRODUCTION-RELEASE-2026-10-30.md)
